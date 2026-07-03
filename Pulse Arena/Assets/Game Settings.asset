@@ -17,21 +17,53 @@ MonoBehaviour:
   PlayerData:
     MoveSpeed: 6
     RotationSpeed: 720
+    ExtraGravity: 35
     MaxHealth: 3
   EnemyData:
     MoveSpeed: 3.5
     RotationSpeed: 8
     KnockbackDuration: 0.45
+    ExtraGravity: 45
+    MaxHealth: 3
     ScoreReward: 1
+    HitFlashDuration: 0.12
+    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
   PulseData:
     Radius: 5
-    Force: 18
-    Cooldown: 0.35
+    Force: 16
+    Cooldown: 1.5
+    UpwardForceRatio: 0.6
+    MinForceMultiplier: 0.45
     MaxCharge: 100
     EnergyPerPickup: 25
+    VisualDuration: 0.32
+    VisualStartRadius: 0.5
+    VisualHeight: 0.08
+    VisualWidth: 0.12
+    VisualColor: {r: 0.45, g: 0.9, b: 1, a: 0.85}
     EnemyLayer:
       serializedVersion: 2
-      m_Bits: 0
+      m_Bits: 64
+  WeaponData:
+    Range: 9
+    Radius: 0.45
+    Damage: 1
+    Cooldown: 0.2
+    ProjectileSpeed: 16
+    ProjectileLifetime: 1.2
+    ImpactLifetime: 0.35
+    KnockbackForce: 4
+    OrbitRadius: 1.2
+    OrbitHeight: 0.7
+    OrbitAngularSpeed: 240
+    OrbitVisualScale: 0.7
+    ProjectileVisualScale: 0.45
+    ImpactVisualScale: 0.45
+    OriginHeight: 0.7
+    ForwardOffset: 0.65
+    EnemyLayer:
+      serializedVersion: 2
+      m_Bits: 64
   PickupData:
     RotateSpeed: 120
     BobHeight: 0.25
@@ -46,3 +78,5 @@ MonoBehaviour:
     EnemyPrefab: {fileID: 3034675120685911586, guid: 6e1dfbc7ea15f4a9bbf078f98c3196e9, type: 3}
     EnergyPickupPrefab: {fileID: 5280771719463190649, guid: b1d9c2a9fd7c04fdebfa433506df72a4, type: 3}
     PulseViewPrefab: {fileID: 0}
+    ProjectilePrefab: {fileID: 4994069617656783376, guid: 865f9ee015a694bddb646fe2542e8be9, type: 3}
+    ProjectileImpactPrefab: {fileID: 4440851068322855657, guid: 346eaa3ab991c4923a3f23d2a577fbef, type: 3}

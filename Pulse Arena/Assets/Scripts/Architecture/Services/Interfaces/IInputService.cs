@@ -5,6 +5,7 @@ namespace Architecture.Services.Interfaces
     public interface IInputService
     {
         Vector2 MoveDirection { get; }
+        bool IsShootPressedThisFrame { get; }
         bool IsPulsePressedThisFrame { get; }
         bool IsEnabled { get; }
 

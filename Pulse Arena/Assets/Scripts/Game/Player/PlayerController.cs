@@ -33,14 +33,24 @@ namespace Game.Player
         private void FixedUpdate()
         {
             Move();
+            ApplyExtraGravity();
         }
 
         private void Move()
         {
             Vector2 input = _inputService.MoveDirection;
             Vector3 direction = new Vector3(input.x, 0f, input.y);
+            Vector3 horizontalVelocity = direction * _data.MoveSpeed;
 
-            _rigidbody.linearVelocity = direction * _data.MoveSpeed;
+            _rigidbody.linearVelocity = new Vector3(
+                horizontalVelocity.x,
+                _rigidbody.linearVelocity.y,
+                horizontalVelocity.z);
+        }
+
+        private void ApplyExtraGravity()
+        {
+            _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
         }
 
         private void RotateToInput()

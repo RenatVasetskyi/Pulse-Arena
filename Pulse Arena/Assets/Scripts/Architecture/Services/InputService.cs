@@ -38,6 +38,20 @@ namespace Architecture.Services
                 if (!IsEnabled)
                     return false;
 
+                bool keyPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+                bool mousePressed = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+
+                return keyPressed || mousePressed;
+            }
+        }
+
+        public bool IsShootPressedThisFrame
+        {
+            get
+            {
+                if (!IsEnabled)
+                    return false;
+
                 bool spacePressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
                 bool mousePressed = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
 

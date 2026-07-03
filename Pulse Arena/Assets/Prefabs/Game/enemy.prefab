@@ -156,3 +156,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Enemy.EnemyController
   _rigidbody: {fileID: 9147969120405590603}
+  _renderers: []
