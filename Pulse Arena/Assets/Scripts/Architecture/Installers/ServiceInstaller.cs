@@ -14,7 +14,7 @@ using Zenject;
 
 namespace Architecture.Installers
 {
-    public class ServiceInstaller : MonoInstaller, ICoroutineRunner
+    public class ServiceInstaller : MonoInstaller
     {
         [SerializeField] private GameSettings _gameSettings;
 
@@ -38,9 +38,13 @@ namespace Architecture.Installers
 
         private void BindCoroutineRunner()
         {
+            CoroutineRunner coroutineRunner = new GameObject("CoroutineRunner")
+                .AddComponent<CoroutineRunner>();
+            coroutineRunner.transform.SetParent(transform);
+
             Container
-                .BindInterfacesTo<ServiceInstaller>()
-                .FromInstance(this)
+                .Bind<ICoroutineRunner>()
+                .FromInstance(coroutineRunner)
                 .AsSingle()
                 .NonLazy();
         }

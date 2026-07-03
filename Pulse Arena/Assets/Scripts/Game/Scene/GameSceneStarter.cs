@@ -1,9 +1,9 @@
 using System;
 using Game.Cameras;
+using Game.Combat;
 using Game.Enemy;
 using Game.Player;
 using Game.Player.Interfaces;
-using Game.Pulse;
 using Game.Spawning;
 using UnityEngine;
 using Zenject;
@@ -17,7 +17,8 @@ namespace Game.Scene
         private readonly IBattleCamera _battleCamera;
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
-        private PulseAbility _pulseAbility;
+        private OrbitCutter _orbitCutter;
+        private EnemySlingshot _enemySlingshot;
 
         public GameSceneStarter(
             GameSceneReferences sceneReferences,
@@ -39,7 +40,7 @@ namespace Game.Scene
 
             PlayerController player = SpawnPlayer();
             _battleCamera.Follow(player.transform);
-            SubscribeToPulse(player);
+            SubscribeToCombat(player);
 
             _enemySpawner.Initialize(player.transform, _sceneReferences.EnemySpawnPoints,
                 _sceneReferences.EnemySpawnParent, _sceneReferences.EnemySpawnHeightOffset);
@@ -52,8 +53,14 @@ namespace Game.Scene
 
         public void Dispose()
         {
-            if (_pulseAbility != null)
-                _pulseAbility.Used -= OnPulseUsed;
+            if (_orbitCutter != null)
+                _orbitCutter.BurstUsed -= OnOrbitBurstUsed;
+
+            if (_enemySlingshot != null)
+            {
+                _enemySlingshot.EnemyGrabbed -= OnEnemyGrabbed;
+                _enemySlingshot.EnemyLaunched -= OnEnemyLaunched;
+            }
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
@@ -66,17 +73,34 @@ namespace Game.Scene
                 _sceneReferences.PlayerParent);
         }
 
-        private void SubscribeToPulse(PlayerController player)
+        private void SubscribeToCombat(PlayerController player)
         {
-            _pulseAbility = player.GetComponentInChildren<PulseAbility>();
+            _orbitCutter = player.GetComponent<OrbitCutter>();
+            _enemySlingshot = player.GetComponent<EnemySlingshot>();
 
-            if (_pulseAbility != null)
-                _pulseAbility.Used += OnPulseUsed;
+            if (_orbitCutter != null)
+                _orbitCutter.BurstUsed += OnOrbitBurstUsed;
+
+            if (_enemySlingshot != null)
+            {
+                _enemySlingshot.EnemyGrabbed += OnEnemyGrabbed;
+                _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
+            }
         }
 
-        private void OnPulseUsed()
+        private void OnOrbitBurstUsed()
         {
             _battleCamera.Shake(0.22f, 0.45f);
+        }
+
+        private void OnEnemyGrabbed()
+        {
+            _battleCamera.Shake(0.08f, 0.18f);
+        }
+
+        private void OnEnemyLaunched()
+        {
+            _battleCamera.Shake(0.24f, 0.55f);
         }
     }
 }

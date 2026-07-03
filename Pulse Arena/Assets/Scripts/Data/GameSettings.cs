@@ -43,11 +43,18 @@ namespace Data
         public float RotationSpeed = 8f;
         public float KnockbackDuration = 0.45f;
         public float ExtraGravity = 45f;
+        public float AgentRadius = 0.35f;
+        public float AgentHeight = 1.8f;
+        public float AgentAcceleration = 24f;
+        public float AgentAngularSpeed = 720f;
+        public float AgentStoppingDistance = 1.25f;
+        public float NavMeshSampleDistance = 2f;
+        public float DestinationUpdateInterval = 0.15f;
         public int MaxHealth = 3;
         public int ScoreReward = 1;
         public float HitFlashDuration = 0.12f;
         public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
-        public float AttackRange = 1.05f;
+        public float AttackRange = 1.35f;
         public float AttackCooldown = 0.9f;
         public int ContactDamage = 1;
         public float ImpactDamageMinSpeed = 7f;
@@ -58,16 +65,17 @@ namespace Data
     [Serializable]
     public class OrbitCutterData
     {
-        public float Radius = 1.65f;
-        public float Height = 0.7f;
+        public float Radius = 0.7f;
+        public float Height = 0.45f;
         public float AngularSpeed = 420f;
         public float HitRadius = 0.55f;
         public float HitCooldown = 0.28f;
         public int Damage = 1;
         public float KnockbackForce = 5f;
-        public float VisualScale = 0.42f;
-        public float BladeLength = 1.2f;
-        public float BladeWidth = 0.18f;
+        public float VisualScale = 0.28f;
+        public float BladeLength = 2.16f;
+        public float BladeWidth = 0.14f;
+        public float BladeAngleOffset = 90f;
         public Color CoreColor = new(0.2f, 0.95f, 1f, 1f);
         public Color TrailColor = new(0.25f, 0.9f, 1f, 0.72f);
         public LayerMask EnemyLayer;
@@ -148,9 +156,9 @@ namespace Data
     [Serializable]
     public class SpawnData
     {
-        public float EnemySpawnDelay = 1.2f;
+        public float EnemySpawnDelay = 2.2f;
         public float PickupSpawnDelay = 2f;
-        public int MaxEnemies = 16;
+        public int MaxEnemies = 8;
         public int MaxPickups = 6;
     }
 

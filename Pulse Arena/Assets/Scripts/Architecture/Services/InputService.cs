@@ -6,6 +6,8 @@ namespace Architecture.Services
 {
     public class InputService : IInputService
     {
+        public bool IsEnabled { get; private set; } = true;
+        
         public Vector2 MoveDirection
         {
             get
@@ -106,8 +108,6 @@ namespace Architecture.Services
                 return spacePressed || mousePressed;
             }
         }
-
-        public bool IsEnabled { get; private set; } = true;
 
         public void Enable()
         {

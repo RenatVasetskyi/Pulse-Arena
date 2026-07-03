@@ -1,4 +1,3 @@
-using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy;
 using UnityEngine;
@@ -9,19 +8,15 @@ namespace Game.Combat
     public class Projectile : MonoBehaviour
     {
         private WeaponData _weaponData;
-        private EnemyData _enemyData;
-        private IScoreService _scoreService;
         private Vector3 _direction;
         private float _lifetime;
         private float _travelledDistance;
         private bool _isInitialized;
 
         [Inject]
-        public void Construct(GameSettings gameSettings, IScoreService scoreService)
+        public void Construct(GameSettings gameSettings)
         {
             _weaponData = gameSettings.WeaponData;
-            _enemyData = gameSettings.EnemyData;
-            _scoreService = scoreService;
         }
 
         public void Initialize(Vector3 direction)
@@ -92,8 +87,7 @@ namespace Game.Combat
         {
             enemy.Knockback(_direction * _weaponData.KnockbackForce);
 
-            if (enemy.TakeDamage(_weaponData.Damage))
-                _scoreService.Add(_enemyData.ScoreReward);
+            enemy.TakeDamage(_weaponData.Damage);
 
             SpawnImpact(hitPoint);
             Destroy(gameObject);

@@ -1,3 +1,4 @@
+using System;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy;
@@ -8,6 +9,9 @@ namespace Game.Combat
 {
     public class EnemySlingshot : MonoBehaviour
     {
+        public event Action EnemyGrabbed;
+        public event Action EnemyLaunched;
+
         private IInputService _inputService;
         private SlingshotData _data;
         private EnemyController _grabbedEnemy;
@@ -63,6 +67,7 @@ namespace Game.Combat
             _holdAngle = Vector3.SignedAngle(Vector3.forward,
                 GetPlanarDirectionTo(enemy.transform.position), Vector3.up);
             EnsureLine();
+            EnemyGrabbed?.Invoke();
         }
 
         private EnemyController FindNearestEnemy()
@@ -100,6 +105,7 @@ namespace Game.Combat
             _grabbedEnemy = null;
             _cooldownTimer = _data.Cooldown;
             HideLine();
+            EnemyLaunched?.Invoke();
         }
 
         private Vector3 GetLaunchDirection()

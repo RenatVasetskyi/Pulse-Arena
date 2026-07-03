@@ -1,8 +1,10 @@
 using System.Collections;
+using Architecture.Services.Interfaces;
 using Data;
 using System;
 using Game.Player;
 using UnityEngine;
+using UnityEngine.AI;
 using Zenject;
 
 namespace Game.Enemy
@@ -12,9 +14,11 @@ namespace Game.Enemy
         public event Action<EnemyController> Destroyed;
 
         [SerializeField] private Rigidbody _rigidbody;
+        [SerializeField] private NavMeshAgent _agent;
         [SerializeField] private Renderer[] _renderers;
 
         private EnemyData _data;
+        private IScoreService _scoreService;
         private Transform _target;
         private PlayerController _playerTarget;
         private Material[][] _originalMaterials;
@@ -24,9 +28,11 @@ namespace Game.Enemy
         private float _stasisTimer;
         private float _attackCooldownTimer;
         private float _impactDamageCooldownTimer;
+        private float _destinationUpdateTimer;
         private int _health;
         private bool _isDead;
         private bool _isGrabbed;
+        private bool _usesAgent;
 
         public bool IsGrabbed
         {
@@ -34,20 +40,25 @@ namespace Game.Enemy
         }
 
         [Inject]
-        public void Construct(GameSettings gameSettings)
+        public void Construct(GameSettings gameSettings, IScoreService scoreService)
         {
             _data = gameSettings.EnemyData;
+            _scoreService = scoreService;
             _health = Mathf.Max(1, _data.MaxHealth);
+            ConfigureAgent();
         }
 
         public void Initialize(Transform target)
         {
             _target = target;
             _playerTarget = target.GetComponentInParent<PlayerController>();
+            ConfigureAgent();
+            TryEnableAgentControl();
         }
 
         public void Knockback(Vector3 force)
         {
+            DisableAgentControl();
             _isGrabbed = false;
             _stasisTimer = 0f;
             _knockbackTimer = _data.KnockbackDuration;
@@ -60,6 +71,7 @@ namespace Game.Enemy
             if (_isDead)
                 return;
 
+            DisableAgentControl();
             _isGrabbed = true;
             _stasisTimer = 0f;
             _knockbackTimer = 0f;
@@ -80,6 +92,7 @@ namespace Game.Enemy
             if (_isDead)
                 return;
 
+            DisableAgentControl();
             _isGrabbed = false;
             _stasisTimer = 0f;
             _knockbackTimer = duration;
@@ -88,6 +101,7 @@ namespace Game.Enemy
 
         public void PullTo(Vector3 targetPosition, float force, float upwardForceRatio, float stasisDuration)
         {
+            DisableAgentControl();
             _stasisTimer = Mathf.Max(_stasisTimer, stasisDuration);
             _knockbackTimer = 0f;
 
@@ -117,7 +131,21 @@ namespace Game.Enemy
                 return false;
             }
 
+            return Die();
+        }
+
+        public bool Kill()
+        {
+            return Die();
+        }
+
+        private bool Die()
+        {
+            if (_isDead)
+                return false;
+
             _isDead = true;
+            _scoreService.Add(_data.ScoreReward);
             Destroy(gameObject);
 
             return true;
@@ -127,6 +155,14 @@ namespace Game.Enemy
         {
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>();
+
+            if (_agent == null)
+                _agent = GetComponent<NavMeshAgent>();
+
+            if (_agent == null)
+                _agent = gameObject.AddComponent<NavMeshAgent>();
+
+            _agent.enabled = false;
 
             if (_renderers == null || _renderers.Length == 0)
                 _renderers = GetComponentsInChildren<Renderer>();
@@ -224,18 +260,29 @@ namespace Game.Enemy
             if (_isGrabbed)
                 return;
 
-            ApplyExtraGravity();
-
             if (_target == null)
                 return;
 
             if (_stasisTimer > 0f)
+            {
+                ApplyExtraGravity();
                 return;
+            }
 
             if (_knockbackTimer > 0f)
+            {
+                ApplyExtraGravity();
                 return;
+            }
 
-            MoveToTarget();
+            if (TryEnableAgentControl())
+                MoveToTargetByNavMesh();
+            else
+            {
+                ApplyExtraGravity();
+                MoveToTargetDirectly();
+            }
+
             TryAttackTarget();
         }
 
@@ -309,9 +356,130 @@ namespace Game.Enemy
             _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
         }
 
-        private void MoveToTarget()
+        private bool TryEnableAgentControl()
         {
-            Vector3 direction = (_target.position - transform.position).normalized;
+            if (_usesAgent)
+                return true;
+
+            if (_agent == null || _target == null || _isDead || _isGrabbed)
+                return false;
+
+            if (!_agent.enabled)
+                _agent.enabled = true;
+
+            if (!TryPlaceAgentOnNavMesh())
+            {
+                _agent.enabled = false;
+                _usesAgent = false;
+                _rigidbody.isKinematic = false;
+                return false;
+            }
+
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = true;
+            _usesAgent = true;
+            _destinationUpdateTimer = 0f;
+
+            return true;
+        }
+
+        private void DisableAgentControl()
+        {
+            if (_agent != null && _agent.enabled)
+            {
+                if (_agent.isOnNavMesh)
+                    _agent.ResetPath();
+
+                _agent.enabled = false;
+            }
+
+            _usesAgent = false;
+
+            if (_rigidbody != null)
+                _rigidbody.isKinematic = false;
+        }
+
+        private bool TryPlaceAgentOnNavMesh()
+        {
+            if (_agent.isOnNavMesh)
+                return true;
+
+            if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit,
+                    _data.NavMeshSampleDistance, NavMesh.AllAreas))
+            {
+                return false;
+            }
+
+            return _agent.Warp(hit.position);
+        }
+
+        private void ConfigureAgent()
+        {
+            if (_agent == null || _data == null)
+                return;
+
+            _agent.speed = _data.MoveSpeed;
+            _agent.acceleration = _data.AgentAcceleration;
+            _agent.angularSpeed = _data.AgentAngularSpeed;
+            _agent.stoppingDistance = _data.AgentStoppingDistance;
+            _agent.radius = _data.AgentRadius;
+            _agent.height = _data.AgentHeight;
+            _agent.updateRotation = false;
+            _agent.updatePosition = true;
+            _agent.autoBraking = false;
+            _agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        }
+
+        private void MoveToTargetByNavMesh()
+        {
+            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh)
+            {
+                _usesAgent = false;
+                return;
+            }
+
+            if (IsWithinStoppingDistance())
+            {
+                if (_agent.hasPath)
+                    _agent.ResetPath();
+
+                RotateTo(_target.position - transform.position);
+                return;
+            }
+
+            _destinationUpdateTimer -= Time.fixedDeltaTime;
+
+            if (_destinationUpdateTimer <= 0f)
+            {
+                Vector3 destination = _target.position;
+
+                if (NavMesh.SamplePosition(_target.position, out NavMeshHit hit,
+                        _data.NavMeshSampleDistance, NavMesh.AllAreas))
+                {
+                    destination = hit.position;
+                }
+
+                _agent.SetDestination(destination);
+                _destinationUpdateTimer = _data.DestinationUpdateInterval;
+            }
+
+            RotateTo(_agent.desiredVelocity);
+        }
+
+        private void MoveToTargetDirectly()
+        {
+            Vector3 offset = _target.position - transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance)
+            {
+                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
+                RotateTo(offset);
+                return;
+            }
+
+            Vector3 direction = offset.normalized;
             direction.y = 0f;
             Vector3 horizontalVelocity = direction * _data.MoveSpeed;
 
@@ -320,12 +488,27 @@ namespace Game.Enemy
                 _rigidbody.linearVelocity.y,
                 horizontalVelocity.z);
 
-            if (direction.sqrMagnitude > 0.01f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Lerp(transform.rotation,
-                    targetRotation, _data.RotationSpeed * Time.fixedDeltaTime);
-            }
+            RotateTo(direction);
+        }
+
+        private bool IsWithinStoppingDistance()
+        {
+            Vector3 offset = _target.position - transform.position;
+            offset.y = 0f;
+
+            return offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance;
+        }
+
+        private void RotateTo(Vector3 direction)
+        {
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude <= 0.01f)
+                return;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Lerp(transform.rotation,
+                targetRotation, _data.RotationSpeed * Time.fixedDeltaTime);
         }
 
         private void TryAttackTarget()

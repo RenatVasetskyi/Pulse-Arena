@@ -27,11 +27,18 @@ MonoBehaviour:
     RotationSpeed: 8
     KnockbackDuration: 0.45
     ExtraGravity: 45
+    AgentRadius: 0.35
+    AgentHeight: 1.8
+    AgentAcceleration: 24
+    AgentAngularSpeed: 720
+    AgentStoppingDistance: 1.25
+    NavMeshSampleDistance: 2
+    DestinationUpdateInterval: 0.15
     MaxHealth: 3
     ScoreReward: 1
     HitFlashDuration: 0.12
     HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
-    AttackRange: 1.05
+    AttackRange: 1.35
     AttackCooldown: 0.9
     ContactDamage: 1
     ImpactDamageMinSpeed: 7
@@ -61,16 +68,17 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 64
   OrbitCutterData:
-    Radius: 1.65
-    Height: 0.7
+    Radius: 0.7
+    Height: 0.45
     AngularSpeed: 420
     HitRadius: 0.55
     HitCooldown: 0.28
     Damage: 1
     KnockbackForce: 5
-    VisualScale: 0.42
-    BladeLength: 1.2
-    BladeWidth: 0.18
+    VisualScale: 0.28
+    BladeLength: 2.16
+    BladeWidth: 0.14
+    BladeAngleOffset: 90
     CoreColor: {r: 0.2, g: 0.95, b: 1, a: 1}
     TrailColor: {r: 0.25, g: 0.9, b: 1, a: 0.72}
     EnemyLayer:
@@ -116,9 +124,9 @@ MonoBehaviour:
     BobHeight: 0.25
     BobSpeed: 3
   SpawnData:
-    EnemySpawnDelay: 1.2
+    EnemySpawnDelay: 2.2
     PickupSpawnDelay: 2
-    MaxEnemies: 16
+    MaxEnemies: 8
     MaxPickups: 6
   Prefabs:
     PlayerPrefab: {fileID: 3935891102862787124, guid: 762482dd0e20f44759d83245f3176fe6, type: 3}
