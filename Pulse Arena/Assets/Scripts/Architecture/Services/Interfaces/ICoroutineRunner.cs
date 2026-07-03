@@ -6,5 +6,6 @@ namespace Architecture.Services.Interfaces
     public interface ICoroutineRunner
     {
         Coroutine StartCoroutine(IEnumerator routine);
+        void StopCoroutine(Coroutine routine);
     }
 }

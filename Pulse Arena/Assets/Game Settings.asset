@@ -42,7 +42,7 @@ MonoBehaviour:
     MaxEnemies: 16
     MaxPickups: 6
   Prefabs:
-    PlayerPrefab: {fileID: 0}
-    EnemyPrefab: {fileID: 0}
-    EnergyPickupPrefab: {fileID: 0}
+    PlayerPrefab: {fileID: 3935891102862787124, guid: 762482dd0e20f44759d83245f3176fe6, type: 3}
+    EnemyPrefab: {fileID: 3034675120685911586, guid: 6e1dfbc7ea15f4a9bbf078f98c3196e9, type: 3}
+    EnergyPickupPrefab: {fileID: 5280771719463190649, guid: b1d9c2a9fd7c04fdebfa433506df72a4, type: 3}
     PulseViewPrefab: {fileID: 0}

@@ -9,6 +9,7 @@ namespace Game.Pulse
 {
     public class PulseAbility : MonoBehaviour
     {
+        public event Action Used;
         public event Action<float> ChargeChanged;
 
         private IInputService _inputService;
@@ -47,6 +48,7 @@ namespace Game.Pulse
             _charge = 0f;
             _cooldownTimer = _data.Cooldown;
             ChargeChanged?.Invoke(0f);
+            Used?.Invoke();
         }
 
         private void TickCooldown()

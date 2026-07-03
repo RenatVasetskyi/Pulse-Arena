@@ -4,12 +4,12 @@ using Data;
 
 namespace Architecture.States
 {
-    public class LoadGameState : IState
+    public class StartGameState : IState
     {
         private readonly ISceneLoader _sceneLoader;
         private readonly GameSettings _gameSettings;
 
-        public LoadGameState(ISceneLoader sceneLoader, GameSettings gameSettings)
+        public StartGameState(ISceneLoader sceneLoader, GameSettings gameSettings)
         {
             _sceneLoader = sceneLoader;
             _gameSettings = gameSettings;

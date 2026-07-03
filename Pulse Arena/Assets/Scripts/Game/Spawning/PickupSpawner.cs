@@ -1,27 +1,37 @@
 using System.Collections;
+using Architecture.Services.Interfaces;
 using Data;
 using Game.Pickups;
 using Game.Pickups.Interfaces;
 using UnityEngine;
-using Zenject;
 
 namespace Game.Spawning
 {
-    public class PickupSpawner : MonoBehaviour
+    public class PickupSpawner : IPickupSpawner
     {
-        [SerializeField] private Transform _spawnParent;
-        [SerializeField] private Transform[] _spawnPoints;
+        private readonly ICoroutineRunner _coroutineRunner;
+        private readonly IPickupFactory _pickupFactory;
+        private readonly GameSettings _gameSettings;
 
-        private IPickupFactory _pickupFactory;
-        private GameSettings _gameSettings;
         private Coroutine _spawnRoutine;
+        private Transform _spawnParent;
+        private Transform[] _spawnPoints;
+        private float _spawnHeightOffset;
         private int _alivePickups;
 
-        [Inject]
-        public void Construct(IPickupFactory pickupFactory, GameSettings gameSettings)
+        public PickupSpawner(ICoroutineRunner coroutineRunner, IPickupFactory pickupFactory, GameSettings gameSettings)
         {
+            _coroutineRunner = coroutineRunner;
             _pickupFactory = pickupFactory;
             _gameSettings = gameSettings;
+        }
+
+        public void Initialize(Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset)
+        {
+            _spawnPoints = spawnPoints;
+            _spawnParent = spawnParent;
+            _spawnHeightOffset = spawnHeightOffset;
+            _alivePickups = 0;
         }
 
         public void StartSpawn()
@@ -29,7 +39,7 @@ namespace Game.Spawning
             if (_spawnRoutine != null)
                 return;
 
-            _spawnRoutine = StartCoroutine(SpawnLoop());
+            _spawnRoutine = _coroutineRunner.StartCoroutine(SpawnLoop());
         }
 
         public void StopSpawn()
@@ -37,7 +47,7 @@ namespace Game.Spawning
             if (_spawnRoutine == null)
                 return;
 
-            StopCoroutine(_spawnRoutine);
+            _coroutineRunner.StopCoroutine(_spawnRoutine);
             _spawnRoutine = null;
         }
 
@@ -54,12 +64,13 @@ namespace Game.Spawning
 
         private void Spawn()
         {
-            if (_spawnPoints.Length == 0)
+            if (_spawnPoints == null || _spawnPoints.Length == 0)
                 return;
 
             Transform point = _spawnPoints[Random.Range(0, _spawnPoints.Length)];
+            Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
-            EnergyPickup pickup = _pickupFactory.Create(point.position, point.rotation, _spawnParent);
+            EnergyPickup pickup = _pickupFactory.Create(spawnPosition, point.rotation, _spawnParent);
             pickup.Collected += OnPickupCollected;
 
             _alivePickups++;

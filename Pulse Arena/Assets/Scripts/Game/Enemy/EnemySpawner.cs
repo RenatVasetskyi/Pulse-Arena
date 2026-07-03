@@ -1,27 +1,38 @@
 using System.Collections;
+using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy.Interfaces;
 using UnityEngine;
-using Zenject;
 
 namespace Game.Enemy
 {
-    public class EnemySpawner : MonoBehaviour, IEnemySpawner
+    public class EnemySpawner : IEnemySpawner
     {
-        [SerializeField] private Transform _target;
-        [SerializeField] private Transform _spawnParent;
-        [SerializeField] private Transform[] _spawnPoints;
+        private readonly ICoroutineRunner _coroutineRunner;
+        private readonly IEnemyFactory _enemyFactory;
+        private readonly GameSettings _gameSettings;
 
-        private IEnemyFactory _enemyFactory;
-        private GameSettings _gameSettings;
         private Coroutine _spawnRoutine;
+        private Transform _target;
+        private Transform _spawnParent;
+        private Transform[] _spawnPoints;
+        private float _spawnHeightOffset;
         private int _aliveEnemies;
 
-        [Inject]
-        public void Construct(IEnemyFactory enemyFactory, GameSettings gameSettings)
+        public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings)
         {
+            _coroutineRunner = coroutineRunner;
             _enemyFactory = enemyFactory;
             _gameSettings = gameSettings;
+        }
+
+        public void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset)
+        {
+            _target = target;
+            _spawnPoints = spawnPoints;
+            _spawnParent = spawnParent;
+            _spawnHeightOffset = spawnHeightOffset;
+            _aliveEnemies = 0;
         }
 
         public void StartSpawn()
@@ -29,7 +40,7 @@ namespace Game.Enemy
             if (_spawnRoutine != null)
                 return;
 
-            _spawnRoutine = StartCoroutine(SpawnLoop());
+            _spawnRoutine = _coroutineRunner.StartCoroutine(SpawnLoop());
         }
 
         public void StopSpawn()
@@ -37,7 +48,7 @@ namespace Game.Enemy
             if (_spawnRoutine == null)
                 return;
 
-            StopCoroutine(_spawnRoutine);
+            _coroutineRunner.StopCoroutine(_spawnRoutine);
             _spawnRoutine = null;
         }
 
@@ -54,12 +65,13 @@ namespace Game.Enemy
 
         private void Spawn()
         {
-            if (_spawnPoints.Length == 0)
+            if (_spawnPoints == null || _spawnPoints.Length == 0)
                 return;
 
             Transform point = _spawnPoints[Random.Range(0, _spawnPoints.Length)];
+            Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
-            EnemyController enemy = _enemyFactory.Create(point.position, point.rotation, _spawnParent, _target);
+            EnemyController enemy = _enemyFactory.Create(spawnPosition, point.rotation, _spawnParent, _target);
             enemy.Destroyed += OnEnemyDestroyed;
             _aliveEnemies++;
         }

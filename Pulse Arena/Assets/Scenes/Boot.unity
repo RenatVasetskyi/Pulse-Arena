@@ -442,8 +442,6 @@ GameObject:
   m_Component:
   - component: {fileID: 968059179}
   - component: {fileID: 968059178}
-  - component: {fileID: 968059181}
-  - component: {fileID: 968059180}
   m_Layer: 0
   m_Name: SceneContext
   m_TagString: Untagged
@@ -464,9 +462,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Zenject::Zenject.SceneContext
   _scriptableObjectInstallers: []
-  _monoInstallers:
-  - {fileID: 968059181}
-  - {fileID: 968059180}
+  _monoInstallers: []
   _installerPrefabs: []
   _autoRun: 1
   OnPreInstall:
@@ -499,31 +495,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &968059180
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 968059177}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62f0fb83110544d848f22f49a42ab49b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Architecture.Installers.ServiceInstaller
-  _gameSettings: {fileID: 11400000, guid: 8f5a143daebd147a6b4a397f5f405e5c, type: 2}
---- !u!114 &968059181
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 968059177}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f1b41d14d7e7476e97fd785613c16f4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Architecture.Installers.BootstrapInstaller
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
