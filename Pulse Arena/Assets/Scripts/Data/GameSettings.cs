@@ -57,9 +57,13 @@ namespace Data
         public float AttackRange = 1.35f;
         public float AttackCooldown = 0.9f;
         public int ContactDamage = 1;
-        public float ImpactDamageMinSpeed = 7f;
+        public float ImpactDamageMinSpeed = 3.5f;
+        public float ImpactDamageRadius = 1.6f;
+        public float ImpactDamageForwardOffset = 0.75f;
+        public float ImpactKnockbackForce = 8.5f;
+        public float ImpactKnockbackUpwardRatio = 0.12f;
         public int ImpactDamage = 1;
-        public float ImpactDamageCooldown = 0.2f;
+        public float ImpactDamageCooldown = 0.08f;
     }
 
     [Serializable]
@@ -87,14 +91,34 @@ namespace Data
         public float GrabRadius = 6f;
         public float HoldRadius = 1.85f;
         public float HoldHeight = 0.75f;
-        public float HoldAngularSpeed = 220f;
-        public float HoldFollowSpeed = 18f;
-        public float LaunchForce = 20f;
-        public float LaunchUpwardRatio = 0.22f;
-        public float LaunchDuration = 0.75f;
+        public float HoldAngularSpeed = 170f;
+        public float MaxHoldAngularSpeed = 720f;
+        public float SpinAcceleration = 190f;
+        public float HoldFollowSpeed = 26f;
+        public float LaunchForce = 18f;
+        public float LaunchUpwardRatio = 0.12f;
+        public float LaunchDuration = 0.9f;
+        public float ChargeDuration = 4f;
+        public float MaxChargeLaunchMultiplier = 1.6f;
+        public float MaxChargeLineWidthMultiplier = 1.65f;
+        public float ThrowDuration = 0.18f;
+        public float WrapDuration = 0.32f;
+        public float PullToHoldDuration = 0.28f;
+        public float PullToHoldArcHeight = 0.45f;
         public float Cooldown = 0.45f;
         public float LineWidth = 0.08f;
-        public Color LineColor = new(1f, 0.4f, 0.95f, 0.9f);
+        public float ThrowWaveAmplitude = 0.08f;
+        public float WrapWaveAmplitude = 0.06f;
+        public float WrapRadius = 0.7f;
+        public float WrapTurns = 2.4f;
+        public float WrapSpinSpeed = 12f;
+        public float RopeWaveCount = 3f;
+        public float RopeWaveSpeed = 12f;
+        public float RopeTextureRepeat = 1.35f;
+        public Color LineColor = new(0.82f, 0.55f, 0.28f, 1f);
+        public Color ChargedLineColor = new(1f, 0.88f, 0.32f, 1f);
+        public Color RopeBaseColor = new(0.78f, 0.48f, 0.22f, 1f);
+        public Color RopeStripeColor = new(0.35f, 0.21f, 0.1f, 1f);
         public LayerMask EnemyLayer;
     }
 

@@ -28,6 +28,7 @@ namespace Game.Player
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 
             DisableLegacyPulse(player);
+            DisableOrbitCutter(player);
             AddCombatComponents(player);
 
             return player;
@@ -41,12 +42,16 @@ namespace Game.Player
                 pulseAbility.enabled = false;
         }
 
+        private void DisableOrbitCutter(PlayerController player)
+        {
+            OrbitCutter orbitCutter = player.GetComponentInChildren<OrbitCutter>();
+
+            if (orbitCutter != null)
+                orbitCutter.enabled = false;
+        }
+
         private void AddCombatComponents(PlayerController player)
         {
-            OrbitCutter orbitCutter = player.GetComponent<OrbitCutter>();
-            orbitCutter ??= player.gameObject.AddComponent<OrbitCutter>();
-            _container.Inject(orbitCutter);
-
             EnemySlingshot enemySlingshot = player.GetComponent<EnemySlingshot>();
             enemySlingshot ??= player.gameObject.AddComponent<EnemySlingshot>();
             _container.Inject(enemySlingshot);

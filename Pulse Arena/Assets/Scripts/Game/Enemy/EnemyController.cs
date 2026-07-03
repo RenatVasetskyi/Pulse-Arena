@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using System;
@@ -23,7 +24,9 @@ namespace Game.Enemy
         private PlayerController _playerTarget;
         private Material[][] _originalMaterials;
         private Material _hitFlashMaterial;
+        private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
         private Coroutine _flashRoutine;
+        private Vector3 _lastImpactPosition;
         private float _knockbackTimer;
         private float _stasisTimer;
         private float _attackCooldownTimer;
@@ -32,6 +35,7 @@ namespace Game.Enemy
         private int _health;
         private bool _isDead;
         private bool _isGrabbed;
+        private bool _isImpactProjectile;
         private bool _usesAgent;
 
         public bool IsGrabbed
@@ -60,6 +64,8 @@ namespace Game.Enemy
         {
             DisableAgentControl();
             _isGrabbed = false;
+            _isImpactProjectile = false;
+            _lastImpactPosition = transform.position;
             _stasisTimer = 0f;
             _knockbackTimer = _data.KnockbackDuration;
             _rigidbody.linearVelocity = Vector3.zero;
@@ -73,6 +79,8 @@ namespace Game.Enemy
 
             DisableAgentControl();
             _isGrabbed = true;
+            _isImpactProjectile = false;
+            _lastImpactPosition = transform.position;
             _stasisTimer = 0f;
             _knockbackTimer = 0f;
             _rigidbody.linearVelocity = Vector3.zero;
@@ -94,14 +102,21 @@ namespace Game.Enemy
 
             DisableAgentControl();
             _isGrabbed = false;
+            _isImpactProjectile = true;
+            _lastImpactPosition = transform.position;
+            _impactHitTimers.Clear();
             _stasisTimer = 0f;
             _knockbackTimer = duration;
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
             _rigidbody.linearVelocity = velocity;
         }
 
         public void PullTo(Vector3 targetPosition, float force, float upwardForceRatio, float stasisDuration)
         {
             DisableAgentControl();
+            _isImpactProjectile = false;
+            _lastImpactPosition = transform.position;
             _stasisTimer = Mathf.Max(_stasisTimer, stasisDuration);
             _knockbackTimer = 0f;
 
@@ -272,6 +287,10 @@ namespace Game.Enemy
             if (_knockbackTimer > 0f)
             {
                 ApplyExtraGravity();
+                
+                if (_isImpactProjectile)
+                    DamageEnemiesDuringImpact();
+
                 return;
             }
 
@@ -288,7 +307,7 @@ namespace Game.Enemy
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (_isDead || _impactDamageCooldownTimer > 0f || _knockbackTimer <= 0f)
+            if (_isDead || !_isImpactProjectile || _impactDamageCooldownTimer > 0f || _knockbackTimer <= 0f)
                 return;
 
             if (collision.collider.GetComponentInParent<PlayerController>() != null)
@@ -300,19 +319,92 @@ namespace Game.Enemy
             if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
                 return;
 
-            TryDamageOtherEnemy(collision);
+            if (!TryDamageOtherEnemy(collision))
+                return;
 
             _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
             TakeDamage(_data.ImpactDamage);
         }
 
-        private void TryDamageOtherEnemy(Collision collision)
+        private bool TryDamageOtherEnemy(Collision collision)
         {
             EnemyController otherEnemy = collision.collider.GetComponentInParent<EnemyController>();
 
-            if (otherEnemy == null || otherEnemy == this)
-                return;
+            if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
+                return false;
 
+            HitEnemyWithImpact(otherEnemy);
+            otherEnemy.TakeDamage(_data.ImpactDamage);
+            _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
+
+            return true;
+        }
+
+        private void DamageEnemiesDuringImpact()
+        {
+            if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
+            {
+                _lastImpactPosition = transform.position;
+                return;
+            }
+
+            Vector3 velocity = _rigidbody.linearVelocity;
+            Vector3 currentPosition = transform.position;
+            Vector3 sweepStart = _lastImpactPosition;
+            Vector3 sweepEnd = currentPosition;
+
+            if (velocity.sqrMagnitude > 0.001f)
+                sweepEnd += velocity.normalized * _data.ImpactDamageForwardOffset;
+
+            Vector3 sweep = sweepEnd - sweepStart;
+            bool damagedEnemy = false;
+
+            if (sweep.sqrMagnitude > 0.001f)
+            {
+                RaycastHit[] sweepHits = Physics.SphereCastAll(sweepStart, _data.ImpactDamageRadius,
+                    sweep.normalized, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
+
+                foreach (RaycastHit sweepHit in sweepHits)
+                {
+                    if (TryHitEnemyDuringImpact(sweepHit.collider))
+                        damagedEnemy = true;
+                }
+            }
+
+            Collider[] hits = Physics.OverlapSphere(sweepEnd, _data.ImpactDamageRadius, ~0,
+                QueryTriggerInteraction.Ignore);
+
+            foreach (Collider hit in hits)
+            {
+                if (TryHitEnemyDuringImpact(hit))
+                    damagedEnemy = true;
+            }
+
+            if (damagedEnemy)
+            {
+                _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
+                TakeDamage(_data.ImpactDamage);
+            }
+
+            _lastImpactPosition = currentPosition;
+        }
+
+        private bool TryHitEnemyDuringImpact(Collider hit)
+        {
+            EnemyController otherEnemy = hit.GetComponentInParent<EnemyController>();
+
+            if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
+                return false;
+
+            HitEnemyWithImpact(otherEnemy);
+            otherEnemy.TakeDamage(_data.ImpactDamage);
+            _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
+
+            return true;
+        }
+
+        private void HitEnemyWithImpact(EnemyController otherEnemy)
+        {
             Vector3 direction = otherEnemy.transform.position - transform.position;
             direction.y = 0f;
 
@@ -320,9 +412,9 @@ namespace Game.Enemy
                 direction = _rigidbody.linearVelocity;
 
             direction.y = 0f;
-            otherEnemy.Knockback((direction.normalized + Vector3.up * 0.25f).normalized *
-                _data.ImpactDamageMinSpeed);
-            otherEnemy.TakeDamage(_data.ImpactDamage);
+
+            Vector3 knockbackDirection = (direction.normalized + Vector3.up * _data.ImpactKnockbackUpwardRatio).normalized;
+            otherEnemy.Knockback(knockbackDirection * _data.ImpactKnockbackForce);
         }
 
         private bool IsGroundCollision(Collision collision)
@@ -343,12 +435,38 @@ namespace Game.Enemy
 
             if (_knockbackTimer > 0f)
                 _knockbackTimer -= Time.fixedDeltaTime;
+            else
+                _isImpactProjectile = false;
 
             if (_attackCooldownTimer > 0f)
                 _attackCooldownTimer -= Time.fixedDeltaTime;
 
             if (_impactDamageCooldownTimer > 0f)
                 _impactDamageCooldownTimer -= Time.fixedDeltaTime;
+
+            TickImpactHitTimers();
+        }
+
+        private void TickImpactHitTimers()
+        {
+            if (_impactHitTimers.Count == 0)
+                return;
+
+            List<EnemyController> enemies = new(_impactHitTimers.Keys);
+
+            foreach (EnemyController enemy in enemies)
+            {
+                if (enemy == null)
+                {
+                    _impactHitTimers.Remove(enemy);
+                    continue;
+                }
+
+                _impactHitTimers[enemy] -= Time.fixedDeltaTime;
+
+                if (_impactHitTimers[enemy] <= 0f)
+                    _impactHitTimers.Remove(enemy);
+            }
         }
 
         private void ApplyExtraGravity()

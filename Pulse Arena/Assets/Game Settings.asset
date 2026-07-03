@@ -41,9 +41,13 @@ MonoBehaviour:
     AttackRange: 1.35
     AttackCooldown: 0.9
     ContactDamage: 1
-    ImpactDamageMinSpeed: 7
+    ImpactDamageMinSpeed: 3.5
+    ImpactDamageRadius: 1.6
+    ImpactDamageForwardOffset: 0.75
+    ImpactKnockbackForce: 8.5
+    ImpactKnockbackUpwardRatio: 0.12
     ImpactDamage: 1
-    ImpactDamageCooldown: 0.2
+    ImpactDamageCooldown: 0.08
   PulseData:
     Radius: 5
     Force: 16
@@ -88,14 +92,34 @@ MonoBehaviour:
     GrabRadius: 6
     HoldRadius: 1.85
     HoldHeight: 0.75
-    HoldAngularSpeed: 220
-    HoldFollowSpeed: 18
-    LaunchForce: 20
-    LaunchUpwardRatio: 0.22
-    LaunchDuration: 0.75
+    HoldAngularSpeed: 170
+    MaxHoldAngularSpeed: 720
+    SpinAcceleration: 190
+    HoldFollowSpeed: 26
+    LaunchForce: 18
+    LaunchUpwardRatio: 0.12
+    LaunchDuration: 0.9
+    ChargeDuration: 4
+    MaxChargeLaunchMultiplier: 1.6
+    MaxChargeLineWidthMultiplier: 1.65
+    ThrowDuration: 0.18
+    WrapDuration: 0.32
+    PullToHoldDuration: 0.28
+    PullToHoldArcHeight: 0.45
     Cooldown: 0.45
     LineWidth: 0.08
-    LineColor: {r: 1, g: 0.4, b: 0.95, a: 0.9}
+    ThrowWaveAmplitude: 0.08
+    WrapWaveAmplitude: 0.06
+    WrapRadius: 0.7
+    WrapTurns: 2.4
+    WrapSpinSpeed: 12
+    RopeWaveCount: 3
+    RopeWaveSpeed: 12
+    RopeTextureRepeat: 1.35
+    LineColor: {r: 0.82, g: 0.55, b: 0.28, a: 1}
+    ChargedLineColor: {r: 1, g: 0.88, b: 0.32, a: 1}
+    RopeBaseColor: {r: 0.78, g: 0.48, b: 0.22, a: 1}
+    RopeStripeColor: {r: 0.35, g: 0.21, b: 0.1, a: 1}
     EnemyLayer:
       serializedVersion: 2
       m_Bits: 64
