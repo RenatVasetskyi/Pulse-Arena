@@ -19,6 +19,9 @@ MonoBehaviour:
     RotationSpeed: 720
     ExtraGravity: 35
     MaxHealth: 3
+    HitInvulnerability: 0.65
+    HitKnockbackForce: 5
+    HitKnockbackDuration: 0.18
   EnemyData:
     MoveSpeed: 3.5
     RotationSpeed: 8
@@ -28,12 +31,24 @@ MonoBehaviour:
     ScoreReward: 1
     HitFlashDuration: 0.12
     HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
+    AttackRange: 1.05
+    AttackCooldown: 0.9
+    ContactDamage: 1
+    ImpactDamageMinSpeed: 7
+    ImpactDamage: 1
+    ImpactDamageCooldown: 0.2
   PulseData:
     Radius: 5
     Force: 16
     Cooldown: 1.5
     UpwardForceRatio: 0.6
     MinForceMultiplier: 0.45
+    PullRadius: 6
+    PullStopRadius: 2.6
+    PullForce: 14
+    PullCooldown: 3
+    PullStasisDuration: 0.65
+    PullUpwardForceRatio: 0.18
     MaxCharge: 100
     EnergyPerPickup: 25
     VisualDuration: 0.32
@@ -41,6 +56,38 @@ MonoBehaviour:
     VisualHeight: 0.08
     VisualWidth: 0.12
     VisualColor: {r: 0.45, g: 0.9, b: 1, a: 0.85}
+    PullVisualColor: {r: 0.95, g: 0.35, b: 1, a: 0.85}
+    EnemyLayer:
+      serializedVersion: 2
+      m_Bits: 64
+  OrbitCutterData:
+    Radius: 1.65
+    Height: 0.7
+    AngularSpeed: 420
+    HitRadius: 0.55
+    HitCooldown: 0.28
+    Damage: 1
+    KnockbackForce: 5
+    VisualScale: 0.42
+    BladeLength: 1.2
+    BladeWidth: 0.18
+    CoreColor: {r: 0.2, g: 0.95, b: 1, a: 1}
+    TrailColor: {r: 0.25, g: 0.9, b: 1, a: 0.72}
+    EnemyLayer:
+      serializedVersion: 2
+      m_Bits: 64
+  SlingshotData:
+    GrabRadius: 6
+    HoldRadius: 1.85
+    HoldHeight: 0.75
+    HoldAngularSpeed: 220
+    HoldFollowSpeed: 18
+    LaunchForce: 20
+    LaunchUpwardRatio: 0.22
+    LaunchDuration: 0.75
+    Cooldown: 0.45
+    LineWidth: 0.08
+    LineColor: {r: 1, g: 0.4, b: 0.95, a: 0.9}
     EnemyLayer:
       serializedVersion: 2
       m_Bits: 64

@@ -33,6 +33,26 @@ namespace Architecture.Services
 
         public bool IsPulsePressedThisFrame
         {
+            get { return IsPushPressedThisFrame; }
+        }
+
+        public bool IsShootPressedThisFrame
+        {
+            get { return false; }
+        }
+
+        public bool IsPushPressedThisFrame
+        {
+            get { return IsOrbitBurstPressedThisFrame; }
+        }
+
+        public bool IsPullPressedThisFrame
+        {
+            get { return IsSlingshotPressedThisFrame; }
+        }
+
+        public bool IsSlingshotPressedThisFrame
+        {
             get
             {
                 if (!IsEnabled)
@@ -45,7 +65,35 @@ namespace Architecture.Services
             }
         }
 
-        public bool IsShootPressedThisFrame
+        public bool IsSlingshotHeld
+        {
+            get
+            {
+                if (!IsEnabled)
+                    return false;
+
+                bool keyHeld = Keyboard.current != null && Keyboard.current.eKey.isPressed;
+                bool mouseHeld = Mouse.current != null && Mouse.current.rightButton.isPressed;
+
+                return keyHeld || mouseHeld;
+            }
+        }
+
+        public bool IsSlingshotReleasedThisFrame
+        {
+            get
+            {
+                if (!IsEnabled)
+                    return false;
+
+                bool keyReleased = Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
+                bool mouseReleased = Mouse.current != null && Mouse.current.rightButton.wasReleasedThisFrame;
+
+                return keyReleased || mouseReleased;
+            }
+        }
+
+        public bool IsOrbitBurstPressedThisFrame
         {
             get
             {

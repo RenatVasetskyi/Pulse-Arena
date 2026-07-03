@@ -11,12 +11,17 @@ namespace Game.Player
 
         private IInputService _inputService;
         private PlayerData _data;
+        private int _health;
+        private float _hitInvulnerabilityTimer;
+        private float _hitKnockbackTimer;
+        private bool _isDead;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings)
         {
             _inputService = inputService;
             _data = gameSettings.PlayerData;
+            _health = Mathf.Max(1, _data.MaxHealth);
         }
 
         private void Awake()
@@ -27,12 +32,49 @@ namespace Game.Player
 
         private void Update()
         {
+            TickHitInvulnerability();
             RotateToInput();
+        }
+
+        public bool TakeDamage(int damage, Vector3 sourcePosition)
+        {
+            if (_isDead)
+                return false;
+
+            if (_hitInvulnerabilityTimer > 0f)
+                return false;
+
+            _health -= Mathf.Max(0, damage);
+            _hitInvulnerabilityTimer = _data.HitInvulnerability;
+            _hitKnockbackTimer = _data.HitKnockbackDuration;
+
+            Vector3 knockbackDirection = transform.position - sourcePosition;
+            knockbackDirection.y = 0f;
+
+            if (knockbackDirection.sqrMagnitude <= 0.001f)
+                knockbackDirection = -transform.forward;
+
+            _rigidbody.AddForce(knockbackDirection.normalized * _data.HitKnockbackForce,
+                ForceMode.VelocityChange);
+
+            Debug.Log($"Player hit. Health: {Mathf.Max(0, _health)}");
+
+            if (_health <= 0)
+            {
+                _isDead = true;
+                Debug.Log("Player died.");
+            }
+
+            return true;
         }
 
         private void FixedUpdate()
         {
-            Move();
+            if (_hitKnockbackTimer > 0f)
+                _hitKnockbackTimer -= Time.fixedDeltaTime;
+            else
+                Move();
+
             ApplyExtraGravity();
         }
 
@@ -51,6 +93,12 @@ namespace Game.Player
         private void ApplyExtraGravity()
         {
             _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
+        }
+
+        private void TickHitInvulnerability()
+        {
+            if (_hitInvulnerabilityTimer > 0f)
+                _hitInvulnerabilityTimer -= Time.deltaTime;
         }
 
         private void RotateToInput()

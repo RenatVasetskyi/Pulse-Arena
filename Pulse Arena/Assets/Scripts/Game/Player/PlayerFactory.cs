@@ -1,6 +1,8 @@
 using System;
 using Data;
+using Game.Combat;
 using Game.Player.Interfaces;
+using Game.Pulse;
 using UnityEngine;
 using Zenject;
 
@@ -22,8 +24,32 @@ namespace Game.Player
             if (_gameSettings.Prefabs.PlayerPrefab == null)
                 throw new InvalidOperationException("Player prefab is not assigned in GameSettings.");
 
-            return _container.InstantiatePrefabForComponent<PlayerController>
+            PlayerController player = _container.InstantiatePrefabForComponent<PlayerController>
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
+
+            DisableLegacyPulse(player);
+            AddCombatComponents(player);
+
+            return player;
+        }
+
+        private void DisableLegacyPulse(PlayerController player)
+        {
+            PulseAbility pulseAbility = player.GetComponentInChildren<PulseAbility>();
+
+            if (pulseAbility != null)
+                pulseAbility.enabled = false;
+        }
+
+        private void AddCombatComponents(PlayerController player)
+        {
+            OrbitCutter orbitCutter = player.GetComponent<OrbitCutter>();
+            orbitCutter ??= player.gameObject.AddComponent<OrbitCutter>();
+            _container.Inject(orbitCutter);
+
+            EnemySlingshot enemySlingshot = player.GetComponent<EnemySlingshot>();
+            enemySlingshot ??= player.gameObject.AddComponent<EnemySlingshot>();
+            _container.Inject(enemySlingshot);
         }
     }
 }
