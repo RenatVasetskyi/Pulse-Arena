@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using Architecture.Services.Interfaces;
 using Data;
 using UnityEngine;
@@ -7,27 +9,45 @@ namespace Game.Player
 {
     public class PlayerController : MonoBehaviour
     {
+        public event Action Died;
+        public event Action<int, int> HealthChanged;
+
         [SerializeField] private Rigidbody _rigidbody;
+        [SerializeField] private Renderer[] _renderers;
 
         private IInputService _inputService;
         private PlayerData _data;
+        private Material[][] _originalMaterials;
+        private Material _hitFlashMaterial;
+        private Coroutine _flashRoutine;
+        private int _maxHealth;
         private int _health;
         private float _hitInvulnerabilityTimer;
         private float _hitKnockbackTimer;
         private bool _isDead;
+
+        public int Health => _health;
+        public int MaxHealth => _maxHealth;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings)
         {
             _inputService = inputService;
             _data = gameSettings.PlayerData;
-            _health = Mathf.Max(1, _data.MaxHealth);
+            _maxHealth = Mathf.Max(1, _data.MaxHealth);
+            _health = _maxHealth;
+            CreateHitFlashMaterial();
         }
 
         private void Awake()
         {
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>();
+
+            if (_renderers == null || _renderers.Length == 0)
+                _renderers = GetComponentsInChildren<Renderer>();
+
+            CacheMaterials();
         }
 
         private void Update()
@@ -58,14 +78,18 @@ namespace Game.Player
                 ForceMode.VelocityChange);
 
             Debug.Log($"Player hit. Health: {Mathf.Max(0, _health)}");
+            HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
+            FlashHit();
 
             if (_health <= 0)
-            {
-                _isDead = true;
-                Debug.Log("Player died.");
-            }
+                Die();
 
             return true;
+        }
+
+        public void Kill()
+        {
+            Die();
         }
 
         private void FixedUpdate()
@@ -80,6 +104,9 @@ namespace Game.Player
 
         private void Move()
         {
+            if (_isDead)
+                return;
+
             Vector2 input = _inputService.MoveDirection;
             Vector3 direction = new Vector3(input.x, 0f, input.y);
             Vector3 horizontalVelocity = direction * _data.MoveSpeed;
@@ -113,6 +140,100 @@ namespace Game.Player
 
             transform.rotation = Quaternion.RotateTowards(transform.rotation,
                 targetRotation, _data.RotationSpeed * Time.deltaTime);
+        }
+
+        private void Die()
+        {
+            if (_isDead)
+                return;
+
+            _health = 0;
+            _isDead = true;
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            Debug.Log("Player died.");
+            HealthChanged?.Invoke(_health, _maxHealth);
+            Died?.Invoke();
+        }
+
+        private void FlashHit()
+        {
+            if (_hitFlashMaterial == null || _renderers == null || _renderers.Length == 0)
+                return;
+
+            if (_flashRoutine != null)
+                StopCoroutine(_flashRoutine);
+
+            _flashRoutine = StartCoroutine(FlashRoutine());
+        }
+
+        private IEnumerator FlashRoutine()
+        {
+            ApplyFlashMaterials();
+
+            yield return new WaitForSeconds(_data.HitFlashDuration);
+
+            RestoreMaterials();
+            _flashRoutine = null;
+        }
+
+        private void CacheMaterials()
+        {
+            _originalMaterials = new Material[_renderers.Length][];
+
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null)
+                    continue;
+
+                _originalMaterials[i] = _renderers[i].sharedMaterials;
+            }
+        }
+
+        private void CreateHitFlashMaterial()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            shader ??= Shader.Find("Sprites/Default");
+
+            _hitFlashMaterial = new Material(shader)
+            {
+                name = "Player Hit Flash"
+            };
+
+            if (_hitFlashMaterial.HasProperty("_BaseColor"))
+                _hitFlashMaterial.SetColor("_BaseColor", _data.HitFlashColor);
+
+            if (_hitFlashMaterial.HasProperty("_Color"))
+                _hitFlashMaterial.SetColor("_Color", _data.HitFlashColor);
+        }
+
+        private void ApplyFlashMaterials()
+        {
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                Renderer playerRenderer = _renderers[i];
+
+                if (playerRenderer == null)
+                    continue;
+
+                Material[] flashMaterials = new Material[playerRenderer.sharedMaterials.Length];
+
+                for (int j = 0; j < flashMaterials.Length; j++)
+                    flashMaterials[j] = _hitFlashMaterial;
+
+                playerRenderer.sharedMaterials = flashMaterials;
+            }
+        }
+
+        private void RestoreMaterials()
+        {
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null || _originalMaterials[i] == null)
+                    continue;
+
+                _renderers[i].sharedMaterials = _originalMaterials[i];
+            }
         }
     }
 }

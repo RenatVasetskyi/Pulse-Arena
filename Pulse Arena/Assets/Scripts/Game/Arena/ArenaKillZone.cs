@@ -1,4 +1,5 @@
 using Game.Enemy;
+using Game.Player;
 using UnityEngine;
 
 namespace Game.Arena
@@ -10,7 +11,11 @@ namespace Game.Arena
             EnemyController enemy = other.GetComponentInParent<EnemyController>();
 
             if (enemy == null)
+            {
+                PlayerController player = other.GetComponentInParent<PlayerController>();
+                player?.Kill();
                 return;
+            }
 
             enemy.Kill();
         }

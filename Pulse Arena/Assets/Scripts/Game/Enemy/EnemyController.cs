@@ -4,6 +4,7 @@ using Architecture.Services.Interfaces;
 using Data;
 using System;
 using Game.Player;
+using UI;
 using UnityEngine;
 using UnityEngine.AI;
 using Zenject;
@@ -13,6 +14,7 @@ namespace Game.Enemy
     public class EnemyController : MonoBehaviour
     {
         public event Action<EnemyController> Destroyed;
+        public event Action<int, int> HealthChanged;
 
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
@@ -24,6 +26,7 @@ namespace Game.Enemy
         private PlayerController _playerTarget;
         private Material[][] _originalMaterials;
         private Material _hitFlashMaterial;
+        private WorldHealthBar _healthBar;
         private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
         private Coroutine _flashRoutine;
         private Vector3 _lastImpactPosition;
@@ -32,6 +35,7 @@ namespace Game.Enemy
         private float _attackCooldownTimer;
         private float _impactDamageCooldownTimer;
         private float _destinationUpdateTimer;
+        private int _maxHealth;
         private int _health;
         private bool _isDead;
         private bool _isGrabbed;
@@ -43,13 +47,18 @@ namespace Game.Enemy
             get { return _isGrabbed; }
         }
 
+        public int Health => _health;
+        public int MaxHealth => _maxHealth;
+
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService)
         {
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
-            _health = Mathf.Max(1, _data.MaxHealth);
+            _maxHealth = Mathf.Max(1, _data.MaxHealth);
+            _health = _maxHealth;
             ConfigureAgent();
+            CreateHealthBar();
         }
 
         public void Initialize(Transform target)
@@ -139,6 +148,8 @@ namespace Game.Enemy
                 return false;
 
             _health -= Mathf.Max(0, damage);
+            HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
+            _healthBar?.SetHealth(Mathf.Max(0, _health), _maxHealth);
 
             if (_health > 0)
             {
@@ -160,6 +171,8 @@ namespace Game.Enemy
                 return false;
 
             _isDead = true;
+            HealthChanged?.Invoke(0, _maxHealth);
+            _healthBar?.SetHealth(0, _maxHealth);
             _scoreService.Add(_data.ScoreReward);
             Destroy(gameObject);
 
@@ -184,6 +197,15 @@ namespace Game.Enemy
 
             CacheMaterials();
             CreateHitFlashMaterial();
+        }
+
+        private void CreateHealthBar()
+        {
+            if (_healthBar != null)
+                return;
+
+            _healthBar = WorldHealthBar.Create(transform, _maxHealth, _data.HealthBarHeight);
+            _healthBar.SetHealth(_health, _maxHealth);
         }
 
         private void FlashHit()

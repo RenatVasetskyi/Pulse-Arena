@@ -1,5 +1,6 @@
 using Architecture.Services.Interfaces;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace Architecture.Services
@@ -61,7 +62,8 @@ namespace Architecture.Services
                     return false;
 
                 bool keyPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
-                bool mousePressed = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+                bool mousePressed = !IsPointerOverUi() && Mouse.current != null &&
+                                    Mouse.current.rightButton.wasPressedThisFrame;
 
                 return keyPressed || mousePressed;
             }
@@ -89,7 +91,8 @@ namespace Architecture.Services
                     return false;
 
                 bool keyReleased = Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
-                bool mouseReleased = Mouse.current != null && Mouse.current.rightButton.wasReleasedThisFrame;
+                bool mouseReleased = !IsPointerOverUi() && Mouse.current != null &&
+                                     Mouse.current.rightButton.wasReleasedThisFrame;
 
                 return keyReleased || mouseReleased;
             }
@@ -103,7 +106,8 @@ namespace Architecture.Services
                     return false;
 
                 bool spacePressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
-                bool mousePressed = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+                bool mousePressed = !IsPointerOverUi() && Mouse.current != null &&
+                                    Mouse.current.leftButton.wasPressedThisFrame;
 
                 return spacePressed || mousePressed;
             }
@@ -117,6 +121,11 @@ namespace Architecture.Services
         public void Disable()
         {
             IsEnabled = false;
+        }
+
+        private static bool IsPointerOverUi()
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
         }
     }
 }

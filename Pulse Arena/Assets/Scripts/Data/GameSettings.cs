@@ -34,6 +34,8 @@ namespace Data
         public float HitInvulnerability = 0.65f;
         public float HitKnockbackForce = 5f;
         public float HitKnockbackDuration = 0.18f;
+        public float HitFlashDuration = 0.12f;
+        public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
     }
 
     [Serializable]
@@ -51,6 +53,7 @@ namespace Data
         public float NavMeshSampleDistance = 2f;
         public float DestinationUpdateInterval = 0.15f;
         public int MaxHealth = 3;
+        public float HealthBarHeight = 2.15f;
         public int ScoreReward = 1;
         public float HitFlashDuration = 0.12f;
         public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);

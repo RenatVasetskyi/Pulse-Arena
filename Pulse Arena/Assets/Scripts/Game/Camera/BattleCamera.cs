@@ -7,6 +7,8 @@ namespace Game.Cameras
 {
     public class BattleCamera : MonoBehaviour, IBattleCamera
     {
+        private const string ZoomPrefsKey = "BattleCamera.Zoom";
+
         [Header("Cinemachine")]
         [SerializeField] private CinemachineCamera _camera;
         [SerializeField] private CinemachineFollow _follow;
@@ -19,6 +21,13 @@ namespace Game.Cameras
         [SerializeField] private Vector3 _positionDamping = new(0.12f, 0.18f, 0.12f);
         [SerializeField] private Vector2 _rotationDamping = new(0.25f, 0.25f);
         [SerializeField] private float _fieldOfView = 55f;
+
+        [Header("Player Zoom")]
+        [SerializeField] private float _defaultZoom = 1f;
+        [SerializeField] private float _minZoom = 0.72f;
+        [SerializeField] private float _maxZoom = 1.38f;
+        [SerializeField] private float _zoomStep = 0.08f;
+        [SerializeField] private float _zoomSmoothTime = 0.22f;
 
         [Header("Shake")]
         [SerializeField] private float _defaultShakeDuration = 0.18f;
@@ -34,16 +43,21 @@ namespace Game.Cameras
         private Coroutine _shakeRoutine;
         private Coroutine _offsetKickRoutine;
         private Vector3 _currentKickOffset;
+        private float _zoom;
+        private float _targetZoom;
+        private float _zoomVelocity;
 
         private void Awake()
         {
             CacheComponents();
+            LoadZoom();
             ApplySettings();
             MuteNoise();
         }
 
         private void Update()
         {
+            TickZoom();
             ApplyDynamicCameraSettings();
         }
 
@@ -63,7 +77,7 @@ namespace Game.Cameras
 
             if (snap && target != null)
             {
-                Vector3 position = target.position + _followOffset;
+                Vector3 position = target.position + ZoomedFollowOffset;
                 Quaternion rotation = Quaternion.LookRotation(target.position + _lookAtOffset - position);
                 _camera.ForceCameraPosition(position, rotation);
             }
@@ -91,6 +105,16 @@ namespace Game.Cameras
 
             Shake(_launchShakeDuration, Mathf.Lerp(_launchShakeStrength * 0.65f, _launchShakeStrength, safeProgress));
             KickOffset(_launchKickOffset * Mathf.Lerp(0.65f, 1f, safeProgress), _launchKickDuration);
+        }
+
+        public void ZoomIn()
+        {
+            SetTargetZoom(_targetZoom - _zoomStep);
+        }
+
+        public void ZoomOut()
+        {
+            SetTargetZoom(_targetZoom + _zoomStep);
         }
 
         private IEnumerator ShakeRoutine(float duration, float strength)
@@ -146,7 +170,38 @@ namespace Game.Cameras
                 _camera.Lens.FieldOfView = _fieldOfView;
 
             if (_follow != null)
-                _follow.FollowOffset = _followOffset + _currentKickOffset;
+                _follow.FollowOffset = ZoomedFollowOffset + _currentKickOffset;
+        }
+
+        private void LoadZoom()
+        {
+            _zoom = PlayerPrefs.GetFloat(ZoomPrefsKey, _defaultZoom);
+            _zoom = Mathf.Clamp(_zoom, _minZoom, _maxZoom);
+            _targetZoom = _zoom;
+        }
+
+        private void SetTargetZoom(float zoom)
+        {
+            _targetZoom = Mathf.Clamp(zoom, _minZoom, _maxZoom);
+            PlayerPrefs.SetFloat(ZoomPrefsKey, _targetZoom);
+        }
+
+        private void TickZoom()
+        {
+            if (Mathf.Approximately(_zoom, _targetZoom))
+                return;
+
+            _zoom = Mathf.SmoothDamp(_zoom, _targetZoom, ref _zoomVelocity,
+                Mathf.Max(0.01f, _zoomSmoothTime), Mathf.Infinity, Time.unscaledDeltaTime);
+        }
+
+        private Vector3 ZoomedFollowOffset
+        {
+            get
+            {
+                float safeZoom = _zoom > 0f ? _zoom : Mathf.Clamp(_defaultZoom, _minZoom, _maxZoom);
+                return _followOffset * safeZoom;
+            }
         }
 
         private void CacheComponents()

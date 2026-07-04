@@ -1,11 +1,14 @@
 using System;
+using Architecture.Services.Interfaces;
 using Game.Cameras;
 using Game.Combat;
 using Game.Enemy;
 using Game.Player;
 using Game.Player.Interfaces;
 using Game.Spawning;
+using UI;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Zenject;
 
 namespace Game.Scene
@@ -17,32 +20,52 @@ namespace Game.Scene
         private readonly IBattleCamera _battleCamera;
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
+        private readonly IInputService _inputService;
+        private readonly IScoreService _scoreService;
+        private PlayerController _player;
         private OrbitCutter _orbitCutter;
         private EnemySlingshot _enemySlingshot;
+        private PlayerHealthView _playerHealthView;
+        private CameraZoomView _cameraZoomView;
+        private GameOverView _gameOverView;
+        private bool _isGameOver;
 
         public GameSceneStarter(
             GameSceneReferences sceneReferences,
             IPlayerFactory playerFactory,
             IBattleCamera battleCamera,
             IEnemySpawner enemySpawner,
-            IPickupSpawner pickupSpawner)
+            IPickupSpawner pickupSpawner,
+            IInputService inputService,
+            IScoreService scoreService)
         {
             _sceneReferences = sceneReferences;
             _playerFactory = playerFactory;
             _battleCamera = battleCamera;
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
+            _inputService = inputService;
+            _scoreService = scoreService;
         }
 
         public void Initialize()
         {
+            Time.timeScale = 1f;
+            _isGameOver = false;
+            _inputService.Enable();
+            _scoreService.Reset();
+
             _sceneReferences.Validate();
+            _gameOverView = GameOverView.Create(RestartScene);
 
-            PlayerController player = SpawnPlayer();
-            _battleCamera.Follow(player.transform);
-            SubscribeToCombat(player);
+            _player = SpawnPlayer();
+            _player.Died += OnPlayerDied;
+            _playerHealthView = PlayerHealthView.Create(_player);
+            _cameraZoomView = CameraZoomView.Create(_battleCamera);
+            _battleCamera.Follow(_player.transform);
+            SubscribeToCombat(_player);
 
-            _enemySpawner.Initialize(player.transform, _sceneReferences.EnemySpawnPoints,
+            _enemySpawner.Initialize(_player.transform, _sceneReferences.EnemySpawnPoints,
                 _sceneReferences.EnemySpawnParent, _sceneReferences.EnemySpawnHeightOffset);
             _pickupSpawner.Initialize(_sceneReferences.PickupSpawnPoints, _sceneReferences.PickupSpawnParent,
                 _sceneReferences.PickupSpawnHeightOffset);
@@ -53,6 +76,11 @@ namespace Game.Scene
 
         public void Dispose()
         {
+            Time.timeScale = 1f;
+
+            if (_player != null)
+                _player.Died -= OnPlayerDied;
+
             if (_orbitCutter != null)
                 _orbitCutter.BurstUsed -= OnOrbitBurstUsed;
 
@@ -63,6 +91,15 @@ namespace Game.Scene
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
+
+            if (_gameOverView != null)
+                UnityEngine.Object.Destroy(_gameOverView.gameObject);
+
+            if (_playerHealthView != null)
+                UnityEngine.Object.Destroy(_playerHealthView.gameObject);
+
+            if (_cameraZoomView != null)
+                UnityEngine.Object.Destroy(_cameraZoomView.gameObject);
         }
 
         private PlayerController SpawnPlayer()
@@ -92,6 +129,29 @@ namespace Game.Scene
         private void OnEnemyLaunched(float chargeProgress)
         {
             _battleCamera.PlayLassoLaunch(chargeProgress);
+        }
+
+        private void OnPlayerDied()
+        {
+            if (_isGameOver)
+                return;
+
+            _isGameOver = true;
+            _inputService.Disable();
+            _enemySpawner.StopSpawn();
+            _pickupSpawner.StopSpawn();
+
+            if (_gameOverView != null)
+                _gameOverView.Show(_scoreService.Score);
+
+            Time.timeScale = 0f;
+        }
+
+        private void RestartScene()
+        {
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.Scene activeScene = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(activeScene.name);
         }
     }
 }
