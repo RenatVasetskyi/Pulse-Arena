@@ -4,6 +4,7 @@ using Architecture.Services.Interfaces;
 using Data;
 using System;
 using Game.Player;
+using Game.Visuals;
 using UI;
 using UnityEngine;
 using UnityEngine.AI;
@@ -13,6 +14,8 @@ namespace Game.Enemy
 {
     public class EnemyController : MonoBehaviour
     {
+        private const float GroundContactMemory = 0.12f;
+
         public event Action<EnemyController> Destroyed;
         public event Action<int, int> HealthChanged;
 
@@ -27,6 +30,7 @@ namespace Game.Enemy
         private Material[][] _originalMaterials;
         private Material _hitFlashMaterial;
         private WorldHealthBar _healthBar;
+        private EnemyPrimitiveVisual _visual;
         private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
         private Coroutine _flashRoutine;
         private Vector3 _lastImpactPosition;
@@ -35,11 +39,16 @@ namespace Game.Enemy
         private float _attackCooldownTimer;
         private float _impactDamageCooldownTimer;
         private float _destinationUpdateTimer;
+        private float _groundBounceCooldownTimer;
+        private float _groundContactTimer;
+        private float _physicsRecoveryTimer;
+        private int _groundBounceCount;
         private int _maxHealth;
         private int _health;
         private bool _isDead;
         private bool _isGrabbed;
         private bool _isImpactProjectile;
+        private bool _needsGroundRecovery;
         private bool _usesAgent;
 
         public bool IsGrabbed
@@ -74,8 +83,13 @@ namespace Game.Enemy
             DisableAgentControl();
             _isGrabbed = false;
             _isImpactProjectile = false;
+            _needsGroundRecovery = true;
+            _visual?.SetGrabbed(false);
+            _visual?.SetThrown(false);
             _lastImpactPosition = transform.position;
             _stasisTimer = 0f;
+            _physicsRecoveryTimer = 0f;
+            _groundContactTimer = 0f;
             _knockbackTimer = _data.KnockbackDuration;
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.AddForce(force, ForceMode.VelocityChange);
@@ -89,8 +103,12 @@ namespace Game.Enemy
             DisableAgentControl();
             _isGrabbed = true;
             _isImpactProjectile = false;
+            _needsGroundRecovery = false;
+            _visual?.SetGrabbed(true);
+            _visual?.SetThrown(false);
             _lastImpactPosition = transform.position;
             _stasisTimer = 0f;
+            _physicsRecoveryTimer = 0f;
             _knockbackTimer = 0f;
             _rigidbody.linearVelocity = Vector3.zero;
         }
@@ -112,20 +130,33 @@ namespace Game.Enemy
             DisableAgentControl();
             _isGrabbed = false;
             _isImpactProjectile = true;
+            _needsGroundRecovery = true;
+            _visual?.SetGrabbed(false);
+            _visual?.SetThrown(true);
             _lastImpactPosition = transform.position;
             _impactHitTimers.Clear();
+            _groundBounceCount = 0;
+            _groundBounceCooldownTimer = 0f;
+            _groundContactTimer = 0f;
+            _physicsRecoveryTimer = 0f;
             _stasisTimer = 0f;
             _knockbackTimer = duration;
+            _rigidbody.useGravity = true;
+            _rigidbody.isKinematic = false;
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
             _rigidbody.linearVelocity = velocity;
+            _rigidbody.WakeUp();
         }
 
         public void PullTo(Vector3 targetPosition, float force, float upwardForceRatio, float stasisDuration)
         {
             DisableAgentControl();
             _isImpactProjectile = false;
+            _needsGroundRecovery = true;
             _lastImpactPosition = transform.position;
+            _physicsRecoveryTimer = 0f;
+            _groundContactTimer = 0f;
             _stasisTimer = Mathf.Max(_stasisTimer, stasisDuration);
             _knockbackTimer = 0f;
 
@@ -150,6 +181,7 @@ namespace Game.Enemy
             _health -= Mathf.Max(0, damage);
             HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
             _healthBar?.SetHealth(Mathf.Max(0, _health), _maxHealth);
+            _visual?.PlayHit();
 
             if (_health > 0)
             {
@@ -174,9 +206,34 @@ namespace Game.Enemy
             HealthChanged?.Invoke(0, _maxHealth);
             _healthBar?.SetHealth(0, _maxHealth);
             _scoreService.Add(_data.ScoreReward);
-            Destroy(gameObject);
+            StopForDeath();
+            _visual?.PlayDeath();
+            StartCoroutine(DestroyAfterDeath());
 
             return true;
+        }
+
+        private void StopForDeath()
+        {
+            DisableAgentControl();
+            _isGrabbed = false;
+            _isImpactProjectile = false;
+            _needsGroundRecovery = false;
+            _knockbackTimer = 0f;
+            _stasisTimer = 0f;
+
+            if (_rigidbody == null)
+                return;
+
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = true;
+        }
+
+        private IEnumerator DestroyAfterDeath()
+        {
+            yield return new WaitForSeconds(0.38f);
+            Destroy(gameObject);
         }
 
         private void Awake()
@@ -192,11 +249,25 @@ namespace Game.Enemy
 
             _agent.enabled = false;
 
-            if (_renderers == null || _renderers.Length == 0)
-                _renderers = GetComponentsInChildren<Renderer>();
+            NormalizeCapsuleRoot();
+            DisablePlaceholderRenderers();
+            EnsurePrimitiveVisual();
+            _renderers = GetComponentsInChildren<Renderer>();
 
             CacheMaterials();
             CreateHitFlashMaterial();
+        }
+
+        private void NormalizeCapsuleRoot()
+        {
+            CapsuleCollider capsule = GetComponent<CapsuleCollider>();
+
+            if (capsule == null)
+                return;
+
+            Vector3 center = capsule.center;
+            center.y = capsule.height * 0.5f;
+            capsule.center = center;
         }
 
         private void CreateHealthBar()
@@ -206,6 +277,30 @@ namespace Game.Enemy
 
             _healthBar = WorldHealthBar.Create(transform, _maxHealth, _data.HealthBarHeight);
             _healthBar.SetHealth(_health, _maxHealth);
+        }
+
+        private void EnsurePrimitiveVisual()
+        {
+            _visual = GetComponentInChildren<EnemyPrimitiveVisual>();
+
+            if (_visual == null)
+                _visual = EnemyPrimitiveVisual.Create(transform, _rigidbody);
+            else
+                _visual.Initialize(_rigidbody);
+        }
+
+        private void DisablePlaceholderRenderers()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+
+            foreach (Renderer placeholderRenderer in renderers)
+            {
+                if (placeholderRenderer == null ||
+                    placeholderRenderer.GetComponentInParent<EnemyPrimitiveVisual>() != null)
+                    continue;
+
+                placeholderRenderer.enabled = false;
+            }
         }
 
         private void FlashHit()
@@ -294,6 +389,9 @@ namespace Game.Enemy
         {
             TickTimers();
 
+            if (_isDead)
+                return;
+
             if (_isGrabbed)
                 return;
 
@@ -316,6 +414,20 @@ namespace Game.Enemy
                 return;
             }
 
+            if (_needsGroundRecovery)
+            {
+                _physicsRecoveryTimer += Time.fixedDeltaTime;
+                ApplyExtraGravity();
+
+                if (_isImpactProjectile)
+                    DamageEnemiesDuringImpact();
+
+                if (!CanFinishPhysicsRecovery())
+                    return;
+
+                FinishPhysicsRecovery();
+            }
+
             if (TryEnableAgentControl())
                 MoveToTargetByNavMesh();
             else
@@ -329,13 +441,24 @@ namespace Game.Enemy
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (_isDead || !_isImpactProjectile || _impactDamageCooldownTimer > 0f || _knockbackTimer <= 0f)
+            bool isGroundCollision = IsGroundCollision(collision);
+
+            if (isGroundCollision)
+                MarkGroundContact();
+
+            if (_isDead || !_isImpactProjectile || _knockbackTimer <= 0f)
                 return;
 
             if (collision.collider.GetComponentInParent<PlayerController>() != null)
                 return;
 
-            if (IsGroundCollision(collision))
+            if (isGroundCollision)
+            {
+                TryBounceFromGround();
+                return;
+            }
+
+            if (_impactDamageCooldownTimer > 0f)
                 return;
 
             if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
@@ -346,6 +469,35 @@ namespace Game.Enemy
 
             _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
             TakeDamage(_data.ImpactDamage);
+        }
+
+        private void OnCollisionStay(Collision collision)
+        {
+            if (IsGroundCollision(collision))
+                MarkGroundContact();
+        }
+
+        private void TryBounceFromGround()
+        {
+            if (_groundBounceCooldownTimer > 0f || _groundBounceCount >= _data.GroundBounceCount)
+                return;
+
+            Vector3 velocity = _rigidbody.linearVelocity;
+            Vector3 planarVelocity = new(velocity.x, 0f, velocity.z);
+
+            if (Mathf.Abs(velocity.y) < _data.GroundBounceMinVerticalSpeed &&
+                planarVelocity.magnitude < _data.ImpactDamageMinSpeed)
+                return;
+
+            _groundBounceCount++;
+            _groundBounceCooldownTimer = _data.GroundBounceCooldown;
+            _knockbackTimer = Mathf.Max(_knockbackTimer, _data.GroundBounceKeepAliveDuration);
+
+            Vector3 bounceVelocity = planarVelocity * _data.GroundBounceHorizontalDamping;
+            bounceVelocity.y = _data.GroundBounceUpwardVelocity;
+
+            _rigidbody.linearVelocity = bounceVelocity;
+            _visual?.PlayGroundBounce();
         }
 
         private bool TryDamageOtherEnemy(Collision collision)
@@ -457,8 +609,11 @@ namespace Game.Enemy
 
             if (_knockbackTimer > 0f)
                 _knockbackTimer -= Time.fixedDeltaTime;
-            else
+            else if (!_needsGroundRecovery)
+            {
                 _isImpactProjectile = false;
+                _visual?.SetThrown(false);
+            }
 
             if (_attackCooldownTimer > 0f)
                 _attackCooldownTimer -= Time.fixedDeltaTime;
@@ -466,7 +621,108 @@ namespace Game.Enemy
             if (_impactDamageCooldownTimer > 0f)
                 _impactDamageCooldownTimer -= Time.fixedDeltaTime;
 
+            if (_groundBounceCooldownTimer > 0f)
+                _groundBounceCooldownTimer -= Time.fixedDeltaTime;
+
+            if (_groundContactTimer > 0f)
+                _groundContactTimer -= Time.fixedDeltaTime;
+
             TickImpactHitTimers();
+        }
+
+        private void MarkGroundContact()
+        {
+            _groundContactTimer = GroundContactMemory;
+        }
+
+        private bool CanFinishPhysicsRecovery()
+        {
+            if (_rigidbody == null)
+                return true;
+
+            if (_groundContactTimer > 0f)
+            {
+                TrySnapToPhysicalGround();
+                return true;
+            }
+
+            if (_physicsRecoveryTimer < _data.GroundRecoveryForceAfter)
+                return false;
+
+            return TrySnapToPhysicalGround();
+        }
+
+        private void FinishPhysicsRecovery()
+        {
+            _needsGroundRecovery = false;
+            _isImpactProjectile = false;
+            _visual?.SetThrown(false);
+            _physicsRecoveryTimer = 0f;
+
+            if (_rigidbody == null)
+                return;
+
+            Vector3 velocity = _rigidbody.linearVelocity;
+            _rigidbody.linearVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            _rigidbody.angularVelocity = Vector3.zero;
+        }
+
+        private bool TrySnapToPhysicalGround()
+        {
+            Vector3 origin = transform.position + Vector3.up * GetGroundProbeUpOffset();
+            float distance = _data.GroundRecoveryProbeDistance + GetGroundProbeUpOffset();
+            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance, ~0, QueryTriggerInteraction.Ignore);
+
+            if (hits.Length == 0)
+                return false;
+
+            RaycastHit bestHit = default;
+            float bestDistance = float.MaxValue;
+            bool foundGround = false;
+
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider == null ||
+                    hit.collider.GetComponentInParent<EnemyController>() == this ||
+                    hit.normal.y <= 0.55f)
+                {
+                    continue;
+                }
+
+                if (hit.distance >= bestDistance)
+                    continue;
+
+                bestDistance = hit.distance;
+                bestHit = hit;
+                foundGround = true;
+            }
+
+            if (!foundGround)
+                return false;
+
+            Vector3 position = transform.position;
+            position.y = bestHit.point.y + GetColliderBottomOffset();
+            transform.position = position;
+
+            return true;
+        }
+
+        private float GetGroundProbeUpOffset()
+        {
+            return Mathf.Max(0.5f, GetColliderBottomOffset() + 0.25f);
+        }
+
+        private float GetColliderBottomOffset()
+        {
+            CapsuleCollider capsule = GetComponent<CapsuleCollider>();
+
+            if (capsule == null)
+                return Mathf.Max(0.1f, _data.AgentHeight * 0.5f * transform.lossyScale.y);
+
+            float scaledHeight = capsule.height * Mathf.Abs(transform.lossyScale.y);
+            float scaledCenterY = capsule.center.y * transform.lossyScale.y;
+
+            return Mathf.Max(0f, scaledHeight * 0.5f - scaledCenterY);
         }
 
         private void TickImpactHitTimers()
@@ -545,13 +801,18 @@ namespace Game.Enemy
             if (_agent.isOnNavMesh)
                 return true;
 
-            if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit,
-                    _data.NavMeshSampleDistance, NavMesh.AllAreas))
+            if (!TrySampleRecoveryNavMesh(out NavMeshHit hit))
             {
                 return false;
             }
 
             return _agent.Warp(hit.position);
+        }
+
+        private bool TrySampleRecoveryNavMesh(out NavMeshHit hit)
+        {
+            float sampleDistance = Mathf.Max(_data.NavMeshSampleDistance, _data.GroundRecoveryProbeDistance);
+            return NavMesh.SamplePosition(transform.position, out hit, sampleDistance, NavMesh.AllAreas);
         }
 
         private void ConfigureAgent()
@@ -565,6 +826,7 @@ namespace Game.Enemy
             _agent.stoppingDistance = _data.AgentStoppingDistance;
             _agent.radius = _data.AgentRadius;
             _agent.height = _data.AgentHeight;
+            _agent.baseOffset = GetColliderBottomOffset();
             _agent.updateRotation = false;
             _agent.updatePosition = true;
             _agent.autoBraking = false;

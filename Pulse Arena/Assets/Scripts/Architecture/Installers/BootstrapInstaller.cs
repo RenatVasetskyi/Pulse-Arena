@@ -39,6 +39,7 @@ namespace Architecture.Installers
         private void BindStates()
         {
             Container.Bind<BootstrapState>().AsSingle();
+            Container.Bind<LoadMainMenuState>().AsSingle();
             Container.Bind<StartGameState>().AsSingle();
         }
 
@@ -47,6 +48,7 @@ namespace Architecture.Installers
             IStateMachine stateMachine = Container.Resolve<IStateMachine>();
 
             stateMachine.AddState(Container.Resolve<BootstrapState>());
+            stateMachine.AddState(Container.Resolve<LoadMainMenuState>());
             stateMachine.AddState(Container.Resolve<StartGameState>());
         }
     }

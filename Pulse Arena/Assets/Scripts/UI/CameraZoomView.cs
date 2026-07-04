@@ -1,7 +1,5 @@
 using Game.Cameras;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace UI
@@ -32,7 +30,6 @@ namespace UI
             scaler.matchWidthOrHeight = 0.5f;
 
             gameObject.AddComponent<GraphicRaycaster>();
-            EnsureEventSystem();
 
             RectTransform root = GetComponent<RectTransform>();
             Stretch(root);
@@ -130,14 +127,5 @@ namespace UI
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
 
-        private static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null)
-                return;
-
-            GameObject eventSystem = new("EventSystem");
-            eventSystem.AddComponent<EventSystem>();
-            eventSystem.AddComponent<InputSystemUIInputModule>();
-        }
     }
 }

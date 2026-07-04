@@ -88,8 +88,6 @@ namespace Game.Combat
             if (enemies.Count == 0 && _data.EnemyLayer.value != 0)
                 CollectEnemiesAlongBlade(hitRadius, Physics.DefaultRaycastLayers, enemies);
 
-            CollectEnemiesByBladeDistance(hitRadius, enemies);
-
             foreach (EnemyController enemy in enemies)
             {
                 if (enemy == null || enemy.IsGrabbed || _hitTimers.ContainsKey(enemy))
@@ -132,30 +130,6 @@ namespace Game.Combat
                     if (enemy != null)
                         enemies.Add(enemy);
                 }
-            }
-        }
-
-        private void CollectEnemiesByBladeDistance(float hitRadius, HashSet<EnemyController> enemies)
-        {
-            Vector3 bladeRoot = GetBladeStartPosition();
-            Vector3 bladeTip = GetBladeTipPosition();
-            float hitDistance = hitRadius + 0.55f;
-            float maxVerticalOffset = hitRadius + 1.1f;
-            float sqrHitDistance = hitDistance * hitDistance;
-            EnemyController[] activeEnemies = FindObjectsByType<EnemyController>(FindObjectsInactive.Exclude);
-
-            foreach (EnemyController enemy in activeEnemies)
-            {
-                if (enemy == null)
-                    continue;
-
-                Vector3 enemyCenter = enemy.transform.position + Vector3.up * _data.Height;
-
-                if (Mathf.Abs(enemyCenter.y - bladeRoot.y) > maxVerticalOffset)
-                    continue;
-
-                if (GetSqrDistanceToBlade(enemyCenter, bladeRoot, bladeTip) <= sqrHitDistance)
-                    enemies.Add(enemy);
             }
         }
 
@@ -299,11 +273,6 @@ namespace Game.Combat
             return transform.position + Vector3.up * _data.Height + GetBladeDirection() * _data.Radius;
         }
 
-        private Vector3 GetBladeTipPosition()
-        {
-            return GetBladeRootPosition() + GetBladeDirection() * _data.BladeLength;
-        }
-
         private Vector3 GetBladeStartPosition()
         {
             return GetBladeRootPosition() + GetBladeDirection() * BladeStartOffset;
@@ -322,24 +291,6 @@ namespace Game.Combat
         private Vector3 GetBladeDirection()
         {
             return Quaternion.Euler(0f, _data.BladeAngleOffset, 0f) * GetOrbitDirection();
-        }
-
-        private float GetSqrDistanceToBlade(Vector3 point, Vector3 bladeRoot, Vector3 bladeTip)
-        {
-            Vector3 segment = bladeTip - bladeRoot;
-            float segmentLengthSqr = segment.sqrMagnitude;
-
-            if (segmentLengthSqr <= 0.001f)
-                return (point - bladeRoot).sqrMagnitude;
-
-            float t = Vector3.Dot(point - bladeRoot, segment) / segmentLengthSqr;
-            t = Mathf.Clamp01(t);
-            Vector3 closestPoint = bladeRoot + segment * t;
-
-            point.y = 0f;
-            closestPoint.y = 0f;
-
-            return (point - closestPoint).sqrMagnitude;
         }
 
         private Material CreateMaterial(Color color, string materialName)

@@ -18,9 +18,12 @@ namespace Game.Combat
             Spinning
         }
 
+        public event Action LassoThrown;
         public event Action EnemyGrabbed;
         public event Action<float> ChargeChanged;
         public event Action<float> EnemyLaunched;
+
+        [SerializeField] private Transform _lassoOrigin;
 
         private IInputService _inputService;
         private SlingshotData _data;
@@ -125,6 +128,12 @@ namespace Game.Combat
             _releaseRequested = false;
             _state = LassoState.Throwing;
             EnsureLine();
+            LassoThrown?.Invoke();
+        }
+
+        public void SetLassoOrigin(Transform lassoOrigin)
+        {
+            _lassoOrigin = lassoOrigin;
         }
 
         private void TickThrow()
@@ -236,8 +245,9 @@ namespace Game.Combat
             float chargeProgress = GetChargeProgress();
             float launchForce = _data.LaunchForce *
                 Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress);
-            Vector3 velocity = (launchDirection + Vector3.up * _data.LaunchUpwardRatio).normalized *
-                launchForce;
+            Vector3 velocity = launchDirection.normalized * launchForce;
+            velocity.y = -Mathf.Lerp(_data.LaunchDownwardVelocity,
+                _data.LaunchDownwardVelocity * 1.25f, launchProgress);
 
             _grabbedEnemy.Launch(velocity, _data.LaunchDuration);
             ResetLasso();
@@ -265,6 +275,9 @@ namespace Game.Combat
 
         private Vector3 GetLassoOrigin()
         {
+            if (_lassoOrigin != null)
+                return _lassoOrigin.position;
+
             return transform.position + Vector3.up * _data.HoldHeight;
         }
 

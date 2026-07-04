@@ -7,7 +7,14 @@ namespace Architecture.Services
 {
     public class InputService : IInputService
     {
+        private readonly EventSystem _eventSystem;
+
         public bool IsEnabled { get; private set; } = true;
+
+        public InputService(EventSystem eventSystem)
+        {
+            _eventSystem = eventSystem;
+        }
         
         public Vector2 MoveDirection
         {
@@ -123,9 +130,9 @@ namespace Architecture.Services
             IsEnabled = false;
         }
 
-        private static bool IsPointerOverUi()
+        private bool IsPointerOverUi()
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            return _eventSystem != null && _eventSystem.IsPointerOverGameObject();
         }
     }
 }

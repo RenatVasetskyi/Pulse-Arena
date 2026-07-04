@@ -8,6 +8,7 @@ namespace Data
     {
         [Header("Bootstrap")]
         public int TargetFrameRate = 120;
+        public string MainMenuSceneName = SceneName.MainMenu;
         public string GameSceneName = SceneName.Game;
 
         [Header("Configs")]
@@ -67,6 +68,16 @@ namespace Data
         public float ImpactKnockbackUpwardRatio = 0.12f;
         public int ImpactDamage = 1;
         public float ImpactDamageCooldown = 0.08f;
+        public int GroundBounceCount = 1;
+        public float GroundBounceUpwardVelocity = 5.8f;
+        public float GroundBounceHorizontalDamping = 0.58f;
+        public float GroundBounceCooldown = 0.18f;
+        public float GroundBounceMinVerticalSpeed = 1.8f;
+        public float GroundBounceKeepAliveDuration = 0.45f;
+        public float GroundRecoveryProbeDistance = 4f;
+        public float GroundRecoveryMaxVerticalOffset = 1.35f;
+        public float GroundRecoveryMaxUpwardSpeed = 0.1f;
+        public float GroundRecoveryForceAfter = 1.1f;
     }
 
     [Serializable]
@@ -91,7 +102,7 @@ namespace Data
     [Serializable]
     public class SlingshotData
     {
-        public float GrabRadius = 6f;
+        public float GrabRadius = 7.5f;
         public float HoldRadius = 1.85f;
         public float HoldHeight = 0.75f;
         public float HoldAngularSpeed = 170f;
@@ -100,6 +111,7 @@ namespace Data
         public float HoldFollowSpeed = 26f;
         public float LaunchForce = 18f;
         public float LaunchUpwardRatio = 0.12f;
+        public float LaunchDownwardVelocity = 8f;
         public float LaunchDuration = 0.9f;
         public float ChargeDuration = 4f;
         public float MaxChargeLaunchMultiplier = 1.6f;

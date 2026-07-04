@@ -18,7 +18,7 @@ namespace Architecture.States
         public void Enter()
         {
             Application.targetFrameRate = _gameSettings.TargetFrameRate;
-            _stateMachine.Enter<StartGameState>();
+            _stateMachine.Enter<LoadMainMenuState>();
         }
 
         public void Exit()

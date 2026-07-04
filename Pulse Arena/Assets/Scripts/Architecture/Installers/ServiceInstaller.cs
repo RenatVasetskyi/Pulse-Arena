@@ -9,7 +9,10 @@ using Game.Pickups;
 using Game.Pickups.Interfaces;
 using Game.Player;
 using Game.Player.Interfaces;
+using UI.Loading;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using Zenject;
 
 namespace Architecture.Installers
@@ -18,10 +21,14 @@ namespace Architecture.Installers
     {
         [SerializeField] private GameSettings _gameSettings;
 
+        private EventSystem _eventSystem;
+
         public override void InstallBindings()
         {
             BindGameSettings();
             BindCoroutineRunner();
+            CreateUiEventSystem();
+            BindLoadingScreen();
             BindSceneLoader();
             BindFactories();
             BindInputService();
@@ -46,6 +53,31 @@ namespace Architecture.Installers
                 .Bind<ICoroutineRunner>()
                 .FromInstance(coroutineRunner)
                 .AsSingle()
+                .NonLazy();
+        }
+
+        private void CreateUiEventSystem()
+        {
+            GameObject eventSystem = new("EventSystem");
+            eventSystem.transform.SetParent(transform);
+            _eventSystem = eventSystem.AddComponent<EventSystem>();
+            eventSystem.AddComponent<InputSystemUIInputModule>();
+
+            Container
+                .Bind<EventSystem>()
+                .FromInstance(_eventSystem)
+                .AsSingle();
+        }
+
+        private void BindLoadingScreen()
+        {
+            LoadingScreenView view = LoadingScreenView.Create(transform);
+
+            Container
+                .Bind<ILoadingScreen>()
+                .To<LoadingScreen>()
+                .AsSingle()
+                .WithArguments(view)
                 .NonLazy();
         }
 

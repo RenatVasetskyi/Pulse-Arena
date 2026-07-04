@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using Architecture.Services.Interfaces;
 using Data;
+using Game.Combat;
+using Game.Visuals;
 using UnityEngine;
 using Zenject;
 
@@ -15,6 +17,7 @@ namespace Game.Player
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
 
+        private PlayerPrimitiveVisual _visual;
         private IInputService _inputService;
         private PlayerData _data;
         private Material[][] _originalMaterials;
@@ -44,10 +47,24 @@ namespace Game.Player
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>();
 
-            if (_renderers == null || _renderers.Length == 0)
-                _renderers = GetComponentsInChildren<Renderer>();
+            NormalizeCapsuleRoot();
+            DisablePlaceholderRenderers();
+            EnsurePrimitiveVisual();
+            _renderers = GetComponentsInChildren<Renderer>();
 
             CacheMaterials();
+        }
+
+        private void NormalizeCapsuleRoot()
+        {
+            CapsuleCollider capsule = GetComponent<CapsuleCollider>();
+
+            if (capsule == null)
+                return;
+
+            Vector3 center = capsule.center;
+            center.y = capsule.height * 0.5f;
+            capsule.center = center;
         }
 
         private void Update()
@@ -80,6 +97,7 @@ namespace Game.Player
             Debug.Log($"Player hit. Health: {Mathf.Max(0, _health)}");
             HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
             FlashHit();
+            _visual?.PlayHit();
 
             if (_health <= 0)
                 Die();
@@ -153,7 +171,37 @@ namespace Game.Player
             _rigidbody.angularVelocity = Vector3.zero;
             Debug.Log("Player died.");
             HealthChanged?.Invoke(_health, _maxHealth);
+            _visual?.PlayDeath();
             Died?.Invoke();
+        }
+
+        private void EnsurePrimitiveVisual()
+        {
+            _visual = GetComponentInChildren<PlayerPrimitiveVisual>();
+
+            EnemySlingshot slingshot = GetComponent<EnemySlingshot>();
+
+            if (_visual == null)
+                _visual = PlayerPrimitiveVisual.Create(transform, _rigidbody, slingshot);
+            else
+                _visual.Initialize(_rigidbody, slingshot);
+
+            if (slingshot != null && _visual.LassoOrigin != null)
+                slingshot.SetLassoOrigin(_visual.LassoOrigin);
+        }
+
+        private void DisablePlaceholderRenderers()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+
+            foreach (Renderer placeholderRenderer in renderers)
+            {
+                if (placeholderRenderer == null ||
+                    placeholderRenderer.GetComponentInParent<PlayerPrimitiveVisual>() != null)
+                    continue;
+
+                placeholderRenderer.enabled = false;
+            }
         }
 
         private void FlashHit()

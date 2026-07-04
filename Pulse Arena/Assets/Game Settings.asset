@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Game Settings
   m_EditorClassIdentifier: Assembly-CSharp::Data.GameSettings
   TargetFrameRate: 120
+  MainMenuSceneName: MainMenu
   GameSceneName: Game
   PlayerData:
     MoveSpeed: 6
@@ -48,6 +49,16 @@ MonoBehaviour:
     ImpactKnockbackUpwardRatio: 0.12
     ImpactDamage: 1
     ImpactDamageCooldown: 0.08
+    GroundBounceCount: 1
+    GroundBounceUpwardVelocity: 5.8
+    GroundBounceHorizontalDamping: 0.58
+    GroundBounceCooldown: 0.18
+    GroundBounceMinVerticalSpeed: 1.8
+    GroundBounceKeepAliveDuration: 0.45
+    GroundRecoveryProbeDistance: 4
+    GroundRecoveryMaxVerticalOffset: 1.35
+    GroundRecoveryMaxUpwardSpeed: 0.1
+    GroundRecoveryForceAfter: 1.1
   PulseData:
     Radius: 5
     Force: 16
@@ -89,7 +100,7 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 64
   SlingshotData:
-    GrabRadius: 6
+    GrabRadius: 7.5
     HoldRadius: 1.85
     HoldHeight: 0.75
     HoldAngularSpeed: 170
@@ -98,6 +109,7 @@ MonoBehaviour:
     HoldFollowSpeed: 26
     LaunchForce: 18
     LaunchUpwardRatio: 0.12
+    LaunchDownwardVelocity: 8
     LaunchDuration: 0.9
     ChargeDuration: 4
     MaxChargeLaunchMultiplier: 1.6

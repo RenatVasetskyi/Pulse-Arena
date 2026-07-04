@@ -1,5 +1,6 @@
 using System;
 using Data;
+using Game.Common;
 using Game.Enemy.Interfaces;
 using UnityEngine;
 using Zenject;
@@ -25,6 +26,7 @@ namespace Game.Enemy
             EnemyController enemy = _container.InstantiatePrefabForComponent<EnemyController>
                 (_gameSettings.Prefabs.EnemyPrefab, at, rotation, parent);
 
+            ActorGroundingUtility.SnapToGround(enemy.transform);
             enemy.Initialize(target);
 
             return enemy;

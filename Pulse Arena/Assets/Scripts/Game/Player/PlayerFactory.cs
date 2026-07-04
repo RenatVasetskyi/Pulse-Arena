@@ -1,6 +1,7 @@
 using System;
 using Data;
 using Game.Combat;
+using Game.Common;
 using Game.Player.Interfaces;
 using Game.Pulse;
 using UnityEngine;
@@ -27,6 +28,7 @@ namespace Game.Player
             PlayerController player = _container.InstantiatePrefabForComponent<PlayerController>
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 
+            ActorGroundingUtility.SnapToGround(player.transform);
             DisableLegacyPulse(player);
             DisableOrbitCutter(player);
             AddCombatComponents(player);
