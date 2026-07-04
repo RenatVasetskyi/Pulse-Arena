@@ -48,8 +48,18 @@ namespace Game.Enemy
             if (_spawnRoutine == null)
                 return;
 
-            _coroutineRunner.StopCoroutine(_spawnRoutine);
-            _spawnRoutine = null;
+            try
+            {
+                _coroutineRunner.StopCoroutine(_spawnRoutine);
+            }
+            catch (MissingReferenceException)
+            {
+                // Unity can destroy the runner before Zenject disposes local scene services.
+            }
+            finally
+            {
+                _spawnRoutine = null;
+            }
         }
 
         private IEnumerator SpawnLoop()

@@ -19,7 +19,8 @@ namespace Game.Combat
         }
 
         public event Action EnemyGrabbed;
-        public event Action EnemyLaunched;
+        public event Action<float> ChargeChanged;
+        public event Action<float> EnemyLaunched;
 
         private IInputService _inputService;
         private SlingshotData _data;
@@ -94,6 +95,7 @@ namespace Game.Combat
                 return;
 
             _chargeTimer = Mathf.Min(_chargeTimer + Time.fixedDeltaTime, _data.ChargeDuration);
+            ChargeChanged?.Invoke(GetChargeProgress());
             
             float spinProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float targetSpinSpeed = Mathf.Lerp(_data.HoldAngularSpeed, _data.MaxHoldAngularSpeed, spinProgress);
@@ -231,6 +233,7 @@ namespace Game.Combat
         {
             Vector3 launchDirection = GetLaunchDirection();
             float launchProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
+            float chargeProgress = GetChargeProgress();
             float launchForce = _data.LaunchForce *
                 Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress);
             Vector3 velocity = (launchDirection + Vector3.up * _data.LaunchUpwardRatio).normalized *
@@ -239,7 +242,7 @@ namespace Game.Combat
             _grabbedEnemy.Launch(velocity, _data.LaunchDuration);
             ResetLasso();
             _cooldownTimer = _data.Cooldown;
-            EnemyLaunched?.Invoke();
+            EnemyLaunched?.Invoke(chargeProgress);
         }
 
         private Vector3 GetLaunchDirection()
@@ -472,6 +475,7 @@ namespace Game.Combat
             _grabbedEnemy = null;
             _state = LassoState.Idle;
             _chargeTimer = 0f;
+            ChargeChanged?.Invoke(0f);
             _releaseRequested = false;
             HideLine();
 

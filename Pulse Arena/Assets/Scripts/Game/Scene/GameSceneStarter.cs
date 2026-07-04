@@ -58,7 +58,6 @@ namespace Game.Scene
 
             if (_enemySlingshot != null)
             {
-                _enemySlingshot.EnemyGrabbed -= OnEnemyGrabbed;
                 _enemySlingshot.EnemyLaunched -= OnEnemyLaunched;
             }
 
@@ -82,10 +81,7 @@ namespace Game.Scene
                 _orbitCutter.BurstUsed += OnOrbitBurstUsed;
 
             if (_enemySlingshot != null)
-            {
-                _enemySlingshot.EnemyGrabbed += OnEnemyGrabbed;
                 _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
-            }
         }
 
         private void OnOrbitBurstUsed()
@@ -93,14 +89,9 @@ namespace Game.Scene
             _battleCamera.Shake(0.22f, 0.45f);
         }
 
-        private void OnEnemyGrabbed()
+        private void OnEnemyLaunched(float chargeProgress)
         {
-            _battleCamera.Shake(0.08f, 0.18f);
-        }
-
-        private void OnEnemyLaunched()
-        {
-            _battleCamera.Shake(0.24f, 0.55f);
+            _battleCamera.PlayLassoLaunch(chargeProgress);
         }
     }
 }

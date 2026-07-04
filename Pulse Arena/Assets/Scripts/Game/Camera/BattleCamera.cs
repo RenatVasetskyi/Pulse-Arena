@@ -24,14 +24,27 @@ namespace Game.Cameras
         [SerializeField] private float _defaultShakeDuration = 0.18f;
         [SerializeField] private float _defaultShakeStrength = 0.35f;
         [SerializeField] private float _shakeFrequency = 35f;
+        
+        [Header("Lasso Camera FX")]
+        [SerializeField] private Vector3 _launchKickOffset = new(0f, 0.32f, -0.65f);
+        [SerializeField] private float _launchKickDuration = 0.2f;
+        [SerializeField] private float _launchShakeDuration = 0.12f;
+        [SerializeField] private float _launchShakeStrength = 0.18f;
 
         private Coroutine _shakeRoutine;
+        private Coroutine _offsetKickRoutine;
+        private Vector3 _currentKickOffset;
 
         private void Awake()
         {
             CacheComponents();
             ApplySettings();
             MuteNoise();
+        }
+
+        private void Update()
+        {
+            ApplyDynamicCameraSettings();
         }
 
         private void OnValidate()
@@ -72,6 +85,14 @@ namespace Game.Cameras
             Shake(_defaultShakeDuration, _defaultShakeStrength);
         }
 
+        public void PlayLassoLaunch(float chargeProgress)
+        {
+            float safeProgress = Mathf.Clamp01(chargeProgress);
+
+            Shake(_launchShakeDuration, Mathf.Lerp(_launchShakeStrength * 0.65f, _launchShakeStrength, safeProgress));
+            KickOffset(_launchKickOffset * Mathf.Lerp(0.65f, 1f, safeProgress), _launchKickDuration);
+        }
+
         private IEnumerator ShakeRoutine(float duration, float strength)
         {
             float safeDuration = Mathf.Max(duration, 0.01f);
@@ -92,6 +113,42 @@ namespace Game.Cameras
             _shakeRoutine = null;
         }
 
+        private void KickOffset(Vector3 offset, float duration)
+        {
+            if (_offsetKickRoutine != null)
+                StopCoroutine(_offsetKickRoutine);
+
+            _offsetKickRoutine = StartCoroutine(OffsetKickRoutine(offset, duration));
+        }
+
+        private IEnumerator OffsetKickRoutine(Vector3 offset, float duration)
+        {
+            float safeDuration = Mathf.Max(duration, 0.01f);
+            float timer = 0f;
+
+            while (timer < safeDuration)
+            {
+                float progress = timer / safeDuration;
+                float kickProgress = Mathf.Sin(progress * Mathf.PI);
+                _currentKickOffset = offset * kickProgress;
+
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            _currentKickOffset = Vector3.zero;
+            _offsetKickRoutine = null;
+        }
+
+        private void ApplyDynamicCameraSettings()
+        {
+            if (_camera != null)
+                _camera.Lens.FieldOfView = _fieldOfView;
+
+            if (_follow != null)
+                _follow.FollowOffset = _followOffset + _currentKickOffset;
+        }
+
         private void CacheComponents()
         {
             if (_camera == null)
@@ -109,12 +166,10 @@ namespace Game.Cameras
 
         private void ApplySettings()
         {
-            if (_camera != null)
-                _camera.Lens.FieldOfView = _fieldOfView;
+            ApplyDynamicCameraSettings();
 
             if (_follow != null)
             {
-                _follow.FollowOffset = _followOffset;
                 _follow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
                 _follow.TrackerSettings.PositionDamping = _positionDamping;
             }
