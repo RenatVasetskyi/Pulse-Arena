@@ -30,7 +30,8 @@ namespace Game.Enemy
             EnsurePool();
         }
 
-        public EnemyController Create(Vector3 at, Quaternion rotation, Transform parent, Transform target)
+        public EnemyController Create(Vector3 at, Quaternion rotation, Transform parent, Transform target,
+            EnemyTypeData typeData = null)
         {
             if (_gameSettings.Prefabs.EnemyPrefab == null)
                 throw new InvalidOperationException("Enemy prefab is not assigned in GameSettings.");
@@ -42,7 +43,7 @@ namespace Game.Enemy
             enemy.transform.SetPositionAndRotation(at, rotation);
 
             ActorGroundingUtility.SnapToGround(enemy.transform);
-            enemy.Initialize(target);
+            enemy.Initialize(target, typeData);
 
             return enemy;
         }

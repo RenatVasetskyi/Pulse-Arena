@@ -36,6 +36,7 @@ namespace Game.Enemy
         private EnemyPrimitiveVisual _visual;
         private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
         private Action<EnemyController> _releaseToPool;
+        private EnemyTypeData _typeData = EnemyTypeData.Default;
         private ActorStateMachine _stateMachine;
         private EnemyChaseState _chaseState;
         private EnemyGrabbedState _grabbedState;
@@ -46,6 +47,7 @@ namespace Game.Enemy
         private Vector3 _lastImpactPosition;
         private float _knockbackTimer;
         private float _stasisTimer;
+        private float _heldDamageTimer;
         private float _attackCooldownTimer;
         private float _impactDamageCooldownTimer;
         private float _destinationUpdateTimer;
@@ -69,6 +71,7 @@ namespace Game.Enemy
 
         public int Health => _health;
         public int MaxHealth => _maxHealth;
+        public EnemyTypeData TypeData => _typeData;
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService)
@@ -86,12 +89,14 @@ namespace Game.Enemy
             _releaseToPool = releaseToPool;
         }
 
-        public void Initialize(Transform target)
+        public void Initialize(Transform target, EnemyTypeData typeData = null)
         {
+            _typeData = typeData ?? EnemyTypeData.Default;
             ResetForSpawn();
             _target = target;
             _playerTarget = target.GetComponentInParent<PlayerController>();
             ConfigureAgent();
+            _visual?.ApplyTypeStyle(_typeData);
             ChangeToChaseState();
         }
 
@@ -243,7 +248,7 @@ namespace Game.Enemy
             _isDead = true;
             HealthChanged?.Invoke(0, _maxHealth);
             _healthBar?.SetHealth(0, _maxHealth);
-            _scoreService.Add(_data.ScoreReward);
+            _scoreService.Add(GetScoreReward());
             ChangeToDeadState();
 
             return true;
@@ -458,6 +463,7 @@ namespace Game.Enemy
             _usesAgent = false;
             _knockbackTimer = 0f;
             _stasisTimer = 0f;
+            _heldDamageTimer = 0f;
             _attackCooldownTimer = 0f;
             _impactDamageCooldownTimer = 0f;
             _destinationUpdateTimer = 0f;
@@ -467,7 +473,7 @@ namespace Game.Enemy
             _groundBounceCount = 0;
             _impactHitTimers.Clear();
 
-            _maxHealth = Mathf.Max(1, _data.MaxHealth);
+            _maxHealth = GetTypeAdjustedMaxHealth();
             _health = _maxHealth;
             HealthChanged?.Invoke(_health, _maxHealth);
             _healthBar?.SetHealth(_health, _maxHealth);
@@ -558,6 +564,7 @@ namespace Game.Enemy
             _isGrabbed = true;
             _needsGroundRecovery = false;
             _isImpactProjectile = false;
+            _heldDamageTimer = 0.35f;
             _visual?.SetGrabbed(true);
             _visual?.SetThrown(false);
 
@@ -622,6 +629,27 @@ namespace Game.Enemy
             }
 
             TryAttackTarget();
+        }
+
+        internal void FixedTickGrabbedState()
+        {
+            if (!_typeData.DamagesPlayerWhileHeld || _playerTarget == null || _isDead)
+                return;
+
+            if (_heldDamageTimer > 0f)
+            {
+                _heldDamageTimer -= Time.fixedDeltaTime;
+                return;
+            }
+
+            Vector3 offset = _playerTarget.transform.position - transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude > _data.AttackRange * _data.AttackRange)
+                return;
+
+            if (_playerTarget.TakeDamage(_data.ContactDamage, transform.position))
+                _heldDamageTimer = _typeData.HeldDamageInterval;
         }
 
         internal void FixedTickPhysicsRecoveryState()
@@ -730,7 +758,7 @@ namespace Game.Enemy
                 return false;
 
             HitEnemyWithImpact(otherEnemy);
-            otherEnemy.TakeDamage(_data.ImpactDamage);
+            otherEnemy.TakeDamage(GetImpactDamage());
             _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
 
             return true;
@@ -793,7 +821,7 @@ namespace Game.Enemy
                 return false;
 
             HitEnemyWithImpact(otherEnemy);
-            otherEnemy.TakeDamage(_data.ImpactDamage);
+            otherEnemy.TakeDamage(GetImpactDamage());
             _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
 
             return true;
@@ -810,7 +838,7 @@ namespace Game.Enemy
             direction.y = 0f;
 
             Vector3 knockbackDirection = (direction.normalized + Vector3.up * _data.ImpactKnockbackUpwardRatio).normalized;
-            otherEnemy.Knockback(knockbackDirection * _data.ImpactKnockbackForce);
+            otherEnemy.Knockback(knockbackDirection * (_data.ImpactKnockbackForce * _typeData.ImpactKnockbackMultiplier));
         }
 
         private bool IsGroundCollision(Collision collision)
@@ -1000,7 +1028,7 @@ namespace Game.Enemy
             if (_agent == null || _data == null)
                 return;
 
-            _agent.speed = _data.MoveSpeed;
+            _agent.speed = GetMoveSpeed();
             _agent.acceleration = _data.AgentAcceleration;
             _agent.angularSpeed = _data.AgentAngularSpeed;
             _agent.stoppingDistance = _data.AgentStoppingDistance;
@@ -1063,7 +1091,7 @@ namespace Game.Enemy
 
             Vector3 direction = offset.normalized;
             direction.y = 0f;
-            Vector3 horizontalVelocity = direction * _data.MoveSpeed;
+            Vector3 horizontalVelocity = direction * GetMoveSpeed();
 
             _rigidbody.linearVelocity = new Vector3(
                 horizontalVelocity.x,
@@ -1091,6 +1119,26 @@ namespace Game.Enemy
             Quaternion targetRotation = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.Lerp(transform.rotation,
                 targetRotation, _data.RotationSpeed * Time.fixedDeltaTime);
+        }
+
+        private int GetTypeAdjustedMaxHealth()
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(_data.MaxHealth * _typeData.HealthMultiplier));
+        }
+
+        private int GetImpactDamage()
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(_data.ImpactDamage * _typeData.ImpactDamageMultiplier));
+        }
+
+        private float GetMoveSpeed()
+        {
+            return _data.MoveSpeed * _typeData.MoveSpeedMultiplier;
+        }
+
+        private int GetScoreReward()
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(_data.ScoreReward * _typeData.ScoreMultiplier));
         }
 
         private void TryAttackTarget()

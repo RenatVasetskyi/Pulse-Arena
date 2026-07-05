@@ -15,5 +15,10 @@ namespace Game.Enemy.States
         {
             _enemy.EnterGrabbedState();
         }
+
+        public override void FixedTick()
+        {
+            _enemy.FixedTickGrabbedState();
+        }
     }
 }

@@ -81,9 +81,44 @@ namespace Game.Enemy
             Transform point = _spawnPoints[Random.Range(0, _spawnPoints.Length)];
             Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
-            EnemyController enemy = _enemyFactory.Create(spawnPosition, point.rotation, _spawnParent, _target);
+            EnemyController enemy = _enemyFactory.Create(spawnPosition, point.rotation, _spawnParent, _target,
+                PickEnemyType());
             enemy.Destroyed += OnEnemyDestroyed;
             _aliveEnemies++;
+        }
+
+        private EnemyTypeData PickEnemyType()
+        {
+            EnemyTypeData[] types = _gameSettings.EnemyTypes;
+
+            if (types == null || types.Length == 0)
+                return null;
+
+            float totalWeight = 0f;
+
+            foreach (EnemyTypeData type in types)
+            {
+                if (type != null)
+                    totalWeight += Mathf.Max(0f, type.SpawnWeight);
+            }
+
+            if (totalWeight <= 0f)
+                return types[0];
+
+            float roll = Random.value * totalWeight;
+
+            foreach (EnemyTypeData type in types)
+            {
+                if (type == null)
+                    continue;
+
+                roll -= Mathf.Max(0f, type.SpawnWeight);
+
+                if (roll <= 0f)
+                    return type;
+            }
+
+            return types[^1];
         }
 
         private void OnEnemyDestroyed(EnemyController enemy)

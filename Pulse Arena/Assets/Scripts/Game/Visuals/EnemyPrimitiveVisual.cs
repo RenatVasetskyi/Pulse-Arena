@@ -1,3 +1,4 @@
+using Data;
 using UnityEngine;
 
 namespace Game.Visuals
@@ -14,11 +15,16 @@ namespace Game.Visuals
         private Transform _belly;
         private Transform _leftEye;
         private Transform _rightEye;
+        private Transform _faceRoot;
         private Transform _spikeRoot;
         private Renderer[] _bottomRenderers;
+        private Material _bodyMaterial;
+        private Material _bellyMaterial;
+        private float _typeScale = 1f;
         private Vector3 _lastPosition;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
+        private Vector3 _headBaseScale;
         private float _hitTimer;
         private float _bounceTimer;
         private float _deathTimer;
@@ -60,7 +66,7 @@ namespace Game.Visuals
 
             transform.localPosition = _baseLocalPosition;
             transform.localRotation = Quaternion.identity;
-            transform.localScale = _baseScale;
+            transform.localScale = _baseScale * _typeScale;
 
             if (_body != null)
                 _body.localRotation = Quaternion.identity;
@@ -68,7 +74,15 @@ namespace Game.Visuals
             if (_head != null)
             {
                 _head.localRotation = Quaternion.identity;
-                _head.localScale = Vector3.one;
+
+                if (_headBaseScale.sqrMagnitude > 0f)
+                    _head.localScale = _headBaseScale;
+            }
+
+            if (_faceRoot != null)
+            {
+                _faceRoot.localRotation = Quaternion.identity;
+                _faceRoot.localScale = Vector3.one;
             }
 
             if (_spikeRoot != null)
@@ -128,6 +142,8 @@ namespace Game.Visuals
         {
             Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Body", new Color(0.42f, 0.2f, 0.72f, 1f));
             Material bellyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Belly", new Color(0.58f, 0.42f, 0.9f, 1f));
+            _bodyMaterial = bodyMaterial;
+            _bellyMaterial = bellyMaterial;
             Material eyeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Eye", new Color(1f, 0.92f, 0.72f, 1f));
             Material pupilMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Pupil", new Color(0.04f, 0.02f, 0.08f, 1f));
             Material spikeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Spike", new Color(0.12f, 0.08f, 0.22f, 1f));
@@ -137,16 +153,20 @@ namespace Game.Visuals
             _head = PrimitiveVisualUtility.CreatePart("Head", PrimitiveType.Sphere, transform,
                 new Vector3(0f, 1.34f, 0.08f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.58f), bodyMaterial);
             _belly = PrimitiveVisualUtility.CreatePart("Belly", PrimitiveType.Sphere, transform,
-                new Vector3(0f, 0.66f, 0.28f), Vector3.zero, new Vector3(0.52f, 0.62f, 0.18f), bellyMaterial);
+                new Vector3(0f, 0.66f, 0.33f), Vector3.zero, new Vector3(0.5f, 0.6f, 0.28f), bellyMaterial);
 
-            _leftEye = PrimitiveVisualUtility.CreatePart("LeftEye", PrimitiveType.Sphere, transform,
-                new Vector3(-0.18f, 1.42f, 0.34f), Vector3.zero, new Vector3(0.18f, 0.18f, 0.08f), eyeMaterial);
-            _rightEye = PrimitiveVisualUtility.CreatePart("RightEye", PrimitiveType.Sphere, transform,
-                new Vector3(0.18f, 1.42f, 0.34f), Vector3.zero, new Vector3(0.18f, 0.18f, 0.08f), eyeMaterial);
+            _faceRoot = new GameObject("FaceRoot").transform;
+            _faceRoot.SetParent(transform, false);
+            _faceRoot.localPosition = new Vector3(0f, 1.34f, 0.08f);
+
+            _leftEye = PrimitiveVisualUtility.CreatePart("LeftEye", PrimitiveType.Sphere, _faceRoot,
+                new Vector3(-0.175f, 0.1f, 0.27f), Vector3.zero, new Vector3(0.21f, 0.21f, 0.12f), eyeMaterial);
+            _rightEye = PrimitiveVisualUtility.CreatePart("RightEye", PrimitiveType.Sphere, _faceRoot,
+                new Vector3(0.175f, 0.1f, 0.27f), Vector3.zero, new Vector3(0.21f, 0.21f, 0.12f), eyeMaterial);
             PrimitiveVisualUtility.CreatePart("LeftPupil", PrimitiveType.Sphere, _leftEye,
-                new Vector3(0f, 0f, 0.55f), Vector3.zero, new Vector3(0.38f, 0.38f, 0.18f), pupilMaterial);
+                new Vector3(0f, 0f, 0.6f), Vector3.zero, new Vector3(0.42f, 0.42f, 0.22f), pupilMaterial);
             PrimitiveVisualUtility.CreatePart("RightPupil", PrimitiveType.Sphere, _rightEye,
-                new Vector3(0f, 0f, 0.55f), Vector3.zero, new Vector3(0.38f, 0.38f, 0.18f), pupilMaterial);
+                new Vector3(0f, 0f, 0.6f), Vector3.zero, new Vector3(0.42f, 0.42f, 0.22f), pupilMaterial);
 
             _spikeRoot = new GameObject("SpikeRoot").transform;
             _spikeRoot.SetParent(transform, false);
@@ -161,6 +181,37 @@ namespace Game.Visuals
             AlignBottomToCollider();
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
+            _headBaseScale = _head.localScale;
+        }
+
+        public void ApplyTypeStyle(EnemyTypeData type)
+        {
+            if (type == null)
+                return;
+
+            _typeScale = Mathf.Max(0.1f, type.VisualScale);
+            transform.localScale = _baseScale * _typeScale;
+
+            if (_spikeRoot != null)
+                _spikeRoot.gameObject.SetActive(type.ShowSpikes);
+
+            if (type.OverrideBodyColor)
+            {
+                ApplyMaterialColor(_bodyMaterial, type.BodyColor);
+                ApplyMaterialColor(_bellyMaterial, Color.Lerp(type.BodyColor, Color.white, 0.35f));
+            }
+        }
+
+        private static void ApplyMaterialColor(Material material, Color color)
+        {
+            if (material == null)
+                return;
+
+            if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", color);
+
+            if (material.HasProperty("_Color"))
+                material.SetColor("_Color", color);
         }
 
         public bool TryGetRopeBounds(out Bounds bounds)
@@ -267,20 +318,20 @@ namespace Game.Visuals
             float wobble = Mathf.Sin(time * Mathf.Lerp(2.6f, 8.5f, moveProgress));
             float squash = 1f + wobble * Mathf.Lerp(0.025f, 0.08f, moveProgress);
 
-            transform.localScale = new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f);
+            transform.localScale = new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
             transform.localRotation = Quaternion.Lerp(transform.localRotation,
                 Quaternion.Euler(0f, 0f, -wobble * 8f * moveProgress), deltaTime * 12f);
 
             if (_hitTimer > 0f)
             {
                 float hit = Mathf.Sin((_hitTimer / 0.16f) * Mathf.PI);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f), hit);
+                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
             }
 
             if (_bounceTimer > 0f)
             {
                 float bounce = Mathf.Sin((_bounceTimer / 0.22f) * Mathf.PI);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f), bounce);
+                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
             }
 
             transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * 14f);
@@ -289,6 +340,7 @@ namespace Game.Visuals
                 _body.Rotate(Vector3.right, 540f * deltaTime, Space.Self);
 
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 3f) * 4f, 0f, 0f);
+            _faceRoot.localRotation = _head.localRotation;
             _spikeRoot.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.4f) * 3f, 0f, 0f);
 
             if (!_isGrabbed && !_isThrown)
@@ -299,7 +351,8 @@ namespace Game.Visuals
         {
             float progress = Mathf.Clamp01(_deathTimer / 0.38f);
             float pop = Mathf.Sin(progress * Mathf.PI);
-            Vector3 targetScale = Vector3.Lerp(_baseScale * 1.16f, new Vector3(1.25f, 0.08f, 1.25f), progress);
+            Vector3 targetScale = Vector3.Lerp(_baseScale * (1.16f * _typeScale),
+                new Vector3(1.25f, 0.08f, 1.25f) * _typeScale, progress);
 
             transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition + Vector3.down * 0.28f,
                 deltaTime * 12f);
@@ -307,7 +360,8 @@ namespace Game.Visuals
                 deltaTime * 18f);
             transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.Euler(0f, 0f, 82f),
                 deltaTime * 12f);
-            _head.localScale = Vector3.Lerp(_head.localScale, Vector3.one * 0.65f, deltaTime * 12f);
+            _head.localScale = Vector3.Lerp(_head.localScale, _headBaseScale * 0.65f, deltaTime * 12f);
+            _faceRoot.localScale = Vector3.Lerp(_faceRoot.localScale, Vector3.one * 0.65f, deltaTime * 12f);
             _spikeRoot.localScale = Vector3.Lerp(_spikeRoot.localScale, Vector3.one * 0.2f, deltaTime * 14f);
         }
 

@@ -103,8 +103,11 @@ namespace Game.Combat
             ChargeChanged?.Invoke(GetChargeProgress());
             
             float spinProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
-            float targetSpinSpeed = Mathf.Lerp(_data.HoldAngularSpeed, _data.MaxHoldAngularSpeed, spinProgress);
-            _spinSpeed = Mathf.MoveTowards(_spinSpeed, targetSpinSpeed, _data.SpinAcceleration * Time.fixedDeltaTime);
+            float weightFactor = GetGrabbedWeightFactor();
+            float targetSpinSpeed = Mathf.Lerp(_data.HoldAngularSpeed, _data.MaxHoldAngularSpeed, spinProgress) *
+                weightFactor;
+            _spinSpeed = Mathf.MoveTowards(_spinSpeed, targetSpinSpeed,
+                _data.SpinAcceleration * weightFactor * Time.fixedDeltaTime);
             _holdAngle += _spinSpeed * Time.fixedDeltaTime;
 
             _grabbedEnemy.MoveGrabbed(GetHoldPosition(), _data.HoldFollowSpeed);
@@ -163,7 +166,7 @@ namespace Game.Combat
             _wrapMetrics = GetEnemyWrapMetrics(_grabbedEnemy);
             _holdAngle = Vector3.SignedAngle(Vector3.forward,
                 GetPlanarDirectionTo(enemy.transform.position), Vector3.up);
-            _spinSpeed = _data.HoldAngularSpeed;
+            _spinSpeed = _data.HoldAngularSpeed * GetGrabbedWeightFactor();
             _wrapTimer = 0f;
             _state = LassoState.Wrapping;
             EnsureWrapRing();
@@ -247,7 +250,8 @@ namespace Game.Combat
             float launchProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float chargeProgress = GetChargeProgress();
             float launchForce = _data.LaunchForce *
-                Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress);
+                Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress) *
+                GetGrabbedLaunchMultiplier();
             Vector3 velocity = launchDirection.normalized * launchForce;
             velocity.y = -Mathf.Lerp(_data.LaunchDownwardVelocity,
                 _data.LaunchDownwardVelocity * 1.25f, launchProgress);
@@ -680,6 +684,20 @@ namespace Game.Combat
         private float GetChargeProgress()
         {
             return Mathf.Clamp01(_chargeTimer / Mathf.Max(_data.ChargeDuration, 0.01f));
+        }
+
+        private float GetGrabbedWeightFactor()
+        {
+            if (_grabbedEnemy == null)
+                return 1f;
+
+            float weight = Mathf.Max(0.1f, _grabbedEnemy.TypeData.Weight);
+            return Mathf.Clamp(1f / weight, 0.35f, 1.5f);
+        }
+
+        private float GetGrabbedLaunchMultiplier()
+        {
+            return _grabbedEnemy != null ? _grabbedEnemy.TypeData.LaunchVelocityMultiplier : 1f;
         }
 
         private void TickCooldown()

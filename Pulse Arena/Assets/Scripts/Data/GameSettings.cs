@@ -14,6 +14,7 @@ namespace Data
         [Header("Configs")]
         public PlayerData PlayerData;
         public EnemyData EnemyData;
+        public EnemyTypeData[] EnemyTypes = { new EnemyTypeData() };
         public PulseData PulseData;
         public OrbitCutterData OrbitCutterData;
         public SlingshotData SlingshotData;
