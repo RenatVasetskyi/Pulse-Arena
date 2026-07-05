@@ -42,6 +42,8 @@ namespace Game.Enemy
         private EnemyGrabbedState _grabbedState;
         private EnemyPhysicsRecoveryState _physicsRecoveryState;
         private EnemyDeadState _deadState;
+        private EnemyRingoutState _ringoutState;
+        private ParticleSystem _ringoutBurst;
         private Coroutine _flashRoutine;
         private Coroutine _deathRoutine;
         private Vector3 _lastImpactPosition;
@@ -54,6 +56,8 @@ namespace Game.Enemy
         private float _groundBounceCooldownTimer;
         private float _groundContactTimer;
         private float _physicsRecoveryTimer;
+        private float _ringoutTimer;
+        private bool _isRingout;
         private int _groundBounceCount;
         private int _maxHealth;
         private int _health;
@@ -122,9 +126,11 @@ namespace Game.Enemy
             _isGrabbed = false;
             _isImpactProjectile = false;
             _needsGroundRecovery = false;
+            _isRingout = false;
             _knockbackTimer = 0f;
             _stasisTimer = 0f;
             _impactHitTimers.Clear();
+            transform.localScale = Vector3.one;
 
             if (_rigidbody == null)
                 return;
@@ -470,8 +476,11 @@ namespace Game.Enemy
             _groundBounceCooldownTimer = 0f;
             _groundContactTimer = 0f;
             _physicsRecoveryTimer = 0f;
+            _ringoutTimer = 0f;
+            _isRingout = false;
             _groundBounceCount = 0;
             _impactHitTimers.Clear();
+            transform.localScale = Vector3.one;
 
             _maxHealth = GetTypeAdjustedMaxHealth();
             _health = _maxHealth;
@@ -516,6 +525,7 @@ namespace Game.Enemy
             _grabbedState = new EnemyGrabbedState(this);
             _physicsRecoveryState = new EnemyPhysicsRecoveryState(this);
             _deadState = new EnemyDeadState(this);
+            _ringoutState = new EnemyRingoutState(this);
         }
 
         private void ChangeToChaseState()
@@ -605,6 +615,9 @@ namespace Game.Enemy
         {
             EnsureStateMachine();
 
+            if (!_isDead && !_isInPool && transform.position.y < _data.RingoutHeight)
+                StartRingout();
+
             if (_isDead)
             {
                 _stateMachine.FixedTick();
@@ -613,6 +626,98 @@ namespace Game.Enemy
 
             TickTimers();
             _stateMachine.FixedTick();
+        }
+
+        private void StartRingout()
+        {
+            if (_isRingout || _isDead || _isInPool)
+                return;
+
+            _isRingout = true;
+            EnsureStateMachine();
+            _stateMachine.ChangeState(_ringoutState);
+        }
+
+        internal void EnterRingoutState()
+        {
+            _isDead = true;
+            _isGrabbed = false;
+            _isImpactProjectile = false;
+            _needsGroundRecovery = false;
+            _knockbackTimer = 0f;
+            _stasisTimer = 0f;
+            _ringoutTimer = 0f;
+            DisableAgentControl();
+            _healthBar?.SetHealth(0, _maxHealth);
+            _scoreService.Add(GetScoreReward());
+            SpawnRingoutFeedback();
+
+            if (_rigidbody == null)
+                return;
+
+            _rigidbody.isKinematic = false;
+            _rigidbody.useGravity = true;
+        }
+
+        internal void FixedTickRingoutState()
+        {
+            _ringoutTimer += Time.fixedDeltaTime;
+            ApplyExtraGravity();
+
+            float progress = Mathf.Clamp01(_ringoutTimer / Mathf.Max(0.1f, _data.RingoutDuration));
+            transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.15f, progress);
+
+            if (progress >= 1f)
+                ReturnToPool();
+        }
+
+        private void SpawnRingoutFeedback()
+        {
+            Vector3 feedbackPosition = new(transform.position.x, _data.RingoutTextHeight, transform.position.z);
+            FloatingScoreText.Create(feedbackPosition, $"+{GetScoreReward()}");
+            PlayRingoutBurst(feedbackPosition);
+        }
+
+        private void PlayRingoutBurst(Vector3 position)
+        {
+            EnsureRingoutBurst();
+            _ringoutBurst.transform.position = position;
+            _ringoutBurst.Emit(20);
+        }
+
+        private void EnsureRingoutBurst()
+        {
+            if (_ringoutBurst != null)
+                return;
+
+            GameObject burstObject = new("Ringout Burst");
+            burstObject.transform.SetParent(transform.parent, false);
+            _ringoutBurst = burstObject.AddComponent<ParticleSystem>();
+
+            ParticleSystem.MainModule main = _ringoutBurst.main;
+            main.playOnAwake = false;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.22f, 0.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 5.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.16f);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(1f, 0.92f, 0.4f, 1f), new Color(1f, 0.55f, 0.2f, 1f));
+            main.gravityModifier = 0.6f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            ParticleSystem.EmissionModule emission = _ringoutBurst.emission;
+            emission.enabled = false;
+
+            ParticleSystem.ShapeModule shape = _ringoutBurst.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.2f;
+
+            ParticleSystemRenderer particleRenderer = burstObject.GetComponent<ParticleSystemRenderer>();
+            Shader shader = Shader.Find("Sprites/Default");
+            particleRenderer.material = new Material(shader)
+            {
+                name = "Ringout Burst"
+            };
         }
 
         internal void FixedTickChaseState()
@@ -711,14 +816,26 @@ namespace Game.Enemy
             if (_impactDamageCooldownTimer > 0f)
                 return;
 
-            if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
-                return;
+            bool hitEnemy = collision.collider.GetComponentInParent<EnemyController>() != null;
 
-            if (!TryDamageOtherEnemy(collision))
+            if (hitEnemy)
+            {
+                if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
+                    return;
+
+                if (!TryDamageOtherEnemy(collision))
+                    return;
+
+                _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
+                TakeDamage(_data.ImpactDamage);
+                return;
+            }
+
+            if (collision.relativeVelocity.magnitude < _data.ImpactDamageMinSpeed)
                 return;
 
             _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
-            TakeDamage(_data.ImpactDamage);
+            TakeDamage(Mathf.Max(1, _data.WallImpactDamage));
         }
 
         private void OnCollisionStay(Collision collision)

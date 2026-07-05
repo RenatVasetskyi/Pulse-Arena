@@ -8,6 +8,7 @@ namespace UI
     {
         private const float PanelAlpha = 0.78f;
 
+        private Text _titleText;
         private Text _scoreText;
         private Button _restartButton;
         private Action _restartClicked;
@@ -22,6 +23,14 @@ namespace UI
 
         public void Show(int score)
         {
+            Show(score, "GAME OVER");
+        }
+
+        public void Show(int score, string title)
+        {
+            if (_titleText != null)
+                _titleText.text = title;
+
             if (_scoreText != null)
                 _scoreText.text = $"Score: {score}";
 
@@ -70,9 +79,9 @@ namespace UI
             Image panelImage = panel.gameObject.AddComponent<Image>();
             panelImage.color = new Color(0.08f, 0.09f, 0.12f, 0.94f);
 
-            Text title = CreateText("Title", panel, "GAME OVER", 68, FontStyle.Bold, Color.white);
-            title.alignment = TextAnchor.MiddleCenter;
-            SetRect(title.rectTransform, new Vector2(0f, 110f), new Vector2(520f, 90f));
+            _titleText = CreateText("Title", panel, "GAME OVER", 68, FontStyle.Bold, Color.white);
+            _titleText.alignment = TextAnchor.MiddleCenter;
+            SetRect(_titleText.rectTransform, new Vector2(0f, 110f), new Vector2(520f, 90f));
 
             _scoreText = CreateText("Score", panel, "Score: 0", 36, FontStyle.Normal,
                 new Color(0.78f, 0.86f, 1f, 1f));

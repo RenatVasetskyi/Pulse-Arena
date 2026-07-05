@@ -77,7 +77,14 @@ namespace Game.Player
         {
             EnsureStateMachine();
             TickHitInvulnerability();
+            TickRingout();
             _stateMachine.Tick();
+        }
+
+        private void TickRingout()
+        {
+            if (!_isDead && transform.position.y < _data.RingoutHeight)
+                Die();
         }
 
         public bool TakeDamage(int damage, Vector3 sourcePosition)

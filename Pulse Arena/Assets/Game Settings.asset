@@ -25,6 +25,7 @@ MonoBehaviour:
     HitKnockbackDuration: 0.18
     HitFlashDuration: 0.12
     HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
+    RingoutHeight: -2.5
   EnemyData:
     MoveSpeed: 3.5
     RotationSpeed: 8
@@ -51,6 +52,7 @@ MonoBehaviour:
     ImpactKnockbackForce: 8.5
     ImpactKnockbackUpwardRatio: 0.12
     ImpactDamage: 1
+    WallImpactDamage: 1
     ImpactDamageCooldown: 0.08
     GroundBounceCount: 1
     GroundBounceUpwardVelocity: 5.8
@@ -62,6 +64,9 @@ MonoBehaviour:
     GroundRecoveryMaxVerticalOffset: 1.35
     GroundRecoveryMaxUpwardSpeed: 0.1
     GroundRecoveryForceAfter: 1.1
+    RingoutHeight: -2.5
+    RingoutDuration: 1.1
+    RingoutTextHeight: 1.2
   EnemyTypes:
   - Id: 0
     SpawnWeight: 1
@@ -69,6 +74,7 @@ MonoBehaviour:
     MoveSpeedMultiplier: 1
     ScoreMultiplier: 1
     Weight: 1
+    TensionRateMultiplier: 1
     LaunchVelocityMultiplier: 1
     ImpactDamageMultiplier: 1
     ImpactKnockbackMultiplier: 1
@@ -84,6 +90,7 @@ MonoBehaviour:
     MoveSpeedMultiplier: 1.15
     ScoreMultiplier: 1
     Weight: 0.6
+    TensionRateMultiplier: 1
     LaunchVelocityMultiplier: 1.35
     ImpactDamageMultiplier: 1
     ImpactKnockbackMultiplier: 1
@@ -99,6 +106,7 @@ MonoBehaviour:
     MoveSpeedMultiplier: 0.65
     ScoreMultiplier: 2
     Weight: 2.2
+    TensionRateMultiplier: 0.66
     LaunchVelocityMultiplier: 0.75
     ImpactDamageMultiplier: 2
     ImpactKnockbackMultiplier: 1.6
@@ -114,6 +122,7 @@ MonoBehaviour:
     MoveSpeedMultiplier: 1.7
     ScoreMultiplier: 1.5
     Weight: 0.8
+    TensionRateMultiplier: 1
     LaunchVelocityMultiplier: 1.1
     ImpactDamageMultiplier: 1
     ImpactKnockbackMultiplier: 1
@@ -129,6 +138,7 @@ MonoBehaviour:
     MoveSpeedMultiplier: 0.9
     ScoreMultiplier: 2
     Weight: 1.2
+    TensionRateMultiplier: 1
     LaunchVelocityMultiplier: 1
     ImpactDamageMultiplier: 2
     ImpactKnockbackMultiplier: 1.2
@@ -215,6 +225,20 @@ MonoBehaviour:
     ChargedLineColor: {r: 1, g: 0.88, b: 0.32, a: 1}
     RopeBaseColor: {r: 0.78, g: 0.48, b: 0.22, a: 1}
     RopeStripeColor: {r: 0.35, g: 0.21, b: 0.1, a: 1}
+    MarkerSearchRangeMultiplier: 1.5
+    MarkerRadius: 0.85
+    MarkerHeight: 0.05
+    MarkerWidth: 0.07
+    MarkerActiveColor: {r: 0.35, g: 1, b: 0.5, a: 0.85}
+    MarkerInactiveColor: {r: 0.7, g: 0.7, b: 0.7, a: 0.35}
+    TensionBreakTime: 5
+    TensionChargeInfluence: 0.5
+    TensionWarningThreshold: 0.55
+    TensionShakeAmplitude: 1.6
+    TensionPulseSpeed: 26
+    BreakDropForce: 6
+    BreakCooldownMultiplier: 1.6
+    TensionColor: {r: 1, g: 0.25, b: 0.15, a: 1}
     EnemyLayer:
       serializedVersion: 2
       m_Bits: 64
@@ -250,6 +274,46 @@ MonoBehaviour:
     PickupSpawnDelay: 15
     MaxEnemies: 8
     MaxPickups: 1
+  Waves:
+  - DelayBeforeWave: 2.5
+    SpawnInterval: 1
+    Enemies:
+    - Type: 1
+      Count: 3
+  - DelayBeforeWave: 3
+    SpawnInterval: 0.9
+    Enemies:
+    - Type: 0
+      Count: 4
+    - Type: 3
+      Count: 1
+  - DelayBeforeWave: 3
+    SpawnInterval: 0.8
+    Enemies:
+    - Type: 1
+      Count: 4
+    - Type: 3
+      Count: 3
+    - Type: 4
+      Count: 1
+  - DelayBeforeWave: 3.5
+    SpawnInterval: 0.7
+    Enemies:
+    - Type: 0
+      Count: 5
+    - Type: 2
+      Count: 2
+    - Type: 3
+      Count: 2
+  - DelayBeforeWave: 4
+    SpawnInterval: 0.6
+    Enemies:
+    - Type: 2
+      Count: 4
+    - Type: 4
+      Count: 3
+    - Type: 3
+      Count: 3
   PoolData:
     EnemyPreloadCount: 8
     ProjectilePreloadCount: 16

@@ -33,6 +33,8 @@ namespace Game.Scene
         private CameraZoomView _cameraZoomView;
         private GameOverView _gameOverView;
         private RarePickupToastView _rarePickupToastView;
+        private RopeTensionView _ropeTensionView;
+        private WaveView _waveView;
         private bool _isGameOver;
 
         public GameSceneStarter(
@@ -82,6 +84,10 @@ namespace Game.Scene
                 _sceneReferences.PickupSpawnHeightOffset);
             _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
 
+            _waveView = WaveView.Create();
+            _enemySpawner.WaveChanged += OnWaveChanged;
+            _enemySpawner.AllWavesCleared += OnAllWavesCleared;
+
             _enemySpawner.StartSpawn();
             _pickupSpawner.StartSpawn();
         }
@@ -99,11 +105,14 @@ namespace Game.Scene
             if (_enemySlingshot != null)
             {
                 _enemySlingshot.EnemyLaunched -= OnEnemyLaunched;
+                _enemySlingshot.RopeBroke -= OnRopeBroke;
             }
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
             _pickupSpawner.RarePickupSpawned -= OnRarePickupSpawned;
+            _enemySpawner.WaveChanged -= OnWaveChanged;
+            _enemySpawner.AllWavesCleared -= OnAllWavesCleared;
 
             if (_gameOverView != null)
                 UnityEngine.Object.Destroy(_gameOverView.gameObject);
@@ -116,6 +125,12 @@ namespace Game.Scene
 
             if (_rarePickupToastView != null)
                 UnityEngine.Object.Destroy(_rarePickupToastView.gameObject);
+
+            if (_ropeTensionView != null)
+                UnityEngine.Object.Destroy(_ropeTensionView.gameObject);
+
+            if (_waveView != null)
+                UnityEngine.Object.Destroy(_waveView.gameObject);
         }
 
         private PlayerController SpawnPlayer()
@@ -140,7 +155,11 @@ namespace Game.Scene
                 _orbitCutter.BurstUsed += OnOrbitBurstUsed;
 
             if (_enemySlingshot != null)
+            {
                 _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
+                _enemySlingshot.RopeBroke += OnRopeBroke;
+                _ropeTensionView = RopeTensionView.Create(_enemySlingshot);
+            }
         }
 
         private void OnOrbitBurstUsed()
@@ -151,6 +170,11 @@ namespace Game.Scene
         private void OnEnemyLaunched(float chargeProgress)
         {
             _battleCamera.PlayLassoLaunch(chargeProgress);
+        }
+
+        private void OnRopeBroke()
+        {
+            _battleCamera.Shake(0.12f, 0.32f);
         }
 
         private void OnRarePickupSpawned(string message, float duration)
@@ -170,6 +194,27 @@ namespace Game.Scene
 
             if (_gameOverView != null)
                 _gameOverView.Show(_scoreService.Score);
+
+            Time.timeScale = 0f;
+        }
+
+        private void OnWaveChanged(int current, int total)
+        {
+            _waveView?.SetWave(current, total);
+        }
+
+        private void OnAllWavesCleared()
+        {
+            if (_isGameOver)
+                return;
+
+            _isGameOver = true;
+            _inputService.Disable();
+            _enemySpawner.StopSpawn();
+            _pickupSpawner.StopSpawn();
+
+            if (_gameOverView != null)
+                _gameOverView.Show(_scoreService.Score, "YOU WIN!");
 
             Time.timeScale = 0f;
         }

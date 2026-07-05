@@ -21,10 +21,25 @@ namespace Data
         public WeaponData WeaponData;
         public PickupData PickupData;
         public SpawnData SpawnData;
+        public WaveData[] Waves;
         public PoolData PoolData = new();
 
         [Header("Prefabs")]
         public PrefabData Prefabs;
+
+        public EnemyTypeData GetEnemyType(EnemyTypeId id)
+        {
+            if (EnemyTypes != null)
+            {
+                foreach (EnemyTypeData type in EnemyTypes)
+                {
+                    if (type != null && type.Id == id)
+                        return type;
+                }
+            }
+
+            return EnemyTypeData.Default;
+        }
     }
 
     [Serializable]
@@ -39,6 +54,7 @@ namespace Data
         public float HitKnockbackDuration = 0.18f;
         public float HitFlashDuration = 0.12f;
         public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
+        public float RingoutHeight = -2.5f;
     }
 
     [Serializable]
@@ -69,6 +85,7 @@ namespace Data
         public float ImpactKnockbackForce = 8.5f;
         public float ImpactKnockbackUpwardRatio = 0.12f;
         public int ImpactDamage = 1;
+        public int WallImpactDamage = 1;
         public float ImpactDamageCooldown = 0.08f;
         public int GroundBounceCount = 1;
         public float GroundBounceUpwardVelocity = 5.8f;
@@ -80,6 +97,9 @@ namespace Data
         public float GroundRecoveryMaxVerticalOffset = 1.35f;
         public float GroundRecoveryMaxUpwardSpeed = 0.1f;
         public float GroundRecoveryForceAfter = 1.1f;
+        public float RingoutHeight = -2.5f;
+        public float RingoutDuration = 1.1f;
+        public float RingoutTextHeight = 1.2f;
     }
 
     [Serializable]
@@ -140,6 +160,24 @@ namespace Data
         public Color ChargedLineColor = new(1f, 0.88f, 0.32f, 1f);
         public Color RopeBaseColor = new(0.78f, 0.48f, 0.22f, 1f);
         public Color RopeStripeColor = new(0.35f, 0.21f, 0.1f, 1f);
+
+        [Header("Target Marker")]
+        public float MarkerSearchRangeMultiplier = 1.5f;
+        public float MarkerRadius = 0.85f;
+        public float MarkerHeight = 0.05f;
+        public float MarkerWidth = 0.07f;
+        public Color MarkerActiveColor = new(0.35f, 1f, 0.5f, 0.85f);
+        public Color MarkerInactiveColor = new(0.7f, 0.7f, 0.7f, 0.35f);
+
+        [Header("Rope Tension")]
+        public float TensionBreakTime = 5f;
+        public float TensionChargeInfluence = 0.5f;
+        public float TensionWarningThreshold = 0.55f;
+        public float TensionShakeAmplitude = 1.6f;
+        public float TensionPulseSpeed = 26f;
+        public float BreakDropForce = 6f;
+        public float BreakCooldownMultiplier = 1.6f;
+        public Color TensionColor = new(1f, 0.25f, 0.15f, 1f);
         public LayerMask EnemyLayer;
     }
 
@@ -208,6 +246,21 @@ namespace Data
         public float PickupSpawnDelay = 15f;
         public int MaxEnemies = 8;
         public int MaxPickups = 1;
+    }
+
+    [Serializable]
+    public class WaveEnemyData
+    {
+        public EnemyTypeId Type = EnemyTypeId.Standard;
+        [Min(1)] public int Count = 3;
+    }
+
+    [Serializable]
+    public class WaveData
+    {
+        [Min(0f)] public float DelayBeforeWave = 2.5f;
+        [Min(0.05f)] public float SpawnInterval = 1f;
+        public WaveEnemyData[] Enemies;
     }
 
     [Serializable]

@@ -31,6 +31,7 @@ namespace Data
 
         [Header("Slingshot Feel")]
         [Min(0.1f)] public float Weight = 1f;
+        [Min(0.1f)] public float TensionRateMultiplier = 1f;
         [Min(0.1f)] public float LaunchVelocityMultiplier = 1f;
         [Min(0f)] public float ImpactDamageMultiplier = 1f;
         [Min(0f)] public float ImpactKnockbackMultiplier = 1f;

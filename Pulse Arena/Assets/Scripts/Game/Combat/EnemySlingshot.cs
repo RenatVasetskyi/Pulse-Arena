@@ -23,6 +23,8 @@ namespace Game.Combat
         public event Action EnemyGrabbed;
         public event Action<float> ChargeChanged;
         public event Action<float> EnemyLaunched;
+        public event Action<float> TensionChanged;
+        public event Action RopeBroke;
 
         [SerializeField] private Transform _lassoOrigin;
 
@@ -45,6 +47,9 @@ namespace Game.Combat
         private float _holdAngle;
         private float _spinSpeed;
         private float _cooldownTimer;
+        private float _tension;
+        private ParticleSystem _snapBurst;
+        private HookTargetMarker _targetMarker;
         private bool _releaseRequested;
 
         [Inject]
@@ -83,6 +88,7 @@ namespace Game.Combat
 
             UpdateLine();
             UpdateWrapRing();
+            UpdateTargetMarker();
         }
 
         private void FixedUpdate()
@@ -109,6 +115,14 @@ namespace Game.Combat
             _spinSpeed = Mathf.MoveTowards(_spinSpeed, targetSpinSpeed,
                 _data.SpinAcceleration * weightFactor * Time.fixedDeltaTime);
             _holdAngle += _spinSpeed * Time.fixedDeltaTime;
+
+            TickTension();
+
+            if (_tension >= 1f)
+            {
+                BreakRope();
+                return;
+            }
 
             _grabbedEnemy.MoveGrabbed(GetHoldPosition(), _data.HoldFollowSpeed);
         }
@@ -221,7 +235,12 @@ namespace Game.Combat
 
         private EnemyController FindNearestEnemy()
         {
-            Collider[] hits = Physics.OverlapSphere(transform.position, _data.GrabRadius, _data.EnemyLayer);
+            return FindNearestEnemy(_data.GrabRadius);
+        }
+
+        private EnemyController FindNearestEnemy(float radius)
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, radius, _data.EnemyLayer);
             EnemyController nearestEnemy = null;
             float nearestSqrDistance = float.MaxValue;
 
@@ -229,7 +248,7 @@ namespace Game.Combat
             {
                 EnemyController enemy = hit.GetComponentInParent<EnemyController>();
 
-                if (enemy == null || enemy.IsGrabbed)
+                if (enemy == null || enemy.IsGrabbed || enemy.Health <= 0)
                     continue;
 
                 float sqrDistance = (enemy.transform.position - transform.position).sqrMagnitude;
@@ -242,6 +261,36 @@ namespace Game.Combat
             }
 
             return nearestEnemy;
+        }
+
+        private void UpdateTargetMarker()
+        {
+            if (_state != LassoState.Idle)
+            {
+                _targetMarker?.Hide();
+                return;
+            }
+
+            float searchRadius = _data.GrabRadius * Mathf.Max(1f, _data.MarkerSearchRangeMultiplier);
+            EnemyController enemy = FindNearestEnemy(searchRadius);
+
+            if (enemy == null)
+            {
+                _targetMarker?.Hide();
+                return;
+            }
+
+            if (_targetMarker == null)
+                _targetMarker = HookTargetMarker.Create(transform);
+
+            float sqrDistance = (enemy.transform.position - transform.position).sqrMagnitude;
+            bool isGrabbable = _cooldownTimer <= 0f &&
+                sqrDistance <= _data.GrabRadius * _data.GrabRadius;
+            Color color = isGrabbable ? _data.MarkerActiveColor : _data.MarkerInactiveColor;
+            float radius = _data.MarkerRadius * Mathf.Max(0.5f, enemy.TypeData.VisualScale);
+            Vector3 center = enemy.transform.position + Vector3.up * _data.MarkerHeight;
+
+            _targetMarker.Show(center, radius, _data.MarkerWidth, color);
         }
 
         private void LaunchGrabbedEnemy()
@@ -484,7 +533,8 @@ namespace Game.Combat
             if (_grabbedEnemy == null)
                 return;
 
-            DrawRope(GetLassoOrigin(), GetEnemyRopeCenter(_grabbedEnemy), _data.WrapWaveAmplitude);
+            float shake = 1f + GetTensionWarning() * _data.TensionShakeAmplitude;
+            DrawRope(GetLassoOrigin(), GetEnemyRopeCenter(_grabbedEnemy), _data.WrapWaveAmplitude * shake);
         }
 
         private void DrawRope(Vector3 start, Vector3 end, float waveAmplitude)
@@ -599,6 +649,7 @@ namespace Game.Combat
             _state = LassoState.Idle;
             _chargeTimer = 0f;
             ChargeChanged?.Invoke(0f);
+            SetTension(0f);
             _releaseRequested = false;
             HideLine();
 
@@ -673,17 +724,103 @@ namespace Game.Combat
         private void ApplyLineVisuals(LineRenderer renderer, float widthMultiplier)
         {
             float chargeProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
+            float tensionWarning = GetTensionWarning();
             Color color = Color.Lerp(_data.LineColor, _data.ChargedLineColor, chargeProgress);
+            color = Color.Lerp(color, _data.TensionColor, tensionWarning);
             float chargedWidth = Mathf.Lerp(1f, _data.MaxChargeLineWidthMultiplier, chargeProgress);
+            float tensionPulse = 1f + Mathf.Sin(Time.time * _data.TensionPulseSpeed) * 0.18f * tensionWarning;
 
             renderer.startColor = color;
             renderer.endColor = color;
-            renderer.widthMultiplier = _data.LineWidth * widthMultiplier * chargedWidth;
+            renderer.widthMultiplier = _data.LineWidth * widthMultiplier * chargedWidth * tensionPulse;
         }
 
         private float GetChargeProgress()
         {
             return Mathf.Clamp01(_chargeTimer / Mathf.Max(_data.ChargeDuration, 0.01f));
+        }
+
+        private void TickTension()
+        {
+            float weight = _grabbedEnemy != null ? Mathf.Max(0.1f, _grabbedEnemy.TypeData.Weight) : 1f;
+            float typeRate = _grabbedEnemy != null
+                ? Mathf.Max(0.1f, _grabbedEnemy.TypeData.TensionRateMultiplier)
+                : 1f;
+            float chargeBoost = 1f + GetChargeProgress() * _data.TensionChargeInfluence;
+            float rate = weight * typeRate * chargeBoost / Mathf.Max(0.5f, _data.TensionBreakTime);
+
+            SetTension(Mathf.Min(1f, _tension + rate * Time.fixedDeltaTime));
+        }
+
+        private void SetTension(float value)
+        {
+            if (Mathf.Approximately(_tension, value))
+                return;
+
+            _tension = value;
+            TensionChanged?.Invoke(_tension);
+        }
+
+        private float GetTensionWarning()
+        {
+            return Mathf.InverseLerp(Mathf.Clamp01(_data.TensionWarningThreshold), 1f, _tension);
+        }
+
+        private void BreakRope()
+        {
+            EnemyController enemy = _grabbedEnemy;
+            Vector3 breakPoint = enemy != null
+                ? Vector3.Lerp(GetLassoOrigin(), GetEnemyRopeCenter(enemy), 0.5f)
+                : GetLassoOrigin();
+
+            if (enemy != null)
+            {
+                Vector3 dropDirection = GetPlanarDirectionTo(enemy.transform.position);
+                enemy.Knockback(dropDirection * _data.BreakDropForce +
+                    Vector3.up * (_data.BreakDropForce * 0.25f));
+            }
+
+            ResetLasso();
+            _cooldownTimer = _data.Cooldown * _data.BreakCooldownMultiplier;
+            PlaySnapBurst(breakPoint);
+            RopeBroke?.Invoke();
+        }
+
+        private void PlaySnapBurst(Vector3 position)
+        {
+            EnsureSnapBurst();
+            _snapBurst.transform.position = position;
+            _snapBurst.Emit(26);
+        }
+
+        private void EnsureSnapBurst()
+        {
+            if (_snapBurst != null)
+                return;
+
+            GameObject burstObject = new("Rope Snap Burst");
+            burstObject.transform.SetParent(transform, false);
+            _snapBurst = burstObject.AddComponent<ParticleSystem>();
+
+            ParticleSystem.MainModule main = _snapBurst.main;
+            main.playOnAwake = false;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 6.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.14f);
+            main.startColor = new ParticleSystem.MinMaxGradient(_data.RopeBaseColor, _data.TensionColor);
+            main.gravityModifier = 1.2f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            ParticleSystem.EmissionModule emission = _snapBurst.emission;
+            emission.enabled = false;
+
+            ParticleSystem.ShapeModule shape = _snapBurst.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.15f;
+
+            ParticleSystemRenderer particleRenderer = burstObject.GetComponent<ParticleSystemRenderer>();
+            particleRenderer.material = GetLineMaterial();
         }
 
         private float GetGrabbedWeightFactor()
