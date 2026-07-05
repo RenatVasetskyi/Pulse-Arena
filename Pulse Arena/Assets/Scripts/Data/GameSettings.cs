@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Data
@@ -10,35 +11,46 @@ namespace Data
         public int TargetFrameRate = 120;
         public string MainMenuSceneName = SceneName.MainMenu;
         public string GameSceneName = SceneName.Game;
+        public float MinLoadingScreenTime = 0.35f;
 
         [Header("Configs")]
         public PlayerData PlayerData;
         public EnemyData EnemyData;
         public EnemyTypeData[] EnemyTypes = { new EnemyTypeData() };
-        public PulseData PulseData;
-        public OrbitCutterData OrbitCutterData;
         public SlingshotData SlingshotData;
-        public WeaponData WeaponData;
         public PickupData PickupData;
         public SpawnData SpawnData;
         public WaveData[] Waves;
         public PoolData PoolData = new();
+        public GroundingData Grounding = new();
+        public PlayerVisualData PlayerVisuals = new();
+        public EnemyVisualData EnemyVisuals = new();
+        public VfxData Vfx = new();
+        public CameraData CameraData = new();
+        public UiData Ui = new();
 
         [Header("Prefabs")]
         public PrefabData Prefabs;
 
+        [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
+
         public EnemyTypeData GetEnemyType(EnemyTypeId id)
         {
-            if (EnemyTypes != null)
+            if (_enemyTypeCache == null)
             {
-                foreach (EnemyTypeData type in EnemyTypes)
+                _enemyTypeCache = new Dictionary<EnemyTypeId, EnemyTypeData>();
+
+                if (EnemyTypes != null)
                 {
-                    if (type != null && type.Id == id)
-                        return type;
+                    foreach (EnemyTypeData type in EnemyTypes)
+                    {
+                        if (type != null)
+                            _enemyTypeCache.TryAdd(type.Id, type);
+                    }
                 }
             }
 
-            return EnemyTypeData.Default;
+            return _enemyTypeCache.TryGetValue(id, out EnemyTypeData found) ? found : EnemyTypeData.Default;
         }
     }
 
@@ -100,25 +112,133 @@ namespace Data
         public float RingoutHeight = -2.5f;
         public float RingoutDuration = 1.1f;
         public float RingoutTextHeight = 1.2f;
+        public float RingoutShrinkScale = 0.15f;
+        public float GroundContactMemory = 0.12f;
+        public float HeldDamageGrace = 0.35f;
     }
 
     [Serializable]
-    public class OrbitCutterData
+    public class GroundingData
     {
-        public float Radius = 0.7f;
-        public float Height = 0.45f;
-        public float AngularSpeed = 420f;
-        public float HitRadius = 0.55f;
-        public float HitCooldown = 0.28f;
-        public int Damage = 1;
-        public float KnockbackForce = 5f;
-        public float VisualScale = 0.28f;
-        public float BladeLength = 2.16f;
-        public float BladeWidth = 0.14f;
-        public float BladeAngleOffset = 90f;
-        public Color CoreColor = new(0.2f, 0.95f, 1f, 1f);
-        public Color TrailColor = new(0.25f, 0.9f, 1f, 0.72f);
-        public LayerMask EnemyLayer;
+        public float GroundClearance = 0.02f;
+        public float DefaultProbeDistance = 8f;
+        public float GroundNormalThreshold = 0.55f;
+    }
+
+    [Serializable]
+    public class PlayerVisualData
+    {
+        public Vector3 RootOffset = new(0f, -0.78f, 0f);
+        public Color BodyColor = new(0.2f, 0.75f, 0.95f, 1f);
+        public Color HeadColor = new(0.78f, 0.9f, 0.95f, 1f);
+        public Color DarkColor = new(0.08f, 0.11f, 0.16f, 1f);
+        public Color AccentColor = new(1f, 0.78f, 0.24f, 1f);
+        public float MoveThreshold = 0.25f;
+        public float BobFrequencyIdle = 2.4f;
+        public float BobFrequencyRun = 9f;
+        public float BobAmplitudeIdle = 0.025f;
+        public float BobAmplitudeRun = 0.09f;
+        public float ArmSwingFrequency = 10f;
+        public float ArmSwingAngle = 28f;
+        public float ThrowSwingDuration = 0.28f;
+        public float HitSquashDuration = 0.16f;
+        public float DeathRollAngle = 72f;
+    }
+
+    [Serializable]
+    public class EnemyVisualData
+    {
+        public Vector3 RootOffset = new(0f, -1.15f, 0f);
+        public Color BodyColor = new(0.42f, 0.2f, 0.72f, 1f);
+        public Color BellyColor = new(0.58f, 0.42f, 0.9f, 1f);
+        public Color EyeColor = new(1f, 0.92f, 0.72f, 1f);
+        public Color PupilColor = new(0.04f, 0.02f, 0.08f, 1f);
+        public Color SpikeColor = new(0.12f, 0.08f, 0.22f, 1f);
+        public float MoveThreshold = 0.2f;
+        public float WobbleFrequencyIdle = 2.6f;
+        public float WobbleFrequencyRun = 8.5f;
+        public float SquashAmountIdle = 0.025f;
+        public float SquashAmountRun = 0.08f;
+        public float HitSquashDuration = 0.16f;
+        public float BounceSquashDuration = 0.22f;
+        public float DeathPopDuration = 0.38f;
+        public float ThrownSpinSpeed = 540f;
+    }
+
+    [Serializable]
+    public class VfxData
+    {
+        [Header("Rope Snap Burst")]
+        public int SnapBurstCount = 26;
+        public float SnapBurstLifetimeMin = 0.18f;
+        public float SnapBurstLifetimeMax = 0.42f;
+        public float SnapBurstSpeedMin = 2.5f;
+        public float SnapBurstSpeedMax = 6.5f;
+        public float SnapBurstSizeMin = 0.05f;
+        public float SnapBurstSizeMax = 0.14f;
+        public float SnapBurstGravity = 1.2f;
+
+        [Header("Ringout Burst")]
+        public int RingoutBurstCount = 20;
+        public float RingoutBurstLifetimeMin = 0.22f;
+        public float RingoutBurstLifetimeMax = 0.5f;
+        public float RingoutBurstSpeedMin = 2f;
+        public float RingoutBurstSpeedMax = 5.5f;
+        public float RingoutBurstSizeMin = 0.06f;
+        public float RingoutBurstSizeMax = 0.16f;
+        public float RingoutBurstGravity = 0.6f;
+        public Color RingoutColorA = new(1f, 0.92f, 0.4f, 1f);
+        public Color RingoutColorB = new(1f, 0.55f, 0.2f, 1f);
+
+        [Header("Floating Score Text")]
+        public float FloatingTextLifetime = 0.9f;
+        public float FloatingTextRiseSpeed = 1.6f;
+        public Color FloatingTextColor = new(1f, 0.92f, 0.4f, 1f);
+    }
+
+    [Serializable]
+    public class CameraData
+    {
+        [Header("Zoom")]
+        public float DefaultZoom = 1f;
+        public float MinZoom = 0.72f;
+        public float MaxZoom = 1.38f;
+        public float ZoomStep = 0.08f;
+        public float ZoomSmoothTime = 0.22f;
+
+        [Header("Shake")]
+        public float DefaultShakeDuration = 0.18f;
+        public float DefaultShakeStrength = 0.35f;
+        public float ShakeFrequency = 35f;
+        public float RopeBreakShakeDuration = 0.12f;
+        public float RopeBreakShakeStrength = 0.32f;
+
+        [Header("Lasso Launch FX")]
+        public Vector3 LaunchKickOffset = new(0f, 0.32f, -0.65f);
+        public float LaunchKickDuration = 0.2f;
+        public float LaunchShakeDuration = 0.12f;
+        public float LaunchShakeStrength = 0.18f;
+    }
+
+    [Serializable]
+    public class UiData
+    {
+        [Header("HUD")]
+        public Color HudPanelColor = new(0.06f, 0.07f, 0.1f, 0.62f);
+        public Color HealthAliveColor = new(1f, 0.16f, 0.12f, 1f);
+        public Color HealthEmptyColor = new(0.18f, 0.2f, 0.24f, 0.82f);
+        public Color ScoreTextColor = new(1f, 0.92f, 0.4f, 1f);
+        public Color WaveTextColor = new(0.92f, 0.96f, 1f, 1f);
+        public Color ToastBackgroundColor = new(0.05f, 0.12f, 0.08f, 0.82f);
+        public Color ToastTextColor = new(0.78f, 1f, 0.68f, 1f);
+        public Color TensionBackgroundColor = new(0.06f, 0.07f, 0.1f, 0.78f);
+        public Color TensionSafeColor = new(1f, 0.82f, 0.3f, 0.95f);
+        public Color TensionDangerColor = new(1f, 0.22f, 0.12f, 1f);
+
+        [Header("World Health Bar")]
+        public Color WorldHealthAliveColor = new(1f, 0.2f, 0.12f, 1f);
+        public Color WorldHealthEmptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
+        public Color WorldHealthBackgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
     }
 
     [Serializable]
@@ -161,11 +281,17 @@ namespace Data
         public Color RopeBaseColor = new(0.78f, 0.48f, 0.22f, 1f);
         public Color RopeStripeColor = new(0.35f, 0.21f, 0.1f, 1f);
 
+        [Header("Weight Feel")]
+        public float WeightFactorMin = 0.35f;
+        public float WeightFactorMax = 1.5f;
+
         [Header("Target Marker")]
         public float MarkerSearchRangeMultiplier = 1.5f;
         public float MarkerRadius = 0.85f;
         public float MarkerHeight = 0.05f;
         public float MarkerWidth = 0.07f;
+        public float MarkerPulseSpeed = 7f;
+        public float MarkerPulseAmplitude = 0.06f;
         public Color MarkerActiveColor = new(0.35f, 1f, 0.5f, 0.85f);
         public Color MarkerInactiveColor = new(0.7f, 0.7f, 0.7f, 0.35f);
 
@@ -175,56 +301,10 @@ namespace Data
         public float TensionWarningThreshold = 0.55f;
         public float TensionShakeAmplitude = 1.6f;
         public float TensionPulseSpeed = 26f;
+        public float TensionPulseAmplitude = 0.18f;
         public float BreakDropForce = 6f;
         public float BreakCooldownMultiplier = 1.6f;
         public Color TensionColor = new(1f, 0.25f, 0.15f, 1f);
-        public LayerMask EnemyLayer;
-    }
-
-    [Serializable]
-    public class WeaponData
-    {
-        public float Range = 9f;
-        public float Radius = 0.45f;
-        public int Damage = 1;
-        public float Cooldown = 0.2f;
-        public float ProjectileSpeed = 16f;
-        public float ProjectileLifetime = 1.2f;
-        public float ImpactLifetime = 0.35f;
-        public float KnockbackForce = 4f;
-        public float OrbitRadius = 1.2f;
-        public float OrbitHeight = 0.7f;
-        public float OrbitAngularSpeed = 240f;
-        public float OrbitVisualScale = 0.7f;
-        public float ProjectileVisualScale = 0.45f;
-        public float ImpactVisualScale = 0.45f;
-        public float OriginHeight = 0.7f;
-        public float ForwardOffset = 0.65f;
-        public LayerMask EnemyLayer;
-    }
-
-    [Serializable]
-    public class PulseData
-    {
-        public float Radius = 5f;
-        public float Force = 16f;
-        public float Cooldown = 1.5f;
-        public float UpwardForceRatio = 0.6f;
-        public float MinForceMultiplier = 0.45f;
-        public float PullRadius = 6f;
-        public float PullStopRadius = 2.6f;
-        public float PullForce = 14f;
-        public float PullCooldown = 3f;
-        public float PullStasisDuration = 0.65f;
-        public float PullUpwardForceRatio = 0.18f;
-        public float MaxCharge = 100f;
-        public float EnergyPerPickup = 25f;
-        public float VisualDuration = 0.32f;
-        public float VisualStartRadius = 0.5f;
-        public float VisualHeight = 0.08f;
-        public float VisualWidth = 0.12f;
-        public Color VisualColor = new(0.45f, 0.9f, 1f, 0.85f);
-        public Color PullVisualColor = new(0.95f, 0.35f, 1f, 0.85f);
         public LayerMask EnemyLayer;
     }
 
@@ -246,6 +326,7 @@ namespace Data
         public float PickupSpawnDelay = 15f;
         public int MaxEnemies = 8;
         public int MaxPickups = 1;
+        public float WavePollInterval = 0.25f;
     }
 
     [Serializable]
@@ -267,8 +348,6 @@ namespace Data
     public class PoolData
     {
         public int EnemyPreloadCount = 8;
-        public int ProjectilePreloadCount = 16;
-        public int ProjectileImpactPreloadCount = 8;
     }
 
     [Serializable]
@@ -276,9 +355,5 @@ namespace Data
     {
         public GameObject PlayerPrefab;
         public GameObject EnemyPrefab;
-        public GameObject EnergyPickupPrefab;
-        public GameObject PulseViewPrefab;
-        public GameObject ProjectilePrefab;
-        public GameObject ProjectileImpactPrefab;
     }
 }

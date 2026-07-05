@@ -5,10 +5,9 @@ namespace Game.Visuals
 {
     public class EnemyPrimitiveVisual : MonoBehaviour
     {
-        private const float MoveThreshold = 0.2f;
         private const float GroundClearance = 0.02f;
-        private static readonly Vector3 RootVisualOffset = new(0f, -1.15f, 0f);
 
+        private EnemyVisualData _visualData = new();
         private Rigidbody _rigidbody;
         private Transform _body;
         private Transform _head;
@@ -33,23 +32,27 @@ namespace Game.Visuals
         private bool _isThrown;
         private bool _isDead;
 
-        public static EnemyPrimitiveVisual Create(Transform parent, Rigidbody rigidbody)
+        public static EnemyPrimitiveVisual Create(Transform parent, Rigidbody rigidbody, EnemyVisualData visualData)
         {
             GameObject root = new("EnemyPrimitiveVisual");
             root.transform.SetParent(parent, false);
-            root.transform.localPosition = RootVisualOffset;
             root.transform.localRotation = Quaternion.identity;
             root.transform.localScale = Vector3.one;
 
             EnemyPrimitiveVisual visual = root.AddComponent<EnemyPrimitiveVisual>();
-            visual.Initialize(rigidbody);
+            visual.Initialize(rigidbody, visualData);
+            root.transform.localPosition = visual._visualData.RootOffset;
             visual.Build();
             return visual;
         }
 
-        public void Initialize(Rigidbody rigidbody)
+        public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData = null)
         {
             _rigidbody = rigidbody;
+
+            if (visualData != null)
+                _visualData = visualData;
+
             _lastPosition = GetMovementReferencePosition();
         }
 
@@ -99,7 +102,7 @@ namespace Game.Visuals
             if (_isDead)
                 return;
 
-            _hitTimer = 0.16f;
+            _hitTimer = _visualData.HitSquashDuration;
         }
 
         public void PlayDeath()
@@ -115,7 +118,7 @@ namespace Game.Visuals
             if (_isDead)
                 return;
 
-            _bounceTimer = 0.22f;
+            _bounceTimer = _visualData.BounceSquashDuration;
         }
 
         public void SetGrabbed(bool isGrabbed)
@@ -140,13 +143,13 @@ namespace Game.Visuals
 
         private void Build()
         {
-            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Body", new Color(0.42f, 0.2f, 0.72f, 1f));
-            Material bellyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Belly", new Color(0.58f, 0.42f, 0.9f, 1f));
+            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Body", _visualData.BodyColor);
+            Material bellyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Belly", _visualData.BellyColor);
             _bodyMaterial = bodyMaterial;
             _bellyMaterial = bellyMaterial;
-            Material eyeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Eye", new Color(1f, 0.92f, 0.72f, 1f));
-            Material pupilMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Pupil", new Color(0.04f, 0.02f, 0.08f, 1f));
-            Material spikeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Spike", new Color(0.12f, 0.08f, 0.22f, 1f));
+            Material eyeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Eye", _visualData.EyeColor);
+            Material pupilMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Pupil", _visualData.PupilColor);
+            Material spikeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Spike", _visualData.SpikeColor);
 
             _body = PrimitiveVisualUtility.CreatePart("Body", PrimitiveType.Sphere, transform,
                 new Vector3(0f, 0.68f, 0f), Vector3.zero, new Vector3(0.9f, 1.05f, 0.78f), bodyMaterial);
@@ -315,8 +318,10 @@ namespace Game.Visuals
 
             float moveProgress = Mathf.InverseLerp(0f, 3.8f, _moveSpeed);
             float time = Time.time;
-            float wobble = Mathf.Sin(time * Mathf.Lerp(2.6f, 8.5f, moveProgress));
-            float squash = 1f + wobble * Mathf.Lerp(0.025f, 0.08f, moveProgress);
+            float wobble = Mathf.Sin(time * Mathf.Lerp(_visualData.WobbleFrequencyIdle,
+                _visualData.WobbleFrequencyRun, moveProgress));
+            float squash = 1f + wobble * Mathf.Lerp(_visualData.SquashAmountIdle,
+                _visualData.SquashAmountRun, moveProgress);
 
             transform.localScale = new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
             transform.localRotation = Quaternion.Lerp(transform.localRotation,
@@ -324,20 +329,20 @@ namespace Game.Visuals
 
             if (_hitTimer > 0f)
             {
-                float hit = Mathf.Sin((_hitTimer / 0.16f) * Mathf.PI);
+                float hit = Mathf.Sin((_hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration)) * Mathf.PI);
                 transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
             }
 
             if (_bounceTimer > 0f)
             {
-                float bounce = Mathf.Sin((_bounceTimer / 0.22f) * Mathf.PI);
+                float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
                 transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
             }
 
             transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * 14f);
 
             if (_isThrown && !_isGrabbed)
-                _body.Rotate(Vector3.right, 540f * deltaTime, Space.Self);
+                _body.Rotate(Vector3.right, _visualData.ThrownSpinSpeed * deltaTime, Space.Self);
 
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 3f) * 4f, 0f, 0f);
             _faceRoot.localRotation = _head.localRotation;
@@ -349,7 +354,7 @@ namespace Game.Visuals
 
         private void AnimateDeath(float deltaTime)
         {
-            float progress = Mathf.Clamp01(_deathTimer / 0.38f);
+            float progress = Mathf.Clamp01(_deathTimer / Mathf.Max(0.01f, _visualData.DeathPopDuration));
             float pop = Mathf.Sin(progress * Mathf.PI);
             Vector3 targetScale = Vector3.Lerp(_baseScale * (1.16f * _typeScale),
                 new Vector3(1.25f, 0.08f, 1.25f) * _typeScale, progress);

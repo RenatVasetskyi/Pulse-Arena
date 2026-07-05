@@ -18,6 +18,7 @@ namespace UI.Loading
 
         private float _targetProgress;
         private float _visibleProgress;
+        private int _lastPercent = -1;
 
         public static LoadingScreenView Create(Transform parent)
         {
@@ -146,8 +147,16 @@ namespace UI.Loading
             if (_progressFill != null)
                 _progressFill.fillAmount = progress;
 
-            if (_progressLabel != null)
-                _progressLabel.text = $"{Mathf.RoundToInt(progress * 100f)}%";
+            if (_progressLabel == null)
+                return;
+
+            int percent = Mathf.RoundToInt(progress * 100f);
+
+            if (percent == _lastPercent)
+                return;
+
+            _lastPercent = percent;
+            _progressLabel.text = $"{percent}%";
         }
 
         private static RectTransform CreateRect(string objectName, Transform parent)

@@ -17,7 +17,8 @@ namespace Game.Enemy
 {
     public class EnemyController : MonoBehaviour
     {
-        private const float GroundContactMemory = 0.12f;
+        private static readonly RaycastHit[] SweepHitBuffer = new RaycastHit[32];
+        private static readonly Collider[] OverlapBuffer = new Collider[32];
 
         public event Action<EnemyController> Destroyed;
         public event Action<int, int> HealthChanged;
@@ -26,12 +27,15 @@ namespace Game.Enemy
         [SerializeField] private NavMeshAgent _agent;
         [SerializeField] private Renderer[] _renderers;
 
+        private GameSettings _settings;
         private EnemyData _data;
         private IScoreService _scoreService;
         private Transform _target;
         private PlayerController _playerTarget;
         private Material[][] _originalMaterials;
+        private Material[][] _flashMaterials;
         private Material _hitFlashMaterial;
+        private CapsuleCollider _capsule;
         private WorldHealthBar _healthBar;
         private EnemyPrimitiveVisual _visual;
         private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
@@ -80,6 +84,7 @@ namespace Game.Enemy
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService)
         {
+            _settings = gameSettings;
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
             _maxHealth = Mathf.Max(1, _data.MaxHealth);
@@ -279,7 +284,7 @@ namespace Game.Enemy
 
         private IEnumerator ReturnAfterDeath()
         {
-            yield return new WaitForSeconds(0.38f);
+            yield return new WaitForSeconds(_settings.EnemyVisuals.DeathPopDuration);
             _deathRoutine = null;
             ReturnToPool();
         }
@@ -308,14 +313,29 @@ namespace Game.Enemy
 
         private void NormalizeCapsuleRoot()
         {
-            CapsuleCollider capsule = GetComponent<CapsuleCollider>();
+            _capsule = GetComponent<CapsuleCollider>();
 
-            if (capsule == null)
+            if (_capsule == null)
                 return;
 
-            Vector3 center = capsule.center;
-            center.y = capsule.height * 0.5f;
-            capsule.center = center;
+            Vector3 center = _capsule.center;
+            center.y = _capsule.height * 0.5f;
+            _capsule.center = center;
+        }
+
+        public bool TryGetRopeBounds(out Bounds bounds)
+        {
+            if (_visual != null && _visual.TryGetRopeBounds(out bounds))
+                return true;
+
+            if (_capsule != null)
+            {
+                bounds = _capsule.bounds;
+                return true;
+            }
+
+            bounds = default;
+            return false;
         }
 
         private void CreateHealthBar()
@@ -323,7 +343,7 @@ namespace Game.Enemy
             if (_healthBar != null)
                 return;
 
-            _healthBar = WorldHealthBar.Create(transform, _maxHealth, _data.HealthBarHeight);
+            _healthBar = WorldHealthBar.Create(transform, _maxHealth, _data.HealthBarHeight, _settings.Ui);
             _healthBar.SetHealth(_health, _maxHealth);
         }
 
@@ -332,9 +352,9 @@ namespace Game.Enemy
             _visual = GetComponentInChildren<EnemyPrimitiveVisual>();
 
             if (_visual == null)
-                _visual = EnemyPrimitiveVisual.Create(transform, _rigidbody);
+                _visual = EnemyPrimitiveVisual.Create(transform, _rigidbody, _settings.EnemyVisuals);
             else
-                _visual.Initialize(_rigidbody);
+                _visual.Initialize(_rigidbody, _settings.EnemyVisuals);
         }
 
         private void DisablePlaceholderRenderers()
@@ -401,19 +421,33 @@ namespace Game.Enemy
 
         private void ApplyFlashMaterials()
         {
+            EnsureFlashMaterials();
+
             for (int i = 0; i < _renderers.Length; i++)
             {
-                Renderer enemyRenderer = _renderers[i];
+                if (_renderers[i] != null && _flashMaterials[i] != null)
+                    _renderers[i].sharedMaterials = _flashMaterials[i];
+            }
+        }
 
-                if (enemyRenderer == null)
+        private void EnsureFlashMaterials()
+        {
+            if (_flashMaterials != null)
+                return;
+
+            _flashMaterials = new Material[_renderers.Length][];
+
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null)
                     continue;
 
-                Material[] flashMaterials = new Material[enemyRenderer.sharedMaterials.Length];
+                Material[] flashMaterials = new Material[_renderers[i].sharedMaterials.Length];
 
                 for (int j = 0; j < flashMaterials.Length; j++)
                     flashMaterials[j] = _hitFlashMaterial;
 
-                enemyRenderer.sharedMaterials = flashMaterials;
+                _flashMaterials[i] = flashMaterials;
             }
         }
 
@@ -574,7 +608,7 @@ namespace Game.Enemy
             _isGrabbed = true;
             _needsGroundRecovery = false;
             _isImpactProjectile = false;
-            _heldDamageTimer = 0.35f;
+            _heldDamageTimer = _data.HeldDamageGrace;
             _visual?.SetGrabbed(true);
             _visual?.SetThrown(false);
 
@@ -665,7 +699,7 @@ namespace Game.Enemy
             ApplyExtraGravity();
 
             float progress = Mathf.Clamp01(_ringoutTimer / Mathf.Max(0.1f, _data.RingoutDuration));
-            transform.localScale = Vector3.one * Mathf.Lerp(1f, 0.15f, progress);
+            transform.localScale = Vector3.one * Mathf.Lerp(1f, _data.RingoutShrinkScale, progress);
 
             if (progress >= 1f)
                 ReturnToPool();
@@ -674,7 +708,7 @@ namespace Game.Enemy
         private void SpawnRingoutFeedback()
         {
             Vector3 feedbackPosition = new(transform.position.x, _data.RingoutTextHeight, transform.position.z);
-            FloatingScoreText.Create(feedbackPosition, $"+{GetScoreReward()}");
+            FloatingScoreText.Create(feedbackPosition, $"+{GetScoreReward()}", _settings.Vfx);
             PlayRingoutBurst(feedbackPosition);
         }
 
@@ -682,7 +716,7 @@ namespace Game.Enemy
         {
             EnsureRingoutBurst();
             _ringoutBurst.transform.position = position;
-            _ringoutBurst.Emit(20);
+            _ringoutBurst.Emit(_settings.Vfx.RingoutBurstCount);
         }
 
         private void EnsureRingoutBurst()
@@ -693,16 +727,16 @@ namespace Game.Enemy
             GameObject burstObject = new("Ringout Burst");
             burstObject.transform.SetParent(transform.parent, false);
             _ringoutBurst = burstObject.AddComponent<ParticleSystem>();
+            VfxData vfx = _settings.Vfx;
 
             ParticleSystem.MainModule main = _ringoutBurst.main;
             main.playOnAwake = false;
             main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.22f, 0.5f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 5.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.16f);
-            main.startColor = new ParticleSystem.MinMaxGradient(
-                new Color(1f, 0.92f, 0.4f, 1f), new Color(1f, 0.55f, 0.2f, 1f));
-            main.gravityModifier = 0.6f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(vfx.RingoutBurstLifetimeMin, vfx.RingoutBurstLifetimeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(vfx.RingoutBurstSpeedMin, vfx.RingoutBurstSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(vfx.RingoutBurstSizeMin, vfx.RingoutBurstSizeMax);
+            main.startColor = new ParticleSystem.MinMaxGradient(vfx.RingoutColorA, vfx.RingoutColorB);
+            main.gravityModifier = vfx.RingoutBurstGravity;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
 
             ParticleSystem.EmissionModule emission = _ringoutBurst.emission;
@@ -804,7 +838,9 @@ namespace Game.Enemy
             if (_isDead || !_isImpactProjectile || _knockbackTimer <= 0f)
                 return;
 
-            if (collision.collider.GetComponentInParent<PlayerController>() != null)
+            Rigidbody collisionBody = collision.rigidbody;
+
+            if (collisionBody != null && collisionBody.GetComponent<PlayerController>() != null)
                 return;
 
             if (isGroundCollision)
@@ -816,7 +852,7 @@ namespace Game.Enemy
             if (_impactDamageCooldownTimer > 0f)
                 return;
 
-            bool hitEnemy = collision.collider.GetComponentInParent<EnemyController>() != null;
+            bool hitEnemy = collisionBody != null && collisionBody.GetComponent<EnemyController>() != null;
 
             if (hitEnemy)
             {
@@ -869,7 +905,8 @@ namespace Game.Enemy
 
         private bool TryDamageOtherEnemy(Collision collision)
         {
-            EnemyController otherEnemy = collision.collider.GetComponentInParent<EnemyController>();
+            Rigidbody otherBody = collision.rigidbody;
+            EnemyController otherEnemy = otherBody != null ? otherBody.GetComponent<EnemyController>() : null;
 
             if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
                 return false;
@@ -902,22 +939,22 @@ namespace Game.Enemy
 
             if (sweep.sqrMagnitude > 0.001f)
             {
-                RaycastHit[] sweepHits = Physics.SphereCastAll(sweepStart, _data.ImpactDamageRadius,
-                    sweep.normalized, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
+                int sweepHitCount = Physics.SphereCastNonAlloc(sweepStart, _data.ImpactDamageRadius,
+                    sweep.normalized, SweepHitBuffer, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
 
-                foreach (RaycastHit sweepHit in sweepHits)
+                for (int i = 0; i < sweepHitCount; i++)
                 {
-                    if (TryHitEnemyDuringImpact(sweepHit.collider))
+                    if (TryHitEnemyDuringImpact(SweepHitBuffer[i].collider))
                         damagedEnemy = true;
                 }
             }
 
-            Collider[] hits = Physics.OverlapSphere(sweepEnd, _data.ImpactDamageRadius, ~0,
-                QueryTriggerInteraction.Ignore);
+            int overlapCount = Physics.OverlapSphereNonAlloc(sweepEnd, _data.ImpactDamageRadius, OverlapBuffer,
+                ~0, QueryTriggerInteraction.Ignore);
 
-            foreach (Collider hit in hits)
+            for (int i = 0; i < overlapCount; i++)
             {
-                if (TryHitEnemyDuringImpact(hit))
+                if (TryHitEnemyDuringImpact(OverlapBuffer[i]))
                     damagedEnemy = true;
             }
 
@@ -932,7 +969,8 @@ namespace Game.Enemy
 
         private bool TryHitEnemyDuringImpact(Collider hit)
         {
-            EnemyController otherEnemy = hit.GetComponentInParent<EnemyController>();
+            Rigidbody hitBody = hit.attachedRigidbody;
+            EnemyController otherEnemy = hitBody != null ? hitBody.GetComponent<EnemyController>() : null;
 
             if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
                 return false;
@@ -1002,7 +1040,7 @@ namespace Game.Enemy
 
         private void MarkGroundContact()
         {
-            _groundContactTimer = GroundContactMemory;
+            _groundContactTimer = _data.GroundContactMemory;
         }
 
         private bool CanFinishPhysicsRecovery()

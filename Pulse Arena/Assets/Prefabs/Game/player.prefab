@@ -14,8 +14,6 @@ GameObject:
   - component: {fileID: 7892897381986010315}
   - component: {fileID: 8734445113876292550}
   - component: {fileID: 8552879075865225589}
-  - component: {fileID: 2122631460748175978}
-  - component: {fileID: 6298065971840264911}
   m_Layer: 7
   m_Name: player
   m_TagString: Untagged
@@ -158,27 +156,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Player.PlayerController
   _rigidbody: {fileID: 7892897381986010315}
---- !u!114 &2122631460748175978
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3935891102862787124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 972bfd8d5830d4c988614104f45dcdae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Pulse.PulseAbility
---- !u!114 &6298065971840264911
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3935891102862787124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7863c2c6bb4cf7b0be8b6ad94108e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Combat.PlayerShooter

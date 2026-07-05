@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Architecture.Services.Interfaces;
+using Data;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,15 +9,16 @@ namespace Architecture.Services
 {
     public class SceneLoader : ISceneLoader
     {
-        private const float MinLoadingScreenTime = 0.35f;
-
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly ILoadingScreen _loadingScreen;
+        private readonly GameSettings _gameSettings;
 
-        public SceneLoader(ICoroutineRunner coroutineRunner, ILoadingScreen loadingScreen)
+        public SceneLoader(ICoroutineRunner coroutineRunner, ILoadingScreen loadingScreen,
+            GameSettings gameSettings)
         {
             _coroutineRunner = coroutineRunner;
             _loadingScreen = loadingScreen;
+            _gameSettings = gameSettings;
         }
 
         public void Load(string sceneName, Action onLoaded = null)
@@ -46,7 +48,7 @@ namespace Architecture.Services
 
             _loadingScreen.SetProgress(1f);
 
-            while (Time.unscaledTime - startedAt < MinLoadingScreenTime)
+            while (Time.unscaledTime - startedAt < _gameSettings.MinLoadingScreenTime)
                 yield return null;
 
             waitNextScene.allowSceneActivation = true;

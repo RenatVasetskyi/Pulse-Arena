@@ -100,17 +100,19 @@ namespace Game.Enemy
 
                 List<EnemyTypeData> spawnQueue = BuildWaveQueue(wave);
 
+                float pollInterval = Mathf.Max(0.05f, _gameSettings.SpawnData.WavePollInterval);
+
                 foreach (EnemyTypeData type in spawnQueue)
                 {
                     while (_aliveEnemies >= _gameSettings.SpawnData.MaxEnemies)
-                        yield return new WaitForSeconds(0.25f);
+                        yield return new WaitForSeconds(pollInterval);
 
                     Spawn(type);
                     yield return new WaitForSeconds(Mathf.Max(0.05f, wave.SpawnInterval));
                 }
 
                 while (_aliveEnemies > 0)
-                    yield return new WaitForSeconds(0.25f);
+                    yield return new WaitForSeconds(pollInterval);
             }
 
             _spawnRoutine = null;

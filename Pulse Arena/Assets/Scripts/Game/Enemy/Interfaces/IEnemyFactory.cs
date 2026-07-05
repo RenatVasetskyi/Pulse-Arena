@@ -8,5 +8,6 @@ namespace Game.Enemy.Interfaces
         void Preload();
         EnemyController Create(Vector3 at, Quaternion rotation, Transform parent, Transform target,
             EnemyTypeData typeData = null);
+        void Clear();
     }
 }

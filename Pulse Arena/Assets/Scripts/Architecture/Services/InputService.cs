@@ -41,26 +41,6 @@ namespace Architecture.Services
             }
         }
 
-        public bool IsPulsePressedThisFrame
-        {
-            get { return IsPushPressedThisFrame; }
-        }
-
-        public bool IsShootPressedThisFrame
-        {
-            get { return false; }
-        }
-
-        public bool IsPushPressedThisFrame
-        {
-            get { return IsOrbitBurstPressedThisFrame; }
-        }
-
-        public bool IsPullPressedThisFrame
-        {
-            get { return IsSlingshotPressedThisFrame; }
-        }
-
         public bool IsSlingshotPressedThisFrame
         {
             get

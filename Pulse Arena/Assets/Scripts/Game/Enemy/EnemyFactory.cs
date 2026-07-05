@@ -74,6 +74,12 @@ namespace Game.Enemy
             _enemyPool?.Release(enemy);
         }
 
+        public void Clear()
+        {
+            _enemyPool = null;
+            _poolRoot = null;
+        }
+
         private void ReleaseEnemyInstance(EnemyController enemy)
         {
             enemy.PrepareForPool();

@@ -21,6 +21,7 @@ namespace Game.Player
 
         private PlayerPrimitiveVisual _visual;
         private IInputService _inputService;
+        private GameSettings _settings;
         private PlayerData _data;
         private Material[][] _originalMaterials;
         private Material _hitFlashMaterial;
@@ -42,6 +43,7 @@ namespace Game.Player
         public void Construct(IInputService inputService, GameSettings gameSettings)
         {
             _inputService = inputService;
+            _settings = gameSettings;
             _data = gameSettings.PlayerData;
             _maxHealth = Mathf.Max(1, _data.MaxHealth);
             _health = _maxHealth;
@@ -233,9 +235,9 @@ namespace Game.Player
             EnemySlingshot slingshot = GetComponent<EnemySlingshot>();
 
             if (_visual == null)
-                _visual = PlayerPrimitiveVisual.Create(transform, _rigidbody, slingshot);
+                _visual = PlayerPrimitiveVisual.Create(transform, _rigidbody, slingshot, _settings.PlayerVisuals);
             else
-                _visual.Initialize(_rigidbody, slingshot);
+                _visual.Initialize(_rigidbody, slingshot, _settings.PlayerVisuals);
 
             if (slingshot != null && _visual.LassoOrigin != null)
                 slingshot.SetLassoOrigin(_visual.LassoOrigin);

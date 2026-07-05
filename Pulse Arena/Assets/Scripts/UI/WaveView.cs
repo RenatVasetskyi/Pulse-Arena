@@ -1,3 +1,4 @@
+using Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,11 +8,20 @@ namespace UI
     {
         private Text _text;
         private RectTransform _panel;
+        private Color _panelColor = new(0.06f, 0.07f, 0.1f, 0.62f);
+        private Color _textColor = new(0.92f, 0.96f, 1f, 1f);
 
-        public static WaveView Create()
+        public static WaveView Create(UiData ui = null)
         {
             GameObject root = new("WaveView", typeof(RectTransform));
             WaveView view = root.AddComponent<WaveView>();
+
+            if (ui != null)
+            {
+                view._panelColor = ui.HudPanelColor;
+                view._textColor = ui.WaveTextColor;
+            }
+
             view.Build();
             return view;
         }
@@ -52,7 +62,7 @@ namespace UI
             _panel.sizeDelta = new Vector2(280f, 56f);
 
             Image background = panelObject.AddComponent<Image>();
-            background.color = new Color(0.06f, 0.07f, 0.1f, 0.62f);
+            background.color = _panelColor;
             background.raycastTarget = false;
 
             GameObject textObject = new("Value", typeof(RectTransform));
@@ -68,7 +78,7 @@ namespace UI
             _text.fontSize = 32;
             _text.fontStyle = FontStyle.Bold;
             _text.alignment = TextAnchor.MiddleCenter;
-            _text.color = new Color(0.92f, 0.96f, 1f, 1f);
+            _text.color = _textColor;
             _text.raycastTarget = false;
 
             _panel.gameObject.SetActive(false);

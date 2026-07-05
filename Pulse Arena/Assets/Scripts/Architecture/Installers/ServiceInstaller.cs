@@ -1,8 +1,6 @@
 using Architecture.Services;
 using Architecture.Services.Interfaces;
 using Data;
-using Game.Combat;
-using Game.Combat.Interfaces;
 using Game.Enemy;
 using Game.Enemy.Interfaces;
 using Game.Pickups;
@@ -104,11 +102,6 @@ namespace Architecture.Installers
             Container
                 .Bind<IPickupFactory>()
                 .To<PickupFactory>()
-                .AsSingle();
-
-            Container
-                .Bind<IProjectileFactory>()
-                .To<ProjectileFactory>()
                 .AsSingle();
         }
 

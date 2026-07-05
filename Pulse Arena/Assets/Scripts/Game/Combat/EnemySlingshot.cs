@@ -2,7 +2,6 @@ using System;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy;
-using Game.Visuals;
 using UnityEngine;
 using Zenject;
 
@@ -10,6 +9,9 @@ namespace Game.Combat
 {
     public class EnemySlingshot : MonoBehaviour
     {
+        private static readonly Collider[] EnemySearchBuffer = new Collider[32];
+        private static Material _sharedLineMaterial;
+
         private enum LassoState
         {
             Idle,
@@ -30,11 +32,11 @@ namespace Game.Combat
 
         private IInputService _inputService;
         private SlingshotData _data;
+        private VfxData _vfx;
         private EnemyController _targetEnemy;
         private EnemyController _grabbedEnemy;
         private LineRenderer _line;
         private LineRenderer _wrapRing;
-        private Material _lineMaterial;
         private EnemyWrapMetrics _wrapMetrics;
         private LassoState _state;
         private Vector3 _lassoStart;
@@ -57,6 +59,7 @@ namespace Game.Combat
         {
             _inputService = inputService;
             _data = gameSettings.SlingshotData;
+            _vfx = gameSettings.Vfx;
         }
 
         private void Update()
@@ -240,15 +243,19 @@ namespace Game.Combat
 
         private EnemyController FindNearestEnemy(float radius)
         {
-            Collider[] hits = Physics.OverlapSphere(transform.position, radius, _data.EnemyLayer);
+            int hitCount = Physics.OverlapSphereNonAlloc(transform.position, radius, EnemySearchBuffer,
+                _data.EnemyLayer);
             EnemyController nearestEnemy = null;
             float nearestSqrDistance = float.MaxValue;
 
-            foreach (Collider hit in hits)
+            for (int i = 0; i < hitCount; i++)
             {
-                EnemyController enemy = hit.GetComponentInParent<EnemyController>();
+                Rigidbody hitBody = EnemySearchBuffer[i].attachedRigidbody;
 
-                if (enemy == null || enemy.IsGrabbed || enemy.Health <= 0)
+                if (hitBody == null || !hitBody.TryGetComponent(out EnemyController enemy))
+                    continue;
+
+                if (enemy.IsGrabbed || enemy.Health <= 0)
                     continue;
 
                 float sqrDistance = (enemy.transform.position - transform.position).sqrMagnitude;
@@ -290,7 +297,8 @@ namespace Game.Combat
             float radius = _data.MarkerRadius * Mathf.Max(0.5f, enemy.TypeData.VisualScale);
             Vector3 center = enemy.transform.position + Vector3.up * _data.MarkerHeight;
 
-            _targetMarker.Show(center, radius, _data.MarkerWidth, color);
+            _targetMarker.Show(center, radius, _data.MarkerWidth, color,
+                _data.MarkerPulseSpeed, _data.MarkerPulseAmplitude);
         }
 
         private void LaunchGrabbedEnemy()
@@ -342,19 +350,15 @@ namespace Game.Combat
             if (enemy == null)
                 return Vector3.zero;
 
-            if (!TryGetEnemyVisualBounds(enemy, out Bounds bounds) &&
-                !TryGetEnemyColliderBounds(enemy, out bounds))
-            {
+            if (!enemy.TryGetRopeBounds(out Bounds bounds))
                 return enemy.transform.position;
-            }
 
             return bounds.center;
         }
 
         private EnemyWrapMetrics GetEnemyWrapMetrics(EnemyController enemy)
         {
-            if (!TryGetEnemyVisualBounds(enemy, out Bounds bounds) &&
-                !TryGetEnemyColliderBounds(enemy, out bounds))
+            if (enemy == null || !enemy.TryGetRopeBounds(out Bounds bounds))
             {
                 return new EnemyWrapMetrics(
                     enemy != null ? enemy.transform.position : Vector3.zero,
@@ -372,67 +376,6 @@ namespace Game.Combat
             GetWrapAxes(bounds.center, out Vector3 sideAxis, out Vector3 depthAxis);
 
             return new EnemyWrapMetrics(bounds.center, radius, verticalRange, sideAxis, depthAxis);
-        }
-
-        private static bool TryGetEnemyVisualBounds(EnemyController enemy, out Bounds bounds)
-        {
-            bounds = default;
-
-            if (enemy == null)
-                return false;
-
-            EnemyPrimitiveVisual primitiveVisual = enemy.GetComponentInChildren<EnemyPrimitiveVisual>();
-
-            if (primitiveVisual != null && primitiveVisual.TryGetRopeBounds(out bounds))
-                return true;
-
-            MeshRenderer[] renderers = enemy.GetComponentsInChildren<MeshRenderer>();
-            bool hasBounds = false;
-
-            foreach (MeshRenderer meshRenderer in renderers)
-            {
-                if (meshRenderer == null || !meshRenderer.enabled)
-                    continue;
-
-                if (!hasBounds)
-                {
-                    bounds = meshRenderer.bounds;
-                    hasBounds = true;
-                    continue;
-                }
-
-                bounds.Encapsulate(meshRenderer.bounds);
-            }
-
-            return hasBounds;
-        }
-
-        private static bool TryGetEnemyColliderBounds(EnemyController enemy, out Bounds bounds)
-        {
-            bounds = default;
-
-            if (enemy == null)
-                return false;
-
-            Collider[] colliders = enemy.GetComponentsInChildren<Collider>();
-            bool hasBounds = false;
-
-            foreach (Collider enemyCollider in colliders)
-            {
-                if (enemyCollider == null || enemyCollider.isTrigger)
-                    continue;
-
-                if (!hasBounds)
-                {
-                    bounds = enemyCollider.bounds;
-                    hasBounds = true;
-                    continue;
-                }
-
-                bounds.Encapsulate(enemyCollider.bounds);
-            }
-
-            return hasBounds;
         }
 
         private void GetWrapAxes(Vector3 center, out Vector3 sideAxis, out Vector3 depthAxis)
@@ -487,6 +430,7 @@ namespace Game.Combat
                 return;
 
             GameObject ringObject = new("Lasso Wrap Ring");
+            ringObject.transform.SetParent(transform, false);
             _wrapRing = ringObject.AddComponent<LineRenderer>();
             _wrapRing.useWorldSpace = true;
             _wrapRing.loop = true;
@@ -682,18 +626,18 @@ namespace Game.Combat
 
         private Material GetLineMaterial()
         {
-            if (_lineMaterial != null)
-                return _lineMaterial;
+            if (_sharedLineMaterial != null)
+                return _sharedLineMaterial;
 
             Shader shader = Shader.Find("Sprites/Default");
-            _lineMaterial = new Material(shader)
+            _sharedLineMaterial = new Material(shader)
             {
                 name = "Lasso Rope"
             };
-            _lineMaterial.mainTexture = CreateRopeTexture();
-            _lineMaterial.mainTextureScale = new Vector2(_data.RopeTextureRepeat, 1f);
+            _sharedLineMaterial.mainTexture = CreateRopeTexture();
+            _sharedLineMaterial.mainTextureScale = new Vector2(_data.RopeTextureRepeat, 1f);
 
-            return _lineMaterial;
+            return _sharedLineMaterial;
         }
 
         private Texture2D CreateRopeTexture()
@@ -728,7 +672,8 @@ namespace Game.Combat
             Color color = Color.Lerp(_data.LineColor, _data.ChargedLineColor, chargeProgress);
             color = Color.Lerp(color, _data.TensionColor, tensionWarning);
             float chargedWidth = Mathf.Lerp(1f, _data.MaxChargeLineWidthMultiplier, chargeProgress);
-            float tensionPulse = 1f + Mathf.Sin(Time.time * _data.TensionPulseSpeed) * 0.18f * tensionWarning;
+            float tensionPulse = 1f + Mathf.Sin(Time.time * _data.TensionPulseSpeed) *
+                _data.TensionPulseAmplitude * tensionWarning;
 
             renderer.startColor = color;
             renderer.endColor = color;
@@ -790,7 +735,7 @@ namespace Game.Combat
         {
             EnsureSnapBurst();
             _snapBurst.transform.position = position;
-            _snapBurst.Emit(26);
+            _snapBurst.Emit(_vfx.SnapBurstCount);
         }
 
         private void EnsureSnapBurst()
@@ -805,11 +750,11 @@ namespace Game.Combat
             ParticleSystem.MainModule main = _snapBurst.main;
             main.playOnAwake = false;
             main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 6.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.14f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstLifetimeMin, _vfx.SnapBurstLifetimeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstSpeedMin, _vfx.SnapBurstSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstSizeMin, _vfx.SnapBurstSizeMax);
             main.startColor = new ParticleSystem.MinMaxGradient(_data.RopeBaseColor, _data.TensionColor);
-            main.gravityModifier = 1.2f;
+            main.gravityModifier = _vfx.SnapBurstGravity;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
 
             ParticleSystem.EmissionModule emission = _snapBurst.emission;
@@ -829,7 +774,7 @@ namespace Game.Combat
                 return 1f;
 
             float weight = Mathf.Max(0.1f, _grabbedEnemy.TypeData.Weight);
-            return Mathf.Clamp(1f / weight, 0.35f, 1.5f);
+            return Mathf.Clamp(1f / weight, _data.WeightFactorMin, _data.WeightFactorMax);
         }
 
         private float GetGrabbedLaunchMultiplier()

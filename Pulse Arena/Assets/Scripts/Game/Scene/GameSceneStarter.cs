@@ -1,8 +1,8 @@
 using System;
 using Architecture.Services.Interfaces;
+using Data;
 using Game.Cameras;
 using Game.Combat;
-using Game.Combat.Interfaces;
 using Game.Enemy;
 using Game.Enemy.Interfaces;
 using Game.Player;
@@ -20,16 +20,16 @@ namespace Game.Scene
         private readonly GameSceneReferences _sceneReferences;
         private readonly IPlayerFactory _playerFactory;
         private readonly IEnemyFactory _enemyFactory;
-        private readonly IProjectileFactory _projectileFactory;
         private readonly IBattleCamera _battleCamera;
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
+        private readonly GameSettings _gameSettings;
         private PlayerController _player;
-        private OrbitCutter _orbitCutter;
         private EnemySlingshot _enemySlingshot;
         private PlayerHealthView _playerHealthView;
+        private ScoreView _scoreView;
         private CameraZoomView _cameraZoomView;
         private GameOverView _gameOverView;
         private RarePickupToastView _rarePickupToastView;
@@ -41,22 +41,22 @@ namespace Game.Scene
             GameSceneReferences sceneReferences,
             IPlayerFactory playerFactory,
             IEnemyFactory enemyFactory,
-            IProjectileFactory projectileFactory,
             IBattleCamera battleCamera,
             IEnemySpawner enemySpawner,
             IPickupSpawner pickupSpawner,
             IInputService inputService,
-            IScoreService scoreService)
+            IScoreService scoreService,
+            GameSettings gameSettings)
         {
             _sceneReferences = sceneReferences;
             _playerFactory = playerFactory;
             _enemyFactory = enemyFactory;
-            _projectileFactory = projectileFactory;
             _battleCamera = battleCamera;
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _inputService = inputService;
             _scoreService = scoreService;
+            _gameSettings = gameSettings;
         }
 
         public void Initialize()
@@ -72,9 +72,10 @@ namespace Game.Scene
 
             _player = SpawnPlayer();
             _player.Died += OnPlayerDied;
-            _playerHealthView = PlayerHealthView.Create(_player);
+            _playerHealthView = PlayerHealthView.Create(_player, _gameSettings.Ui);
+            _scoreView = ScoreView.Create(_scoreService, _gameSettings.Ui);
             _cameraZoomView = CameraZoomView.Create(_battleCamera);
-            _rarePickupToastView = RarePickupToastView.Create();
+            _rarePickupToastView = RarePickupToastView.Create(_gameSettings.Ui);
             _battleCamera.Follow(_player.transform);
             SubscribeToCombat(_player);
 
@@ -84,7 +85,7 @@ namespace Game.Scene
                 _sceneReferences.PickupSpawnHeightOffset);
             _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
 
-            _waveView = WaveView.Create();
+            _waveView = WaveView.Create(_gameSettings.Ui);
             _enemySpawner.WaveChanged += OnWaveChanged;
             _enemySpawner.AllWavesCleared += OnAllWavesCleared;
 
@@ -98,9 +99,6 @@ namespace Game.Scene
 
             if (_player != null)
                 _player.Died -= OnPlayerDied;
-
-            if (_orbitCutter != null)
-                _orbitCutter.BurstUsed -= OnOrbitBurstUsed;
 
             if (_enemySlingshot != null)
             {
@@ -131,6 +129,11 @@ namespace Game.Scene
 
             if (_waveView != null)
                 UnityEngine.Object.Destroy(_waveView.gameObject);
+
+            if (_scoreView != null)
+                UnityEngine.Object.Destroy(_scoreView.gameObject);
+
+            _enemyFactory.Clear();
         }
 
         private PlayerController SpawnPlayer()
@@ -143,28 +146,18 @@ namespace Game.Scene
         private void PreloadPools()
         {
             _enemyFactory.Preload();
-            _projectileFactory.Preload();
         }
 
         private void SubscribeToCombat(PlayerController player)
         {
-            _orbitCutter = player.GetComponent<OrbitCutter>();
             _enemySlingshot = player.GetComponent<EnemySlingshot>();
-
-            if (_orbitCutter != null)
-                _orbitCutter.BurstUsed += OnOrbitBurstUsed;
 
             if (_enemySlingshot != null)
             {
                 _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
                 _enemySlingshot.RopeBroke += OnRopeBroke;
-                _ropeTensionView = RopeTensionView.Create(_enemySlingshot);
+                _ropeTensionView = RopeTensionView.Create(_enemySlingshot, _gameSettings.Ui);
             }
-        }
-
-        private void OnOrbitBurstUsed()
-        {
-            _battleCamera.Shake(0.22f, 0.45f);
         }
 
         private void OnEnemyLaunched(float chargeProgress)
@@ -174,7 +167,8 @@ namespace Game.Scene
 
         private void OnRopeBroke()
         {
-            _battleCamera.Shake(0.12f, 0.32f);
+            _battleCamera.Shake(_gameSettings.CameraData.RopeBreakShakeDuration,
+                _gameSettings.CameraData.RopeBreakShakeStrength);
         }
 
         private void OnRarePickupSpawned(string message, float duration)

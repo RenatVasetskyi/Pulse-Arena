@@ -1,3 +1,4 @@
+using Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -5,14 +6,13 @@ namespace UI
 {
     public class FloatingScoreText : MonoBehaviour
     {
-        private const float Lifetime = 0.9f;
-        private const float RiseSpeed = 1.6f;
-
         private Text _text;
         private Camera _camera;
         private float _timer;
+        private float _lifetime = 0.9f;
+        private float _riseSpeed = 1.6f;
 
-        public static FloatingScoreText Create(Vector3 position, string value)
+        public static FloatingScoreText Create(Vector3 position, string value, VfxData vfx = null)
         {
             GameObject root = new("FloatingScoreText", typeof(RectTransform));
             root.transform.position = position;
@@ -44,13 +44,21 @@ namespace UI
             FloatingScoreText floating = root.AddComponent<FloatingScoreText>();
             floating._text = text;
             floating._camera = Camera.main;
+
+            if (vfx != null)
+            {
+                floating._lifetime = vfx.FloatingTextLifetime;
+                floating._riseSpeed = vfx.FloatingTextRiseSpeed;
+                text.color = vfx.FloatingTextColor;
+            }
+
             return floating;
         }
 
         private void Update()
         {
             _timer += Time.deltaTime;
-            transform.position += Vector3.up * (RiseSpeed * Time.deltaTime);
+            transform.position += Vector3.up * (_riseSpeed * Time.deltaTime);
 
             if (_camera != null)
                 transform.rotation = Quaternion.LookRotation(transform.position - _camera.transform.position);
@@ -58,11 +66,11 @@ namespace UI
             if (_text != null)
             {
                 Color color = _text.color;
-                color.a = 1f - Mathf.SmoothStep(0.35f, 1f, _timer / Lifetime);
+                color.a = 1f - Mathf.SmoothStep(0.35f, 1f, _timer / _lifetime);
                 _text.color = color;
             }
 
-            if (_timer >= Lifetime)
+            if (_timer >= _lifetime)
                 Destroy(gameObject);
         }
 

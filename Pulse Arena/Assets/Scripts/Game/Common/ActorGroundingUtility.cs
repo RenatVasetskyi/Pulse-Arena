@@ -1,3 +1,4 @@
+using Data;
 using UnityEngine;
 
 namespace Game.Common
@@ -5,12 +6,23 @@ namespace Game.Common
     public static class ActorGroundingUtility
     {
         private const string GroundLayerName = "Ground";
-        private const float GroundClearance = 0.02f;
-        private const float DefaultProbeDistance = 8f;
-        private const float GroundNormalThreshold = 0.55f;
 
-        public static bool SnapToGround(Transform actor, float probeDistance = DefaultProbeDistance,
-            float groundClearance = GroundClearance)
+        private static float _groundClearance = 0.02f;
+        private static float _defaultProbeDistance = 8f;
+        private static float _groundNormalThreshold = 0.55f;
+
+        public static void Configure(GroundingData data)
+        {
+            if (data == null)
+                return;
+
+            _groundClearance = data.GroundClearance;
+            _defaultProbeDistance = data.DefaultProbeDistance;
+            _groundNormalThreshold = data.GroundNormalThreshold;
+        }
+
+        public static bool SnapToGround(Transform actor, float probeDistance = -1f,
+            float groundClearance = -1f)
         {
             if (!TryGetGroundedPosition(actor, probeDistance, groundClearance, out Vector3 groundedPosition))
                 return false;
@@ -23,6 +35,12 @@ namespace Game.Common
             float groundClearance, out Vector3 groundedPosition)
         {
             groundedPosition = default;
+
+            if (probeDistance < 0f)
+                probeDistance = _defaultProbeDistance;
+
+            if (groundClearance < 0f)
+                groundClearance = _groundClearance;
 
             if (actor == null)
                 return false;
@@ -93,7 +111,7 @@ namespace Game.Common
 
         private static bool IsValidGroundHit(Transform actor, RaycastHit hit)
         {
-            if (hit.collider == null || hit.normal.y <= GroundNormalThreshold)
+            if (hit.collider == null || hit.normal.y <= _groundNormalThreshold)
                 return false;
 
             return IsGroundCollider(hit.collider) && !hit.collider.transform.IsChildOf(actor);

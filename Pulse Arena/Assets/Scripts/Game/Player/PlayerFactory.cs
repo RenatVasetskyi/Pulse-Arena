@@ -3,7 +3,6 @@ using Data;
 using Game.Combat;
 using Game.Common;
 using Game.Player.Interfaces;
-using Game.Pulse;
 using UnityEngine;
 using Zenject;
 
@@ -29,27 +28,9 @@ namespace Game.Player
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 
             ActorGroundingUtility.SnapToGround(player.transform);
-            DisableLegacyPulse(player);
-            DisableOrbitCutter(player);
             AddCombatComponents(player);
 
             return player;
-        }
-
-        private void DisableLegacyPulse(PlayerController player)
-        {
-            PulseAbility pulseAbility = player.GetComponentInChildren<PulseAbility>();
-
-            if (pulseAbility != null)
-                pulseAbility.enabled = false;
-        }
-
-        private void DisableOrbitCutter(PlayerController player)
-        {
-            OrbitCutter orbitCutter = player.GetComponentInChildren<OrbitCutter>();
-
-            if (orbitCutter != null)
-                orbitCutter.enabled = false;
         }
 
         private void AddCombatComponents(PlayerController player)

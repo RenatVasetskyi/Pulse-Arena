@@ -1,3 +1,4 @@
+using Data;
 using Game.Combat;
 using UnityEngine;
 
@@ -5,10 +6,9 @@ namespace Game.Visuals
 {
     public class PlayerPrimitiveVisual : MonoBehaviour
     {
-        private const float MoveThreshold = 0.25f;
         private const float GroundClearance = 0.02f;
-        private static readonly Vector3 RootVisualOffset = new(0f, -0.78f, 0f);
 
+        private PlayerVisualData _visualData = new();
         private Rigidbody _rigidbody;
         private EnemySlingshot _slingshot;
         private Transform _body;
@@ -26,23 +26,27 @@ namespace Game.Visuals
 
         public Transform LassoOrigin => _lassoOrigin;
 
-        public static PlayerPrimitiveVisual Create(Transform parent, Rigidbody rigidbody, EnemySlingshot slingshot)
+        public static PlayerPrimitiveVisual Create(Transform parent, Rigidbody rigidbody, EnemySlingshot slingshot,
+            PlayerVisualData visualData)
         {
             GameObject root = new("PlayerPrimitiveVisual");
             root.transform.SetParent(parent, false);
-            root.transform.localPosition = RootVisualOffset;
             root.transform.localRotation = Quaternion.identity;
             root.transform.localScale = Vector3.one;
 
             PlayerPrimitiveVisual visual = root.AddComponent<PlayerPrimitiveVisual>();
-            visual.Initialize(rigidbody, slingshot);
+            visual.Initialize(rigidbody, slingshot, visualData);
+            root.transform.localPosition = visual._visualData.RootOffset;
             visual.Build();
             return visual;
         }
 
-        public void Initialize(Rigidbody rigidbody, EnemySlingshot slingshot)
+        public void Initialize(Rigidbody rigidbody, EnemySlingshot slingshot, PlayerVisualData visualData = null)
         {
             _rigidbody = rigidbody;
+
+            if (visualData != null)
+                _visualData = visualData;
 
             if (_slingshot != null)
                 _slingshot.LassoThrown -= PlayThrow;
@@ -55,7 +59,7 @@ namespace Game.Visuals
 
         public void PlayHit()
         {
-            _hitTimer = 0.16f;
+            _hitTimer = _visualData.HitSquashDuration;
         }
 
         public void PlayDeath()
@@ -80,15 +84,15 @@ namespace Game.Visuals
 
         private void PlayThrow()
         {
-            _throwTimer = 0.28f;
+            _throwTimer = _visualData.ThrowSwingDuration;
         }
 
         private void Build()
         {
-            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Player Body", new Color(0.2f, 0.75f, 0.95f, 1f));
-            Material headMaterial = PrimitiveVisualUtility.CreateMaterial("Player Head", new Color(0.78f, 0.9f, 0.95f, 1f));
-            Material darkMaterial = PrimitiveVisualUtility.CreateMaterial("Player Dark", new Color(0.08f, 0.11f, 0.16f, 1f));
-            Material accentMaterial = PrimitiveVisualUtility.CreateMaterial("Player Accent", new Color(1f, 0.78f, 0.24f, 1f));
+            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Player Body", _visualData.BodyColor);
+            Material headMaterial = PrimitiveVisualUtility.CreateMaterial("Player Head", _visualData.HeadColor);
+            Material darkMaterial = PrimitiveVisualUtility.CreateMaterial("Player Dark", _visualData.DarkColor);
+            Material accentMaterial = PrimitiveVisualUtility.CreateMaterial("Player Accent", _visualData.AccentColor);
 
             _body = PrimitiveVisualUtility.CreatePart("Body", PrimitiveType.Capsule, transform,
                 new Vector3(0f, 0.62f, 0f), Vector3.zero, new Vector3(0.72f, 0.84f, 0.72f), bodyMaterial);
@@ -174,27 +178,31 @@ namespace Game.Visuals
             float speed = GetPlanarSpeed();
             float moveProgress = Mathf.InverseLerp(0f, 4.5f, speed);
             float time = Time.time;
-            float bob = Mathf.Sin(time * Mathf.Lerp(2.4f, 9f, moveProgress)) * Mathf.Lerp(0.025f, 0.09f, moveProgress);
+            float bob = Mathf.Sin(time * Mathf.Lerp(_visualData.BobFrequencyIdle, _visualData.BobFrequencyRun,
+                moveProgress)) * Mathf.Lerp(_visualData.BobAmplitudeIdle, _visualData.BobAmplitudeRun, moveProgress);
 
             transform.localPosition = _baseLocalPosition + Vector3.up * bob;
             transform.localScale = _baseScale;
 
             if (_hitTimer > 0f)
             {
-                float hitProgress = _hitTimer / 0.16f;
+                float hitProgress = _hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration);
                 transform.localScale = new Vector3(1.12f, 0.9f, 1.12f) * Mathf.Sin(hitProgress * Mathf.PI) +
                                        _baseScale * (1f - Mathf.Sin(hitProgress * Mathf.PI));
             }
 
             if (_isDead)
-                transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.Euler(0f, 0f, 72f), deltaTime * 8f);
+                transform.localRotation = Quaternion.Lerp(transform.localRotation,
+                    Quaternion.Euler(0f, 0f, _visualData.DeathRollAngle), deltaTime * 8f);
             else
                 transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * 10f);
 
-            float armSwing = Mathf.Sin(time * 10f) * 28f * moveProgress;
+            float armSwing = Mathf.Sin(time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle * moveProgress;
             _leftArm.localRotation = Quaternion.Euler(armSwing, 0f, -22f);
 
-            float throwProgress = _throwTimer > 0f ? Mathf.Sin((_throwTimer / 0.28f) * Mathf.PI) : 0f;
+            float throwProgress = _throwTimer > 0f
+                ? Mathf.Sin((_throwTimer / Mathf.Max(0.01f, _visualData.ThrowSwingDuration)) * Mathf.PI)
+                : 0f;
             _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * 95f, 0f, 22f + throwProgress * 18f);
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.2f) * 3f, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
@@ -210,7 +218,7 @@ namespace Game.Visuals
 
             Vector3 velocity = _rigidbody.linearVelocity;
             velocity.y = 0f;
-            return velocity.magnitude <= MoveThreshold ? 0f : velocity.magnitude;
+            return velocity.magnitude <= _visualData.MoveThreshold ? 0f : velocity.magnitude;
         }
     }
 }

@@ -1,3 +1,4 @@
+using Data;
 using Game.Player;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,11 +11,20 @@ namespace UI
 
         private PlayerController _player;
         private Image[] _healthSegments;
+        private Color _aliveColor = new(1f, 0.16f, 0.12f, 1f);
+        private Color _emptyColor = new(0.18f, 0.2f, 0.24f, 0.82f);
 
-        public static PlayerHealthView Create(PlayerController player)
+        public static PlayerHealthView Create(PlayerController player, UiData ui = null)
         {
             GameObject root = new("PlayerHealthView", typeof(RectTransform));
             PlayerHealthView view = root.AddComponent<PlayerHealthView>();
+
+            if (ui != null)
+            {
+                view._aliveColor = ui.HealthAliveColor;
+                view._emptyColor = ui.HealthEmptyColor;
+            }
+
             view.Initialize(player);
             return view;
         }
@@ -66,7 +76,7 @@ namespace UI
 
             for (int i = 0; i < segmentCount; i++)
             {
-                Image segment = CreateImage($"Life_{i + 1}", parent, AliveColor);
+                Image segment = CreateImage($"Life_{i + 1}", parent, _aliveColor);
                 RectTransform rect = segment.rectTransform;
                 rect.anchorMin = new Vector2(0f, 0.5f);
                 rect.anchorMax = new Vector2(0f, 0.5f);
@@ -85,7 +95,7 @@ namespace UI
             for (int i = 0; i < _healthSegments.Length; i++)
             {
                 bool isAlive = i < health;
-                _healthSegments[i].color = isAlive ? AliveColor : EmptyColor;
+                _healthSegments[i].color = isAlive ? _aliveColor : _emptyColor;
             }
         }
 
@@ -143,8 +153,5 @@ namespace UI
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
         }
-
-        private static Color AliveColor => new(1f, 0.16f, 0.12f, 1f);
-        private static Color EmptyColor => new(0.18f, 0.2f, 0.24f, 0.82f);
     }
 }

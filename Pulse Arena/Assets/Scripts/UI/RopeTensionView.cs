@@ -1,3 +1,4 @@
+using Data;
 using Game.Combat;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,11 +15,22 @@ namespace UI
         private RectTransform _panel;
         private Image _fill;
         private float _tension;
+        private Color _backgroundColor = new(0.06f, 0.07f, 0.1f, 0.78f);
+        private Color _safeColor = new(1f, 0.82f, 0.3f, 0.95f);
+        private Color _dangerColor = new(1f, 0.22f, 0.12f, 1f);
 
-        public static RopeTensionView Create(EnemySlingshot slingshot)
+        public static RopeTensionView Create(EnemySlingshot slingshot, UiData ui = null)
         {
             GameObject root = new("RopeTensionView", typeof(RectTransform));
             RopeTensionView view = root.AddComponent<RopeTensionView>();
+
+            if (ui != null)
+            {
+                view._backgroundColor = ui.TensionBackgroundColor;
+                view._safeColor = ui.TensionSafeColor;
+                view._dangerColor = ui.TensionDangerColor;
+            }
+
             view.Initialize(slingshot);
             return view;
         }
@@ -50,7 +62,7 @@ namespace UI
             _panel.sizeDelta = new Vector2(BarWidth, BarHeight);
 
             Image background = _panel.gameObject.AddComponent<Image>();
-            background.color = new Color(0.06f, 0.07f, 0.1f, 0.78f);
+            background.color = _backgroundColor;
 
             RectTransform fillRect = CreateRect("Fill", _panel);
             fillRect.anchorMin = new Vector2(0f, 0.5f);
@@ -60,7 +72,7 @@ namespace UI
             fillRect.sizeDelta = new Vector2(0f, BarHeight - FillPadding * 2f);
 
             _fill = fillRect.gameObject.AddComponent<Image>();
-            _fill.color = SafeColor;
+            _fill.color = _safeColor;
 
             _slingshot.TensionChanged += OnTensionChanged;
             SetVisible(false);
@@ -93,7 +105,7 @@ namespace UI
 
             float maxFillWidth = BarWidth - FillPadding * 2f;
             _fill.rectTransform.sizeDelta = new Vector2(maxFillWidth * tension, BarHeight - FillPadding * 2f);
-            _fill.color = Color.Lerp(SafeColor, DangerColor, tension);
+            _fill.color = Color.Lerp(_safeColor, _dangerColor, tension);
         }
 
         private void SetVisible(bool visible)
@@ -109,8 +121,5 @@ namespace UI
             rect.SetParent(parent, false);
             return rect;
         }
-
-        private static Color SafeColor => new(1f, 0.82f, 0.3f, 0.95f);
-        private static Color DangerColor => new(1f, 0.22f, 0.12f, 1f);
     }
 }

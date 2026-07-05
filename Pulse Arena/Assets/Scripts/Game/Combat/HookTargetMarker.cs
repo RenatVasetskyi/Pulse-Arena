@@ -19,14 +19,15 @@ namespace Game.Combat
             return marker;
         }
 
-        public void Show(Vector3 center, float radius, float width, Color color)
+        public void Show(Vector3 center, float radius, float width, Color color,
+            float pulseSpeed, float pulseAmplitude)
         {
             _ring.enabled = true;
             _ring.widthMultiplier = width;
             _ring.startColor = color;
             _ring.endColor = color;
 
-            float pulse = 1f + Mathf.Sin(Time.time * 7f) * 0.06f;
+            float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseAmplitude;
             float pulsedRadius = radius * pulse;
 
             for (int i = 0; i < PointCount; i++)

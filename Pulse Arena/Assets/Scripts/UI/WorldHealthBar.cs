@@ -1,3 +1,4 @@
+using Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,8 +9,12 @@ namespace UI
         private const float SegmentSpacing = 0.04f;
 
         private Image[] _segments;
+        private Camera _camera;
+        private Color _aliveColor = new(1f, 0.2f, 0.12f, 1f);
+        private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
+        private Color _backgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
 
-        public static WorldHealthBar Create(Transform target, int maxHealth, float height)
+        public static WorldHealthBar Create(Transform target, int maxHealth, float height, UiData ui = null)
         {
             GameObject root = new("WorldHealthBar", typeof(RectTransform));
             root.transform.SetParent(target, false);
@@ -18,6 +23,14 @@ namespace UI
             root.transform.localScale = Vector3.one;
 
             WorldHealthBar view = root.AddComponent<WorldHealthBar>();
+
+            if (ui != null)
+            {
+                view._aliveColor = ui.WorldHealthAliveColor;
+                view._emptyColor = ui.WorldHealthEmptyColor;
+                view._backgroundColor = ui.WorldHealthBackgroundColor;
+            }
+
             view.Initialize(maxHealth);
             return view;
         }
@@ -30,18 +43,21 @@ namespace UI
             for (int i = 0; i < _segments.Length; i++)
             {
                 bool isAlive = i < health;
-                _segments[i].color = isAlive ? AliveColor : EmptyColor;
+                _segments[i].color = isAlive ? _aliveColor : _emptyColor;
             }
         }
 
         private void LateUpdate()
         {
-            Camera camera = Camera.main;
+            if (_camera == null)
+            {
+                _camera = Camera.main;
 
-            if (camera == null)
-                return;
+                if (_camera == null)
+                    return;
+            }
 
-            transform.rotation = camera.transform.rotation;
+            transform.rotation = _camera.transform.rotation;
         }
 
         private void Initialize(int maxHealth)
@@ -53,7 +69,7 @@ namespace UI
             RectTransform root = GetComponent<RectTransform>();
             root.sizeDelta = new Vector2(1.25f, 0.18f);
 
-            Image background = CreateImage("Background", root, new Color(0.02f, 0.025f, 0.035f, 0.72f));
+            Image background = CreateImage("Background", root, _backgroundColor);
             Stretch(background.rectTransform);
 
             CreateSegments(root, maxHealth);
@@ -70,7 +86,7 @@ namespace UI
 
             for (int i = 0; i < count; i++)
             {
-                Image segment = CreateImage($"HP_{i + 1}", parent, AliveColor);
+                Image segment = CreateImage($"HP_{i + 1}", parent, _aliveColor);
                 RectTransform rect = segment.rectTransform;
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -104,8 +120,5 @@ namespace UI
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
         }
-
-        private static Color AliveColor => new(1f, 0.2f, 0.12f, 1f);
-        private static Color EmptyColor => new(0.12f, 0.12f, 0.15f, 0.76f);
     }
 }

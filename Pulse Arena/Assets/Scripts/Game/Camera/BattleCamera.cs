@@ -1,7 +1,9 @@
 using System.Collections;
+using Data;
 using Unity.Cinemachine;
 using Unity.Cinemachine.TargetTracking;
 using UnityEngine;
+using Zenject;
 
 namespace Game.Cameras
 {
@@ -46,6 +48,28 @@ namespace Game.Cameras
         private float _zoom;
         private float _targetZoom;
         private float _zoomVelocity;
+
+        [Inject]
+        public void Construct(GameSettings gameSettings)
+        {
+            CameraData cameraData = gameSettings.CameraData;
+
+            if (cameraData == null)
+                return;
+
+            _defaultZoom = cameraData.DefaultZoom;
+            _minZoom = cameraData.MinZoom;
+            _maxZoom = cameraData.MaxZoom;
+            _zoomStep = cameraData.ZoomStep;
+            _zoomSmoothTime = cameraData.ZoomSmoothTime;
+            _defaultShakeDuration = cameraData.DefaultShakeDuration;
+            _defaultShakeStrength = cameraData.DefaultShakeStrength;
+            _shakeFrequency = cameraData.ShakeFrequency;
+            _launchKickOffset = cameraData.LaunchKickOffset;
+            _launchKickDuration = cameraData.LaunchKickDuration;
+            _launchShakeDuration = cameraData.LaunchShakeDuration;
+            _launchShakeStrength = cameraData.LaunchShakeStrength;
+        }
 
         private void Awake()
         {
@@ -183,6 +207,10 @@ namespace Game.Cameras
         private void SetTargetZoom(float zoom)
         {
             _targetZoom = Mathf.Clamp(zoom, _minZoom, _maxZoom);
+        }
+
+        private void OnDestroy()
+        {
             PlayerPrefs.SetFloat(ZoomPrefsKey, _targetZoom);
         }
 
