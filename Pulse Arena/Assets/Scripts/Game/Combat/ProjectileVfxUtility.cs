@@ -49,7 +49,10 @@ namespace Game.Combat
             renderer.sharedMaterial = CreateMaterial(ImpactColor);
 
             ParticleSystem particles = parent.gameObject.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
             ParticleSystem.MainModule main = particles.main;
+            main.playOnAwake = false;
             main.duration = 0.18f;
             main.loop = false;
             main.startLifetime = 0.18f;

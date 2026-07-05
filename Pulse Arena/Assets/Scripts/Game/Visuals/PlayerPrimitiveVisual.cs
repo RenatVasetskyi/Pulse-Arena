@@ -17,6 +17,7 @@ namespace Game.Visuals
         private Transform _rightArm;
         private Transform _hatRoot;
         private Transform _lassoOrigin;
+        private Renderer[] _bottomRenderers;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
         private float _throwTimer;
@@ -115,6 +116,7 @@ namespace Game.Visuals
             _lassoOrigin.SetParent(_rightArm, false);
             _lassoOrigin.localPosition = new Vector3(0f, -0.62f, 0.08f);
 
+            _bottomRenderers = GetComponentsInChildren<Renderer>();
             AlignBottomToCollider();
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
@@ -142,7 +144,7 @@ namespace Game.Visuals
 
         private bool TryGetRendererBottom(out float bottom)
         {
-            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = _bottomRenderers ?? GetComponentsInChildren<Renderer>();
             bottom = float.MaxValue;
             bool hasRenderer = false;
 
@@ -196,6 +198,9 @@ namespace Game.Visuals
             _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * 95f, 0f, 22f + throwProgress * 18f);
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.2f) * 3f, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
+
+            if (_isDead)
+                return;
         }
 
         private float GetPlanarSpeed()

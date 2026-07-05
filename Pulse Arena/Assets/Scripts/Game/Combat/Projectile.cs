@@ -1,5 +1,6 @@
 using Data;
 using Game.Enemy;
+using System;
 using UnityEngine;
 using Zenject;
 
@@ -9,6 +10,8 @@ namespace Game.Combat
     {
         private WeaponData _weaponData;
         private Vector3 _direction;
+        private Action<Projectile> _releaseAction;
+        private Action<Vector3> _impactAction;
         private float _lifetime;
         private float _travelledDistance;
         private bool _isInitialized;
@@ -19,10 +22,29 @@ namespace Game.Combat
             _weaponData = gameSettings.WeaponData;
         }
 
-        public void Initialize(Vector3 direction)
+        public void Initialize(
+            Vector3 direction,
+            Action<Projectile> releaseAction,
+            Action<Vector3> impactAction)
         {
             _direction = direction.normalized;
+            _releaseAction = releaseAction;
+            _impactAction = impactAction;
+            _lifetime = 0f;
+            _travelledDistance = 0f;
             _isInitialized = true;
+            ClearTrails();
+        }
+
+        public void ResetForPool()
+        {
+            _direction = Vector3.zero;
+            _releaseAction = null;
+            _impactAction = null;
+            _lifetime = 0f;
+            _travelledDistance = 0f;
+            _isInitialized = false;
+            ClearTrails();
         }
 
         private void Update()
@@ -50,7 +72,7 @@ namespace Game.Combat
             _travelledDistance += distance;
 
             if (_travelledDistance >= _weaponData.Range)
-                Destroy(gameObject);
+                Release();
         }
 
         private bool TryHitEnemy(Vector3 origin, float distance, out EnemyController enemy, out Vector3 hitPoint)
@@ -89,18 +111,8 @@ namespace Game.Combat
 
             enemy.TakeDamage(_weaponData.Damage);
 
-            SpawnImpact(hitPoint);
-            Destroy(gameObject);
-        }
-
-        private void SpawnImpact(Vector3 at)
-        {
-            GameObject impact = new GameObject("Projectile Impact");
-            impact.transform.position = at;
-            impact.transform.localScale = Vector3.one * _weaponData.ImpactVisualScale;
-
-            ProjectileVfxUtility.CreateImpactVisual(impact.transform);
-            Destroy(impact, _weaponData.ImpactLifetime);
+            _impactAction?.Invoke(hitPoint);
+            Release();
         }
 
         private void TickLifetime()
@@ -108,7 +120,24 @@ namespace Game.Combat
             _lifetime += Time.deltaTime;
 
             if (_lifetime >= _weaponData.ProjectileLifetime)
-                Destroy(gameObject);
+                Release();
+        }
+
+        private void Release()
+        {
+            if (!_isInitialized)
+                return;
+
+            _isInitialized = false;
+            _releaseAction?.Invoke(this);
+        }
+
+        private void ClearTrails()
+        {
+            TrailRenderer[] trails = GetComponentsInChildren<TrailRenderer>(true);
+
+            foreach (TrailRenderer trail in trails)
+                trail.Clear();
         }
     }
 }

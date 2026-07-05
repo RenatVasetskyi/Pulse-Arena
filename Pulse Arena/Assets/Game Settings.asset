@@ -21,8 +21,10 @@ MonoBehaviour:
     ExtraGravity: 35
     MaxHealth: 3
     HitInvulnerability: 0.65
-    HitKnockbackForce: 5
+    HitKnockbackForce: 7
     HitKnockbackDuration: 0.18
+    HitFlashDuration: 0.12
+    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
   EnemyData:
     MoveSpeed: 3.5
     RotationSpeed: 8
@@ -36,6 +38,7 @@ MonoBehaviour:
     NavMeshSampleDistance: 2
     DestinationUpdateInterval: 0.15
     MaxHealth: 3
+    HealthBarHeight: 2.15
     ScoreReward: 1
     HitFlashDuration: 0.12
     HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
@@ -123,6 +126,10 @@ MonoBehaviour:
     ThrowWaveAmplitude: 0.08
     WrapWaveAmplitude: 0.06
     WrapRadius: 0.7
+    WrapRadiusScale: 0.86
+    WrapRadiusPadding: 0.015
+    MinWrapRadius: 0.3
+    WrapVerticalScale: 0.34
     WrapTurns: 2.4
     WrapSpinSpeed: 12
     RopeWaveCount: 3
@@ -159,11 +166,18 @@ MonoBehaviour:
     RotateSpeed: 120
     BobHeight: 0.25
     BobSpeed: 3
+    HealthAmount: 1
+    RareSpawnMessage: Health Orb spawned!
+    SpawnToastDuration: 1.5
   SpawnData:
     EnemySpawnDelay: 2.2
-    PickupSpawnDelay: 2
+    PickupSpawnDelay: 15
     MaxEnemies: 8
-    MaxPickups: 6
+    MaxPickups: 1
+  PoolData:
+    EnemyPreloadCount: 8
+    ProjectilePreloadCount: 16
+    ProjectileImpactPreloadCount: 8
   Prefabs:
     PlayerPrefab: {fileID: 3935891102862787124, guid: 762482dd0e20f44759d83245f3176fe6, type: 3}
     EnemyPrefab: {fileID: 3034675120685911586, guid: 6e1dfbc7ea15f4a9bbf078f98c3196e9, type: 3}

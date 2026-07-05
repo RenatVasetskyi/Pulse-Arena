@@ -11,9 +11,11 @@ namespace Game.Visuals
         private Rigidbody _rigidbody;
         private Transform _body;
         private Transform _head;
+        private Transform _belly;
         private Transform _leftEye;
         private Transform _rightEye;
         private Transform _spikeRoot;
+        private Renderer[] _bottomRenderers;
         private Vector3 _lastPosition;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
@@ -43,6 +45,39 @@ namespace Game.Visuals
         {
             _rigidbody = rigidbody;
             _lastPosition = GetMovementReferencePosition();
+        }
+
+        public void ResetState()
+        {
+            _hitTimer = 0f;
+            _bounceTimer = 0f;
+            _deathTimer = 0f;
+            _moveSpeed = 0f;
+            _isGrabbed = false;
+            _isThrown = false;
+            _isDead = false;
+            _lastPosition = GetMovementReferencePosition();
+
+            transform.localPosition = _baseLocalPosition;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = _baseScale;
+
+            if (_body != null)
+                _body.localRotation = Quaternion.identity;
+
+            if (_head != null)
+            {
+                _head.localRotation = Quaternion.identity;
+                _head.localScale = Vector3.one;
+            }
+
+            if (_spikeRoot != null)
+            {
+                _spikeRoot.localRotation = Quaternion.identity;
+                _spikeRoot.localScale = Vector3.one;
+            }
+
+            AlignBottomToCollider();
         }
 
         public void PlayHit()
@@ -101,7 +136,7 @@ namespace Game.Visuals
                 new Vector3(0f, 0.68f, 0f), Vector3.zero, new Vector3(0.9f, 1.05f, 0.78f), bodyMaterial);
             _head = PrimitiveVisualUtility.CreatePart("Head", PrimitiveType.Sphere, transform,
                 new Vector3(0f, 1.34f, 0.08f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.58f), bodyMaterial);
-            PrimitiveVisualUtility.CreatePart("Belly", PrimitiveType.Sphere, transform,
+            _belly = PrimitiveVisualUtility.CreatePart("Belly", PrimitiveType.Sphere, transform,
                 new Vector3(0f, 0.66f, 0.28f), Vector3.zero, new Vector3(0.52f, 0.62f, 0.18f), bellyMaterial);
 
             _leftEye = PrimitiveVisualUtility.CreatePart("LeftEye", PrimitiveType.Sphere, transform,
@@ -122,9 +157,42 @@ namespace Game.Visuals
             PrimitiveVisualUtility.CreatePart("Spike_Back_3", PrimitiveType.Cube, _spikeRoot,
                 new Vector3(0.28f, 1.16f, -0.34f), new Vector3(48f, 18f, 0f), new Vector3(0.18f, 0.34f, 0.18f), spikeMaterial);
 
+            _bottomRenderers = GetComponentsInChildren<Renderer>();
             AlignBottomToCollider();
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
+        }
+
+        public bool TryGetRopeBounds(out Bounds bounds)
+        {
+            bounds = default;
+            bool hasBounds = false;
+
+            IncludeRendererBounds(_body, ref bounds, ref hasBounds);
+            IncludeRendererBounds(_head, ref bounds, ref hasBounds);
+            IncludeRendererBounds(_belly, ref bounds, ref hasBounds);
+
+            return hasBounds;
+        }
+
+        private static void IncludeRendererBounds(Transform part, ref Bounds bounds, ref bool hasBounds)
+        {
+            if (part == null)
+                return;
+
+            Renderer partRenderer = part.GetComponent<Renderer>();
+
+            if (partRenderer == null || !partRenderer.enabled)
+                return;
+
+            if (!hasBounds)
+            {
+                bounds = partRenderer.bounds;
+                hasBounds = true;
+                return;
+            }
+
+            bounds.Encapsulate(partRenderer.bounds);
         }
 
         private void AlignBottomToCollider()
@@ -149,7 +217,7 @@ namespace Game.Visuals
 
         private bool TryGetRendererBottom(out float bottom)
         {
-            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = _bottomRenderers ?? GetComponentsInChildren<Renderer>();
             bottom = float.MaxValue;
             bool hasRenderer = false;
 
@@ -222,6 +290,9 @@ namespace Game.Visuals
 
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 3f) * 4f, 0f, 0f);
             _spikeRoot.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.4f) * 3f, 0f, 0f);
+
+            if (!_isGrabbed && !_isThrown)
+                AlignBottomToCollider();
         }
 
         private void AnimateDeath(float deltaTime)

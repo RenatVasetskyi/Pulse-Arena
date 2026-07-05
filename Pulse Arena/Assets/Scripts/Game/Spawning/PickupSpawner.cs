@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Pickups;
 using Game.Pickups.Interfaces;
 using UnityEngine;
+using Random = System.Random;
 
 namespace Game.Spawning
 {
@@ -18,6 +20,8 @@ namespace Game.Spawning
         private Transform[] _spawnPoints;
         private float _spawnHeightOffset;
         private int _alivePickups;
+
+        public event Action<string, float> RarePickupSpawned;
 
         public PickupSpawner(ICoroutineRunner coroutineRunner, IPickupFactory pickupFactory, GameSettings gameSettings)
         {
@@ -65,10 +69,10 @@ namespace Game.Spawning
         {
             while (true)
             {
+                yield return new WaitForSeconds(_gameSettings.SpawnData.PickupSpawnDelay);
+
                 if (_alivePickups < _gameSettings.SpawnData.MaxPickups)
                     Spawn();
-
-                yield return new WaitForSeconds(_gameSettings.SpawnData.PickupSpawnDelay);
             }
         }
 
@@ -77,16 +81,18 @@ namespace Game.Spawning
             if (_spawnPoints == null || _spawnPoints.Length == 0)
                 return;
 
-            Transform point = _spawnPoints[Random.Range(0, _spawnPoints.Length)];
+            Transform point = _spawnPoints[UnityEngine.Random.Range(0, _spawnPoints.Length)];
             Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
-            EnergyPickup pickup = _pickupFactory.Create(spawnPosition, point.rotation, _spawnParent);
+            HealthOrbPickup pickup = _pickupFactory.CreateHealthOrb(spawnPosition, point.rotation, _spawnParent);
             pickup.Collected += OnPickupCollected;
 
             _alivePickups++;
+            RarePickupSpawned?.Invoke(_gameSettings.PickupData.RareSpawnMessage,
+                _gameSettings.PickupData.SpawnToastDuration);
         }
 
-        private void OnPickupCollected(EnergyPickup pickup)
+        private void OnPickupCollected(HealthOrbPickup pickup)
         {
             pickup.Collected -= OnPickupCollected;
             _alivePickups = Mathf.Max(0, _alivePickups - 1);

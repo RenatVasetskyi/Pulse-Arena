@@ -21,6 +21,7 @@ namespace Game.Pulse
         private float _pushCooldownTimer;
         private float _pullCooldownTimer;
         private Coroutine _visualRoutine;
+        private LineRenderer _ring;
         private Material _ringMaterial;
 
         [Inject]
@@ -39,6 +40,17 @@ namespace Game.Pulse
 
             if (_inputService.IsPullPressedThisFrame)
                 TryPull();
+        }
+
+        private void OnDisable()
+        {
+            if (_visualRoutine != null)
+            {
+                StopCoroutine(_visualRoutine);
+                _visualRoutine = null;
+            }
+
+            ReleaseRing();
         }
 
         public void AddEnergy(float value)
@@ -133,7 +145,10 @@ namespace Game.Pulse
         private void PlayPushVisual()
         {
             if (_visualRoutine != null)
+            {
                 StopCoroutine(_visualRoutine);
+                ReleaseRing();
+            }
 
             _visualRoutine = StartCoroutine(RingVisualRoutine(
                 _data.VisualStartRadius,
@@ -145,7 +160,10 @@ namespace Game.Pulse
         private void PlayPullVisual()
         {
             if (_visualRoutine != null)
+            {
                 StopCoroutine(_visualRoutine);
+                ReleaseRing();
+            }
 
             _visualRoutine = StartCoroutine(RingVisualRoutine(
                 _data.PullRadius,
@@ -156,7 +174,8 @@ namespace Game.Pulse
 
         private IEnumerator RingVisualRoutine(float startRadius, float targetRadius, Color color, float duration)
         {
-            LineRenderer ring = CreateRing();
+            LineRenderer ring = GetRing();
+            ring.gameObject.SetActive(true);
             float elapsed = 0f;
 
             while (elapsed < duration)
@@ -173,8 +192,18 @@ namespace Game.Pulse
                 yield return null;
             }
 
-            Destroy(ring.gameObject);
+            ReleaseRing();
             _visualRoutine = null;
+        }
+
+        private LineRenderer GetRing()
+        {
+            if (_ring != null)
+                return _ring;
+
+            _ring = CreateRing();
+            _ring.gameObject.SetActive(false);
+            return _ring;
         }
 
         private LineRenderer CreateRing()
@@ -191,6 +220,14 @@ namespace Game.Pulse
             ring.material = GetRingMaterial();
 
             return ring;
+        }
+
+        private void ReleaseRing()
+        {
+            if (_ring == null)
+                return;
+
+            _ring.gameObject.SetActive(false);
         }
 
         private void DrawRing(LineRenderer ring, float radius)

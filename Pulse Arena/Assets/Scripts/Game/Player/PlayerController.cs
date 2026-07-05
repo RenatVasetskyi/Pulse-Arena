@@ -3,6 +3,8 @@ using System.Collections;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Combat;
+using Game.Common.StateMachine;
+using Game.Player.States;
 using Game.Visuals;
 using UnityEngine;
 using Zenject;
@@ -23,14 +25,18 @@ namespace Game.Player
         private Material[][] _originalMaterials;
         private Material _hitFlashMaterial;
         private Coroutine _flashRoutine;
+        private ActorStateMachine _stateMachine;
+        private PlayerMoveState _moveState;
+        private PlayerHitState _hitState;
+        private PlayerDeadState _deadState;
         private int _maxHealth;
         private int _health;
         private float _hitInvulnerabilityTimer;
-        private float _hitKnockbackTimer;
         private bool _isDead;
 
         public int Health => _health;
         public int MaxHealth => _maxHealth;
+        internal PlayerData Data => _data;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings)
@@ -69,8 +75,9 @@ namespace Game.Player
 
         private void Update()
         {
+            EnsureStateMachine();
             TickHitInvulnerability();
-            RotateToInput();
+            _stateMachine.Tick();
         }
 
         public bool TakeDamage(int damage, Vector3 sourcePosition)
@@ -83,7 +90,6 @@ namespace Game.Player
 
             _health -= Mathf.Max(0, damage);
             _hitInvulnerabilityTimer = _data.HitInvulnerability;
-            _hitKnockbackTimer = _data.HitKnockbackDuration;
 
             Vector3 knockbackDirection = transform.position - sourcePosition;
             knockbackDirection.y = 0f;
@@ -101,7 +107,19 @@ namespace Game.Player
 
             if (_health <= 0)
                 Die();
+            else
+                ChangeToHitState();
 
+            return true;
+        }
+
+        public bool TryHeal(int amount)
+        {
+            if (_isDead || _health >= _maxHealth)
+                return false;
+
+            _health = Mathf.Min(_maxHealth, _health + Mathf.Max(0, amount));
+            HealthChanged?.Invoke(_health, _maxHealth);
             return true;
         }
 
@@ -112,15 +130,11 @@ namespace Game.Player
 
         private void FixedUpdate()
         {
-            if (_hitKnockbackTimer > 0f)
-                _hitKnockbackTimer -= Time.fixedDeltaTime;
-            else
-                Move();
-
-            ApplyExtraGravity();
+            EnsureStateMachine();
+            _stateMachine.FixedTick();
         }
 
-        private void Move()
+        internal void MoveByInput()
         {
             if (_isDead)
                 return;
@@ -135,7 +149,7 @@ namespace Game.Player
                 horizontalVelocity.z);
         }
 
-        private void ApplyExtraGravity()
+        internal void ApplyExtraGravity()
         {
             _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
         }
@@ -146,7 +160,7 @@ namespace Game.Player
                 _hitInvulnerabilityTimer -= Time.deltaTime;
         }
 
-        private void RotateToInput()
+        internal void RotateToInput()
         {
             Vector2 input = _inputService.MoveDirection;
 
@@ -158,6 +172,22 @@ namespace Game.Player
 
             transform.rotation = Quaternion.RotateTowards(transform.rotation,
                 targetRotation, _data.RotationSpeed * Time.deltaTime);
+        }
+
+        internal void ChangeToMoveState()
+        {
+            EnsureStateMachine();
+
+            if (!_isDead)
+                _stateMachine.ChangeState(_moveState);
+        }
+
+        private void ChangeToHitState()
+        {
+            EnsureStateMachine();
+
+            if (!_isDead)
+                _stateMachine.ChangeState(_hitState);
         }
 
         private void Die()
@@ -172,7 +202,21 @@ namespace Game.Player
             Debug.Log("Player died.");
             HealthChanged?.Invoke(_health, _maxHealth);
             _visual?.PlayDeath();
+            EnsureStateMachine();
+            _stateMachine.ChangeState(_deadState);
             Died?.Invoke();
+        }
+
+        private void EnsureStateMachine()
+        {
+            if (_stateMachine != null)
+                return;
+
+            _stateMachine = new ActorStateMachine();
+            _moveState = new PlayerMoveState(this);
+            _hitState = new PlayerHitState(this);
+            _deadState = new PlayerDeadState();
+            _stateMachine.ChangeState(_moveState);
         }
 
         private void EnsurePrimitiveVisual()

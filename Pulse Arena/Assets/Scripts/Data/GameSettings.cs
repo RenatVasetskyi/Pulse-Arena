@@ -20,6 +20,7 @@ namespace Data
         public WeaponData WeaponData;
         public PickupData PickupData;
         public SpawnData SpawnData;
+        public PoolData PoolData = new();
 
         [Header("Prefabs")]
         public PrefabData Prefabs;
@@ -125,6 +126,10 @@ namespace Data
         public float ThrowWaveAmplitude = 0.08f;
         public float WrapWaveAmplitude = 0.06f;
         public float WrapRadius = 0.7f;
+        public float WrapRadiusScale = 0.86f;
+        public float WrapRadiusPadding = 0.015f;
+        public float MinWrapRadius = 0.3f;
+        public float WrapVerticalScale = 0.34f;
         public float WrapTurns = 2.4f;
         public float WrapSpinSpeed = 12f;
         public float RopeWaveCount = 3f;
@@ -190,15 +195,26 @@ namespace Data
         public float RotateSpeed = 120f;
         public float BobHeight = 0.25f;
         public float BobSpeed = 3f;
+        public int HealthAmount = 1;
+        public string RareSpawnMessage = "Health Orb spawned!";
+        public float SpawnToastDuration = 1.5f;
     }
 
     [Serializable]
     public class SpawnData
     {
         public float EnemySpawnDelay = 2.2f;
-        public float PickupSpawnDelay = 2f;
+        public float PickupSpawnDelay = 15f;
         public int MaxEnemies = 8;
-        public int MaxPickups = 6;
+        public int MaxPickups = 1;
+    }
+
+    [Serializable]
+    public class PoolData
+    {
+        public int EnemyPreloadCount = 8;
+        public int ProjectilePreloadCount = 16;
+        public int ProjectileImpactPreloadCount = 8;
     }
 
     [Serializable]

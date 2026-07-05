@@ -227,9 +227,18 @@ MonoBehaviour:
   _positionDamping: {x: 0.12, y: 0.18, z: 0.12}
   _rotationDamping: {x: 0.25, y: 0.25}
   _fieldOfView: 55
+  _defaultZoom: 1
+  _minZoom: 0.72
+  _maxZoom: 1.38
+  _zoomStep: 0.08
+  _zoomSmoothTime: 0.22
   _defaultShakeDuration: 0.18
   _defaultShakeStrength: 0.35
   _shakeFrequency: 35
+  _launchKickOffset: {x: 0, y: 0.32, z: -0.65}
+  _launchKickDuration: 0.2
+  _launchShakeDuration: 0.12
+  _launchShakeStrength: 0.18
 --- !u!1 &1055408529793923238
 GameObject:
   m_ObjectHideFlags: 0
@@ -2006,6 +2015,10 @@ PrefabInstance:
       value: Night_Plane
       objectReference: {fileID: 0}
     - target: {fileID: 643872395328138065, guid: 95947c7181bbc42c0b07e8ba42ca961a, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 643872395328138065, guid: 95947c7181bbc42c0b07e8ba42ca961a, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
@@ -2081,8 +2094,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 199.5038, y: 0.71011084, z: 199.5038}
-  m_Center: {x: 0, y: 0.33952257, z: 0}
+  m_Size: {x: 199.5038, y: 0.35, z: 199.5038}
+  m_Center: {x: 0, y: -0.175, z: 0}
 --- !u!4 &5325130039652761951 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5386737262164408547, guid: 95947c7181bbc42c0b07e8ba42ca961a, type: 3}

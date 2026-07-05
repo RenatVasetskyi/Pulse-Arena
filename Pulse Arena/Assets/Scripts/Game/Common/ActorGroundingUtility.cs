@@ -4,19 +4,34 @@ namespace Game.Common
 {
     public static class ActorGroundingUtility
     {
+        private const string GroundLayerName = "Ground";
         private const float GroundClearance = 0.02f;
         private const float DefaultProbeDistance = 8f;
         private const float GroundNormalThreshold = 0.55f;
 
-        public static bool SnapToGround(Transform actor, float probeDistance = DefaultProbeDistance)
+        public static bool SnapToGround(Transform actor, float probeDistance = DefaultProbeDistance,
+            float groundClearance = GroundClearance)
         {
+            if (!TryGetGroundedPosition(actor, probeDistance, groundClearance, out Vector3 groundedPosition))
+                return false;
+
+            actor.position = groundedPosition;
+            return true;
+        }
+
+        public static bool TryGetGroundedPosition(Transform actor, float probeDistance,
+            float groundClearance, out Vector3 groundedPosition)
+        {
+            groundedPosition = default;
+
             if (actor == null)
                 return false;
 
             float bottomOffset = GetBottomOffset(actor);
             Vector3 origin = actor.position + Vector3.up * (bottomOffset + probeDistance * 0.5f);
-            float distance = probeDistance + bottomOffset;
-            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance, ~0, QueryTriggerInteraction.Ignore);
+            float distance = probeDistance + bottomOffset + Mathf.Abs(groundClearance);
+            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance, GetGroundMask(),
+                QueryTriggerInteraction.Ignore);
 
             if (hits.Length == 0)
                 return false;
@@ -42,9 +57,8 @@ namespace Game.Common
                 return false;
 
             Vector3 position = actor.position;
-            position.y = bestHit.point.y + bottomOffset + GroundClearance;
-            actor.position = position;
-
+            position.y = bestHit.point.y + bottomOffset + groundClearance;
+            groundedPosition = position;
             return true;
         }
 
@@ -64,12 +78,31 @@ namespace Game.Common
             return Mathf.Max(0f, scaledHeight * 0.5f - scaledCenterY);
         }
 
+        public static bool IsGroundCollider(Collider collider)
+        {
+            if (collider == null)
+                return false;
+
+            int groundMask = LayerMask.GetMask(GroundLayerName);
+
+            if (groundMask == 0)
+                return true;
+
+            return (groundMask & (1 << collider.gameObject.layer)) != 0;
+        }
+
         private static bool IsValidGroundHit(Transform actor, RaycastHit hit)
         {
             if (hit.collider == null || hit.normal.y <= GroundNormalThreshold)
                 return false;
 
-            return !hit.collider.transform.IsChildOf(actor);
+            return IsGroundCollider(hit.collider) && !hit.collider.transform.IsChildOf(actor);
+        }
+
+        private static int GetGroundMask()
+        {
+            int groundMask = LayerMask.GetMask(GroundLayerName);
+            return groundMask == 0 ? ~0 : groundMask;
         }
     }
 }

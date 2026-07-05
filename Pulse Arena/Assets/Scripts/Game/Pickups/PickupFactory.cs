@@ -1,5 +1,3 @@
-using System;
-using Data;
 using Game.Pickups.Interfaces;
 using UnityEngine;
 using Zenject;
@@ -9,21 +7,23 @@ namespace Game.Pickups
     public class PickupFactory : IPickupFactory
     {
         private readonly DiContainer _container;
-        private readonly GameSettings _gameSettings;
 
-        public PickupFactory(DiContainer container, GameSettings gameSettings)
+        public PickupFactory(DiContainer container)
         {
             _container = container;
-            _gameSettings = gameSettings;
         }
 
-        public EnergyPickup Create(Vector3 at, Quaternion rotation, Transform parent)
+        public HealthOrbPickup CreateHealthOrb(Vector3 at, Quaternion rotation, Transform parent)
         {
-            if (_gameSettings.Prefabs.EnergyPickupPrefab == null)
-                throw new InvalidOperationException("Energy pickup prefab is not assigned in GameSettings.");
+            GameObject instance = new("Health Orb");
+            instance.transform.SetParent(parent, false);
+            instance.transform.SetPositionAndRotation(at, rotation);
 
-            return _container.InstantiatePrefabForComponent<EnergyPickup>
-                (_gameSettings.Prefabs.EnergyPickupPrefab, at, rotation, parent);
+            HealthOrbPickup pickup = instance.AddComponent<HealthOrbPickup>();
+            _container.Inject(pickup);
+            pickup.Initialize();
+
+            return pickup;
         }
     }
 }
