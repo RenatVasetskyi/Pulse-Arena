@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea7d8f6561e0416abc034c1dc3e04be4, type: 3}
+  m_Name: Combat Config
+  m_EditorClassIdentifier: Assembly-CSharp::Data.CombatConfig
+  Slingshot:
+    GrabRadius: 7.5
+    HoldRadius: 1.85
+    HoldHeight: 0.75
+    HoldAngularSpeed: 170
+    MaxHoldAngularSpeed: 720
+    SpinAcceleration: 190
+    HoldFollowSpeed: 26
+    LaunchForce: 18
+    LaunchUpwardRatio: 0.12
+    LaunchDownwardVelocity: 8
+    LaunchDuration: 0.9
+    ChargeDuration: 4
+    MaxChargeLaunchMultiplier: 1.6
+    MaxChargeLineWidthMultiplier: 1.65
+    ThrowDuration: 0.18
+    WrapDuration: 0.32
+    PullToHoldDuration: 0.28
+    PullToHoldArcHeight: 0.45
+    Cooldown: 0.45
+    LineWidth: 0.08
+    ThrowWaveAmplitude: 0.08
+    WrapWaveAmplitude: 0.06
+    WrapRadius: 0.7
+    WrapRadiusScale: 0.86
+    WrapRadiusPadding: 0.015
+    MinWrapRadius: 0.3
+    WrapVerticalScale: 0.34
+    WrapTurns: 2.4
+    WrapSpinSpeed: 12
+    RopeWaveCount: 3
+    RopeWaveSpeed: 12
+    RopeTextureRepeat: 1.35
+    LineColor: {r: 0.82, g: 0.55, b: 0.28, a: 1}
+    ChargedLineColor: {r: 1, g: 0.88, b: 0.32, a: 1}
+    RopeBaseColor: {r: 0.78, g: 0.48, b: 0.22, a: 1}
+    RopeStripeColor: {r: 0.35, g: 0.21, b: 0.1, a: 1}
+    WeightFactorMin: 0.35
+    WeightFactorMax: 1.5
+    MarkerSearchRangeMultiplier: 1.5
+    MarkerRadius: 0.85
+    MarkerHeight: 0.05
+    MarkerWidth: 0.07
+    MarkerPulseSpeed: 7
+    MarkerPulseAmplitude: 0.06
+    MarkerActiveColor: {r: 0.35, g: 1, b: 0.5, a: 0.85}
+    MarkerInactiveColor: {r: 0.7, g: 0.7, b: 0.7, a: 0.35}
+    TensionBreakTime: 5
+    TensionChargeInfluence: 0.5
+    TensionWarningThreshold: 0.55
+    TensionShakeAmplitude: 1.6
+    TensionPulseSpeed: 26
+    TensionPulseAmplitude: 0.18
+    BreakDropForce: 6
+    BreakCooldownMultiplier: 1.6
+    TensionColor: {r: 1, g: 0.25, b: 0.15, a: 1}
+    EnemyLayer:
+      serializedVersion: 2
+      m_Bits: 64

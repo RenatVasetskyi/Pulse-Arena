@@ -10,7 +10,6 @@ namespace Game.Combat
     public class EnemySlingshot : MonoBehaviour
     {
         private static readonly Collider[] EnemySearchBuffer = new Collider[32];
-        private static Material _sharedLineMaterial;
 
         private enum LassoState
         {
@@ -35,9 +34,7 @@ namespace Game.Combat
         private VfxData _vfx;
         private EnemyController _targetEnemy;
         private EnemyController _grabbedEnemy;
-        private LineRenderer _line;
-        private LineRenderer _wrapRing;
-        private EnemyWrapMetrics _wrapMetrics;
+        private readonly RopeRenderer _rope = new();
         private LassoState _state;
         private Vector3 _lassoStart;
         private Vector3 _lassoEnd;
@@ -60,6 +57,7 @@ namespace Game.Combat
             _inputService = inputService;
             _data = gameSettings.SlingshotData;
             _vfx = gameSettings.Vfx;
+            _rope.Initialize(transform, _data);
         }
 
         private void Update()
@@ -89,9 +87,29 @@ namespace Game.Combat
                 LaunchGrabbedEnemy();
             }
 
-            UpdateLine();
-            UpdateWrapRing();
+            _rope.Render(BuildRopeFrame());
             UpdateTargetMarker();
+        }
+
+        private RopeRenderer.RopeFrame BuildRopeFrame()
+        {
+            bool ringVisible = (_state == LassoState.Wrapping || _state == LassoState.Pulling ||
+                                _state == LassoState.Spinning) && _grabbedEnemy != null;
+
+            return new RopeRenderer.RopeFrame(
+                ropeVisible: _state != LassoState.Idle,
+                throwing: _state == LassoState.Throwing,
+                ringVisible: ringVisible,
+                wrapping: _state == LassoState.Wrapping,
+                lassoStart: _lassoStart,
+                lassoEnd: _lassoEnd,
+                throwTimer: _throwTimer,
+                wrappedOrigin: GetLassoOrigin(),
+                enemyRopeCenter: _grabbedEnemy != null ? GetEnemyRopeCenter(_grabbedEnemy) : Vector3.zero,
+                grabbedEnemy: _grabbedEnemy,
+                wrapTimer: _wrapTimer,
+                chargeProgress: GetChargeProgress(),
+                tensionWarning: GetTensionWarning());
         }
 
         private void FixedUpdate()
@@ -149,7 +167,6 @@ namespace Game.Combat
             _chargeTimer = 0f;
             _releaseRequested = false;
             _state = LassoState.Throwing;
-            EnsureLine();
             LassoThrown?.Invoke();
         }
 
@@ -180,13 +197,11 @@ namespace Game.Combat
             _grabbedEnemy = enemy;
             _targetEnemy = null;
             _grabbedEnemy.Grab();
-            _wrapMetrics = GetEnemyWrapMetrics(_grabbedEnemy);
             _holdAngle = Vector3.SignedAngle(Vector3.forward,
                 GetPlanarDirectionTo(enemy.transform.position), Vector3.up);
             _spinSpeed = _data.HoldAngularSpeed * GetGrabbedWeightFactor();
             _wrapTimer = 0f;
             _state = LassoState.Wrapping;
-            EnsureWrapRing();
         }
 
         private void TickWrap()
@@ -356,46 +371,6 @@ namespace Game.Combat
             return bounds.center;
         }
 
-        private EnemyWrapMetrics GetEnemyWrapMetrics(EnemyController enemy)
-        {
-            if (enemy == null || !enemy.TryGetRopeBounds(out Bounds bounds))
-            {
-                return new EnemyWrapMetrics(
-                    enemy != null ? enemy.transform.position : Vector3.zero,
-                    Mathf.Max(_data.MinWrapRadius, _data.WrapRadius),
-                    0.55f,
-                    transform.right,
-                    transform.forward);
-            }
-
-            float horizontalRadius = Mathf.Max(bounds.extents.x, bounds.extents.z);
-            float targetRadius = horizontalRadius * _data.WrapRadiusScale + _data.WrapRadiusPadding;
-            float maxRadius = Mathf.Max(_data.MinWrapRadius, _data.WrapRadius);
-            float radius = Mathf.Clamp(targetRadius, _data.MinWrapRadius, maxRadius);
-            float verticalRange = Mathf.Clamp(bounds.size.y * _data.WrapVerticalScale, 0.35f, 0.68f);
-            GetWrapAxes(bounds.center, out Vector3 sideAxis, out Vector3 depthAxis);
-
-            return new EnemyWrapMetrics(bounds.center, radius, verticalRange, sideAxis, depthAxis);
-        }
-
-        private void GetWrapAxes(Vector3 center, out Vector3 sideAxis, out Vector3 depthAxis)
-        {
-            depthAxis = transform.position - center;
-            depthAxis.y = 0f;
-
-            if (depthAxis.sqrMagnitude <= 0.001f)
-                depthAxis = transform.forward;
-            else
-                depthAxis.Normalize();
-
-            sideAxis = Vector3.Cross(Vector3.up, depthAxis);
-
-            if (sideAxis.sqrMagnitude <= 0.001f)
-                sideAxis = transform.right;
-            else
-                sideAxis.Normalize();
-        }
-
         private Vector3 GetPlanarDirectionTo(Vector3 position)
         {
             Vector3 direction = position - transform.position;
@@ -407,185 +382,6 @@ namespace Game.Combat
             return direction.normalized;
         }
 
-        private void EnsureLine()
-        {
-            if (_line != null)
-                return;
-
-            GameObject lineObject = new("Lasso Rope");
-            lineObject.transform.SetParent(transform, false);
-            _line = lineObject.AddComponent<LineRenderer>();
-            _line.useWorldSpace = true;
-            _line.positionCount = 6;
-            _line.widthMultiplier = _data.LineWidth;
-            _line.numCapVertices = 5;
-            _line.numCornerVertices = 5;
-            _line.textureMode = LineTextureMode.Tile;
-            _line.material = GetLineMaterial();
-        }
-
-        private void EnsureWrapRing()
-        {
-            if (_wrapRing != null)
-                return;
-
-            GameObject ringObject = new("Lasso Wrap Ring");
-            ringObject.transform.SetParent(transform, false);
-            _wrapRing = ringObject.AddComponent<LineRenderer>();
-            _wrapRing.useWorldSpace = true;
-            _wrapRing.loop = true;
-            _wrapRing.positionCount = 24;
-            _wrapRing.widthMultiplier = _data.LineWidth * 0.7f;
-            _wrapRing.numCapVertices = 4;
-            _wrapRing.numCornerVertices = 4;
-            _wrapRing.textureMode = LineTextureMode.Tile;
-            _wrapRing.material = GetLineMaterial();
-            _wrapRing.enabled = false;
-        }
-
-        private void UpdateLine()
-        {
-            if (_line == null)
-                return;
-
-            if (_state == LassoState.Idle)
-            {
-                HideLine();
-                return;
-            }
-
-            _line.enabled = true;
-            ApplyLineVisuals(_line, 1f);
-
-            if (_state == LassoState.Throwing)
-                DrawThrowingRope();
-            else
-                DrawWrappedRope();
-        }
-
-        private void DrawThrowingRope()
-        {
-            float t = Mathf.Clamp01(_throwTimer / Mathf.Max(_data.ThrowDuration, 0.01f));
-            float travelT = Mathf.SmoothStep(0f, 1f, t);
-            Vector3 currentEnd = Vector3.Lerp(_lassoStart, _lassoEnd, travelT);
-
-            DrawRope(_lassoStart, currentEnd, _data.ThrowWaveAmplitude);
-        }
-
-        private void DrawWrappedRope()
-        {
-            if (_grabbedEnemy == null)
-                return;
-
-            float shake = 1f + GetTensionWarning() * _data.TensionShakeAmplitude;
-            DrawRope(GetLassoOrigin(), GetEnemyRopeCenter(_grabbedEnemy), _data.WrapWaveAmplitude * shake);
-        }
-
-        private void DrawRope(Vector3 start, Vector3 end, float waveAmplitude)
-        {
-            Vector3 direction = end - start;
-            Vector3 side = Vector3.Cross(Vector3.up, direction);
-
-            if (side.sqrMagnitude <= 0.001f)
-                side = transform.right;
-
-            side.Normalize();
-
-            for (int i = 0; i < _line.positionCount; i++)
-            {
-                float t = i / (float)(_line.positionCount - 1);
-                float wave = Mathf.Sin(t * Mathf.PI * _data.RopeWaveCount + Time.time * _data.RopeWaveSpeed) *
-                    waveAmplitude;
-                _line.SetPosition(i, Vector3.Lerp(start, end, t) + side * wave);
-            }
-        }
-
-        private void HideLine()
-        {
-            if (_line != null)
-                _line.enabled = false;
-        }
-
-        private void UpdateWrapRing()
-        {
-            if (_wrapRing == null)
-                return;
-
-            if ((_state != LassoState.Wrapping && _state != LassoState.Pulling &&
-                 _state != LassoState.Spinning) || _grabbedEnemy == null)
-            {
-                _wrapRing.enabled = false;
-                return;
-            }
-
-            _wrapRing.enabled = true;
-            ApplyLineVisuals(_wrapRing, 0.7f);
-
-            if (_state == LassoState.Wrapping)
-                DrawWrappingRing();
-            else
-                DrawSpinningRing();
-        }
-
-        private void DrawWrappingRing()
-        {
-            float progress = Mathf.Clamp01(_wrapTimer / Mathf.Max(_data.WrapDuration, 0.01f));
-            float visibleProgress = Mathf.SmoothStep(0f, 1f, progress);
-            int maxPoints = 48;
-            int pointCount = Mathf.Max(2, Mathf.RoundToInt(maxPoints * visibleProgress));
-
-            _wrapRing.loop = false;
-            _wrapRing.positionCount = pointCount;
-
-            EnemyWrapMetrics metrics = GetCurrentWrapMetrics();
-            Vector3 center = metrics.Center;
-            float totalAngle = Mathf.PI * 2f * _data.WrapTurns * visibleProgress;
-            float verticalRange = metrics.VerticalRange;
-
-            for (int i = 0; i < _wrapRing.positionCount; i++)
-            {
-                float t = i / (float)(_wrapRing.positionCount - 1);
-                float angle = t * totalAngle;
-                float height = Mathf.Lerp(-verticalRange * 0.5f, verticalRange * 0.5f, t);
-                Vector3 point = center +
-                    metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
-                    metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
-                    Vector3.up * height;
-                _wrapRing.SetPosition(i, point);
-            }
-        }
-
-        private void DrawSpinningRing()
-        {
-            _wrapRing.loop = true;
-            _wrapRing.positionCount = 48;
-
-            EnemyWrapMetrics metrics = GetCurrentWrapMetrics();
-            Vector3 center = metrics.Center;
-            float twist = Time.time * _data.WrapSpinSpeed;
-            float verticalWave = Mathf.Min(metrics.VerticalRange * 0.18f, 0.08f);
-
-            for (int i = 0; i < _wrapRing.positionCount; i++)
-            {
-                float angle = (i / (float)_wrapRing.positionCount) * Mathf.PI * 2f + twist;
-                Vector3 point = center +
-                    metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
-                    metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
-                    Vector3.up * (Mathf.Sin(angle * 2f) * verticalWave);
-                _wrapRing.SetPosition(i, point);
-            }
-        }
-
-        private EnemyWrapMetrics GetCurrentWrapMetrics()
-        {
-            if (_grabbedEnemy == null)
-                return _wrapMetrics;
-
-            EnemyWrapMetrics currentMetrics = GetEnemyWrapMetrics(_grabbedEnemy);
-            _wrapMetrics = currentMetrics;
-            return currentMetrics;
-        }
-
         private void ResetLasso()
         {
             _targetEnemy = null;
@@ -595,89 +391,7 @@ namespace Game.Combat
             ChargeChanged?.Invoke(0f);
             SetTension(0f);
             _releaseRequested = false;
-            HideLine();
-
-            if (_wrapRing != null)
-                _wrapRing.enabled = false;
-        }
-
-        private readonly struct EnemyWrapMetrics
-        {
-            public readonly Vector3 Center;
-            public readonly float Radius;
-            public readonly float VerticalRange;
-            public readonly Vector3 SideAxis;
-            public readonly Vector3 DepthAxis;
-
-            public EnemyWrapMetrics(
-                Vector3 center,
-                float radius,
-                float verticalRange,
-                Vector3 sideAxis,
-                Vector3 depthAxis)
-            {
-                Center = center;
-                Radius = radius;
-                VerticalRange = verticalRange;
-                SideAxis = sideAxis;
-                DepthAxis = depthAxis;
-            }
-        }
-
-        private Material GetLineMaterial()
-        {
-            if (_sharedLineMaterial != null)
-                return _sharedLineMaterial;
-
-            Shader shader = Shader.Find("Sprites/Default");
-            _sharedLineMaterial = new Material(shader)
-            {
-                name = "Lasso Rope"
-            };
-            _sharedLineMaterial.mainTexture = CreateRopeTexture();
-            _sharedLineMaterial.mainTextureScale = new Vector2(_data.RopeTextureRepeat, 1f);
-
-            return _sharedLineMaterial;
-        }
-
-        private Texture2D CreateRopeTexture()
-        {
-            const int width = 64;
-            const int height = 8;
-            Texture2D texture = new(width, height, TextureFormat.RGBA32, false)
-            {
-                name = "Procedural Lasso Texture",
-                wrapMode = TextureWrapMode.Repeat,
-                filterMode = FilterMode.Point
-            };
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    bool stripe = ((x + y * 2) / 6) % 2 == 0;
-                    Color color = stripe ? _data.RopeBaseColor : _data.RopeStripeColor;
-                    texture.SetPixel(x, y, color);
-                }
-            }
-
-            texture.Apply();
-            return texture;
-        }
-
-        private void ApplyLineVisuals(LineRenderer renderer, float widthMultiplier)
-        {
-            float chargeProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
-            float tensionWarning = GetTensionWarning();
-            Color color = Color.Lerp(_data.LineColor, _data.ChargedLineColor, chargeProgress);
-            color = Color.Lerp(color, _data.TensionColor, tensionWarning);
-            float chargedWidth = Mathf.Lerp(1f, _data.MaxChargeLineWidthMultiplier, chargeProgress);
-            float tensionPulse = 1f + Mathf.Sin(Time.time * _data.TensionPulseSpeed) *
-                _data.TensionPulseAmplitude * tensionWarning;
-
-            renderer.startColor = color;
-            renderer.endColor = color;
-            renderer.widthMultiplier = _data.LineWidth * widthMultiplier * chargedWidth * tensionPulse;
+            _rope.Hide();
         }
 
         private float GetChargeProgress()
@@ -765,7 +479,7 @@ namespace Game.Combat
             shape.radius = 0.15f;
 
             ParticleSystemRenderer particleRenderer = burstObject.GetComponent<ParticleSystemRenderer>();
-            particleRenderer.material = GetLineMaterial();
+            particleRenderer.material = _rope.Material;
         }
 
         private float GetGrabbedWeightFactor()

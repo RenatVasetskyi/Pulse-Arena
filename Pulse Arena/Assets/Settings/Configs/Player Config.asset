@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c8d31a69aeb4757813a2c6fdb7abf36, type: 3}
+  m_Name: Player Config
+  m_EditorClassIdentifier: Assembly-CSharp::Data.PlayerConfig
+  Data:
+    MoveSpeed: 6
+    RotationSpeed: 720
+    ExtraGravity: 35
+    MaxHealth: 3
+    HitInvulnerability: 0.65
+    HitKnockbackForce: 7
+    HitKnockbackDuration: 0.18
+    HitFlashDuration: 0.12
+    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
+    RingoutHeight: -2.5
+  Visuals:
+    RootOffset: {x: 0, y: -0.78, z: 0}
+    BodyColor: {r: 0.2, g: 0.75, b: 0.95, a: 1}
+    HeadColor: {r: 0.78, g: 0.9, b: 0.95, a: 1}
+    DarkColor: {r: 0.08, g: 0.11, b: 0.16, a: 1}
+    AccentColor: {r: 1, g: 0.78, b: 0.24, a: 1}
+    MoveThreshold: 0.25
+    BobFrequencyIdle: 2.4
+    BobFrequencyRun: 9
+    BobAmplitudeIdle: 0.025
+    BobAmplitudeRun: 0.09
+    ArmSwingFrequency: 10
+    ArmSwingAngle: 28
+    ThrowSwingDuration: 0.28
+    HitSquashDuration: 0.16
+    DeathRollAngle: 72

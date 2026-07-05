@@ -1,0 +1,206 @@
+using System;
+using Data;
+using Game.Common;
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace Game.Enemy
+{
+    /// <summary>
+    /// Owns the enemy's locomotion: the NavMeshAgent + Rigidbody hybrid. The controller keeps
+    /// game state (dead/grabbed/knocked) and gates when the agent may take over; this class
+    /// handles the "how" — placing the agent on the NavMesh, driving it, or the physics fallback.
+    /// </summary>
+    public class EnemyMovement
+    {
+        private Transform _transform;
+        private Rigidbody _rigidbody;
+        private NavMeshAgent _agent;
+        private EnemyData _data;
+        private Func<float> _moveSpeed;
+        private float _destinationUpdateTimer;
+
+        public bool UsesAgent { get; private set; }
+
+        public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
+            EnemyData data, Func<float> moveSpeedProvider)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _agent = agent;
+            _data = data;
+            _moveSpeed = moveSpeedProvider;
+        }
+
+        public void ConfigureAgent()
+        {
+            if (_agent == null || _data == null)
+                return;
+
+            _agent.speed = _moveSpeed();
+            _agent.acceleration = _data.AgentAcceleration;
+            _agent.angularSpeed = _data.AgentAngularSpeed;
+            _agent.stoppingDistance = _data.AgentStoppingDistance;
+            _agent.radius = _data.AgentRadius;
+            _agent.height = _data.AgentHeight;
+            _agent.baseOffset = 0f;
+            _agent.updateRotation = false;
+            _agent.updatePosition = true;
+            _agent.autoBraking = false;
+            _agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        }
+
+        /// <summary>
+        /// Enables agent control. The controller must have already checked its own state
+        /// (not dead/grabbed/recovering/knocked) before calling this.
+        /// </summary>
+        public bool TryEnableAgent()
+        {
+            if (_agent == null)
+                return false;
+
+            if (!_agent.enabled)
+                _agent.enabled = true;
+
+            if (!TryPlaceAgentOnNavMesh())
+            {
+                _agent.enabled = false;
+                UsesAgent = false;
+                _rigidbody.isKinematic = false;
+                return false;
+            }
+
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = true;
+            UsesAgent = true;
+            _destinationUpdateTimer = 0f;
+
+            return true;
+        }
+
+        public void DisableAgent()
+        {
+            if (_agent != null && _agent.enabled)
+            {
+                if (_agent.isOnNavMesh)
+                    _agent.ResetPath();
+
+                _agent.enabled = false;
+            }
+
+            UsesAgent = false;
+
+            if (_rigidbody != null)
+                _rigidbody.isKinematic = false;
+        }
+
+        public void MoveToTarget(Transform target)
+        {
+            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh)
+            {
+                UsesAgent = false;
+                return;
+            }
+
+            if (IsWithinStoppingDistance(target))
+            {
+                if (_agent.hasPath)
+                    _agent.ResetPath();
+
+                RotateTo(target.position - _transform.position);
+                return;
+            }
+
+            _destinationUpdateTimer -= Time.fixedDeltaTime;
+
+            if (_destinationUpdateTimer <= 0f)
+            {
+                Vector3 destination = target.position;
+
+                if (NavMesh.SamplePosition(target.position, out NavMeshHit hit,
+                        _data.NavMeshSampleDistance, NavMesh.AllAreas))
+                {
+                    destination = hit.position;
+                }
+
+                _agent.SetDestination(destination);
+                _destinationUpdateTimer = _data.DestinationUpdateInterval;
+            }
+
+            RotateTo(_agent.desiredVelocity);
+        }
+
+        public void MoveDirectlyToTarget(Transform target)
+        {
+            Vector3 offset = target.position - _transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance)
+            {
+                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
+                RotateTo(offset);
+                return;
+            }
+
+            Vector3 direction = offset.normalized;
+            direction.y = 0f;
+            Vector3 horizontalVelocity = direction * _moveSpeed();
+
+            _rigidbody.linearVelocity = new Vector3(
+                horizontalVelocity.x,
+                _rigidbody.linearVelocity.y,
+                horizontalVelocity.z);
+
+            RotateTo(direction);
+        }
+
+        private void RotateTo(Vector3 direction)
+        {
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude <= 0.01f)
+                return;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            _transform.rotation = Quaternion.Lerp(_transform.rotation,
+                targetRotation, _data.RotationSpeed * Time.fixedDeltaTime);
+        }
+
+        private bool IsWithinStoppingDistance(Transform target)
+        {
+            Vector3 offset = target.position - _transform.position;
+            offset.y = 0f;
+            return offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance;
+        }
+
+        private bool TryPlaceAgentOnNavMesh()
+        {
+            if (!ActorGroundingUtility.TryGetGroundedPosition(_transform, _data.GroundRecoveryProbeDistance,
+                    0.02f, out Vector3 groundedPosition))
+            {
+                return false;
+            }
+
+            _transform.position = groundedPosition;
+
+            if (!TrySampleRecoveryNavMesh(out NavMeshHit hit))
+            {
+                return _agent.isOnNavMesh;
+            }
+
+            bool warped = _agent.Warp(hit.position);
+
+            if (warped)
+                _transform.position = groundedPosition;
+
+            return warped || _agent.isOnNavMesh;
+        }
+
+        private bool TrySampleRecoveryNavMesh(out NavMeshHit hit)
+        {
+            float sampleDistance = Mathf.Max(_data.NavMeshSampleDistance, _data.GroundRecoveryProbeDistance);
+            return NavMesh.SamplePosition(_transform.position, out hit, sampleDistance, NavMesh.AllAreas);
+        }
+    }
+}

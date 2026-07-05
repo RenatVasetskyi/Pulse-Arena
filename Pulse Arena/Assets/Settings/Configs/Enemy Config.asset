@@ -1,0 +1,155 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccc742408cf14010a6cac94f111fc697, type: 3}
+  m_Name: Enemy Config
+  m_EditorClassIdentifier: Assembly-CSharp::Data.EnemyConfig
+  Data:
+    MoveSpeed: 3.5
+    RotationSpeed: 8
+    KnockbackDuration: 0.45
+    ExtraGravity: 45
+    AgentRadius: 0.35
+    AgentHeight: 1.8
+    AgentAcceleration: 24
+    AgentAngularSpeed: 720
+    AgentStoppingDistance: 1.25
+    NavMeshSampleDistance: 2
+    DestinationUpdateInterval: 0.15
+    MaxHealth: 3
+    HealthBarHeight: 2.15
+    ScoreReward: 1
+    HitFlashDuration: 0.12
+    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
+    AttackRange: 1.35
+    AttackCooldown: 0.9
+    ContactDamage: 1
+    ImpactDamageMinSpeed: 3.5
+    ImpactDamageRadius: 1.6
+    ImpactDamageForwardOffset: 0.75
+    ImpactKnockbackForce: 8.5
+    ImpactKnockbackUpwardRatio: 0.12
+    ImpactDamage: 1
+    WallImpactDamage: 1
+    ImpactDamageCooldown: 0.08
+    GroundBounceCount: 1
+    GroundBounceUpwardVelocity: 5.8
+    GroundBounceHorizontalDamping: 0.58
+    GroundBounceCooldown: 0.18
+    GroundBounceMinVerticalSpeed: 1.8
+    GroundBounceKeepAliveDuration: 0.45
+    GroundRecoveryProbeDistance: 4
+    GroundRecoveryMaxVerticalOffset: 1.35
+    GroundRecoveryMaxUpwardSpeed: 0.1
+    GroundRecoveryForceAfter: 1.1
+    RingoutHeight: -2.5
+    RingoutDuration: 1.1
+    RingoutTextHeight: 1.2
+    RingoutShrinkScale: 0.15
+    GroundContactMemory: 0.12
+    HeldDamageGrace: 0.35
+  Types:
+  - Id: 0
+    SpawnWeight: 1
+    HealthMultiplier: 1
+    MoveSpeedMultiplier: 1
+    ScoreMultiplier: 1
+    Weight: 1
+    TensionRateMultiplier: 1
+    LaunchVelocityMultiplier: 1
+    ImpactDamageMultiplier: 1
+    ImpactKnockbackMultiplier: 1
+    DamagesPlayerWhileHeld: 0
+    HeldDamageInterval: 0.75
+    OverrideBodyColor: 0
+    BodyColor: {r: 0.42, g: 0.2, b: 0.72, a: 1}
+    VisualScale: 1
+    ShowSpikes: 0
+  - Id: 1
+    SpawnWeight: 1
+    HealthMultiplier: 0.7
+    MoveSpeedMultiplier: 1.15
+    ScoreMultiplier: 1
+    Weight: 0.6
+    TensionRateMultiplier: 1
+    LaunchVelocityMultiplier: 1.35
+    ImpactDamageMultiplier: 1
+    ImpactKnockbackMultiplier: 1
+    DamagesPlayerWhileHeld: 0
+    HeldDamageInterval: 0.75
+    OverrideBodyColor: 1
+    BodyColor: {r: 0.35, g: 0.85, b: 0.95, a: 1}
+    VisualScale: 0.85
+    ShowSpikes: 0
+  - Id: 2
+    SpawnWeight: 0.8
+    HealthMultiplier: 1.7
+    MoveSpeedMultiplier: 0.65
+    ScoreMultiplier: 2
+    Weight: 2.2
+    TensionRateMultiplier: 0.66
+    LaunchVelocityMultiplier: 0.75
+    ImpactDamageMultiplier: 2
+    ImpactKnockbackMultiplier: 1.6
+    DamagesPlayerWhileHeld: 0
+    HeldDamageInterval: 0.75
+    OverrideBodyColor: 1
+    BodyColor: {r: 0.62, g: 0.32, b: 0.18, a: 1}
+    VisualScale: 1.3
+    ShowSpikes: 0
+  - Id: 3
+    SpawnWeight: 0.9
+    HealthMultiplier: 0.7
+    MoveSpeedMultiplier: 1.7
+    ScoreMultiplier: 1.5
+    Weight: 0.8
+    TensionRateMultiplier: 1
+    LaunchVelocityMultiplier: 1.1
+    ImpactDamageMultiplier: 1
+    ImpactKnockbackMultiplier: 1
+    DamagesPlayerWhileHeld: 0
+    HeldDamageInterval: 0.75
+    OverrideBodyColor: 1
+    BodyColor: {r: 0.8, g: 0.9, b: 0.2, a: 1}
+    VisualScale: 0.9
+    ShowSpikes: 0
+  - Id: 4
+    SpawnWeight: 0.7
+    HealthMultiplier: 1
+    MoveSpeedMultiplier: 0.9
+    ScoreMultiplier: 2
+    Weight: 1.2
+    TensionRateMultiplier: 1
+    LaunchVelocityMultiplier: 1
+    ImpactDamageMultiplier: 2
+    ImpactKnockbackMultiplier: 1.2
+    DamagesPlayerWhileHeld: 1
+    HeldDamageInterval: 0.75
+    OverrideBodyColor: 1
+    BodyColor: {r: 0.95, g: 0.35, b: 0.1, a: 1}
+    VisualScale: 1.05
+    ShowSpikes: 1
+  Visuals:
+    RootOffset: {x: 0, y: -1.15, z: 0}
+    BodyColor: {r: 0.42, g: 0.2, b: 0.72, a: 1}
+    BellyColor: {r: 0.58, g: 0.42, b: 0.9, a: 1}
+    EyeColor: {r: 1, g: 0.92, b: 0.72, a: 1}
+    PupilColor: {r: 0.04, g: 0.02, b: 0.08, a: 1}
+    SpikeColor: {r: 0.12, g: 0.08, b: 0.22, a: 1}
+    MoveThreshold: 0.2
+    WobbleFrequencyIdle: 2.6
+    WobbleFrequencyRun: 8.5
+    SquashAmountIdle: 0.025
+    SquashAmountRun: 0.08
+    HitSquashDuration: 0.16
+    BounceSquashDuration: 0.22
+    DeathPopDuration: 0.38
+    ThrownSpinSpeed: 540

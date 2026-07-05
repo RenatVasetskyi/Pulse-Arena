@@ -13,24 +13,32 @@ namespace Data
         public string GameSceneName = SceneName.Game;
         public float MinLoadingScreenTime = 0.35f;
 
-        [Header("Configs")]
-        public PlayerData PlayerData;
-        public EnemyData EnemyData;
-        public EnemyTypeData[] EnemyTypes = { new EnemyTypeData() };
-        public SlingshotData SlingshotData;
-        public PickupData PickupData;
-        public SpawnData SpawnData;
-        public WaveData[] Waves;
-        public PoolData PoolData = new();
+        [Header("Core")]
         public GroundingData Grounding = new();
-        public PlayerVisualData PlayerVisuals = new();
-        public EnemyVisualData EnemyVisuals = new();
-        public VfxData Vfx = new();
-        public CameraData CameraData = new();
-        public UiData Ui = new();
-
-        [Header("Prefabs")]
         public PrefabData Prefabs;
+
+        [Header("Sub-Configs")]
+        [SerializeField] private PlayerConfig _player;
+        [SerializeField] private EnemyConfig _enemy;
+        [SerializeField] private CombatConfig _combat;
+        [SerializeField] private LevelConfig _level;
+        [SerializeField] private PresentationConfig _presentation;
+
+        // Facade: consumers keep calling gameSettings.PlayerData etc.
+        // The data now lives in separate, swappable config assets.
+        public PlayerData PlayerData => _player.Data;
+        public PlayerVisualData PlayerVisuals => _player.Visuals;
+        public EnemyData EnemyData => _enemy.Data;
+        public EnemyTypeData[] EnemyTypes => _enemy.Types;
+        public EnemyVisualData EnemyVisuals => _enemy.Visuals;
+        public SlingshotData SlingshotData => _combat.Slingshot;
+        public SpawnData SpawnData => _level.Spawn;
+        public WaveData[] Waves => _level.Waves;
+        public PickupData PickupData => _level.Pickup;
+        public PoolData PoolData => _level.Pool;
+        public VfxData Vfx => _presentation.Vfx;
+        public CameraData CameraData => _presentation.Camera;
+        public UiData Ui => _presentation.Ui;
 
         [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
 

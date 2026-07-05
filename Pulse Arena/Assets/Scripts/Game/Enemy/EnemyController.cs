@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using System;
@@ -17,28 +16,23 @@ namespace Game.Enemy
 {
     public class EnemyController : MonoBehaviour
     {
-        private static readonly RaycastHit[] SweepHitBuffer = new RaycastHit[32];
-        private static readonly Collider[] OverlapBuffer = new Collider[32];
-
         public event Action<EnemyController> Destroyed;
         public event Action<int, int> HealthChanged;
 
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
-        [SerializeField] private Renderer[] _renderers;
 
         private GameSettings _settings;
         private EnemyData _data;
         private IScoreService _scoreService;
         private Transform _target;
         private PlayerController _playerTarget;
-        private Material[][] _originalMaterials;
-        private Material[][] _flashMaterials;
-        private Material _hitFlashMaterial;
+        private readonly HitFlash _hitFlash = new();
+        private readonly EnemyMovement _movement = new();
         private CapsuleCollider _capsule;
         private WorldHealthBar _healthBar;
         private EnemyPrimitiveVisual _visual;
-        private readonly Dictionary<EnemyController, float> _impactHitTimers = new();
+        private readonly EnemyImpact _impact = new();
         private Action<EnemyController> _releaseToPool;
         private EnemyTypeData _typeData = EnemyTypeData.Default;
         private ActorStateMachine _stateMachine;
@@ -48,37 +42,32 @@ namespace Game.Enemy
         private EnemyDeadState _deadState;
         private EnemyRingoutState _ringoutState;
         private ParticleSystem _ringoutBurst;
-        private Coroutine _flashRoutine;
         private Coroutine _deathRoutine;
-        private Vector3 _lastImpactPosition;
         private float _knockbackTimer;
         private float _stasisTimer;
         private float _heldDamageTimer;
         private float _attackCooldownTimer;
         private float _impactDamageCooldownTimer;
-        private float _destinationUpdateTimer;
         private float _groundBounceCooldownTimer;
         private float _groundContactTimer;
         private float _physicsRecoveryTimer;
         private float _ringoutTimer;
         private bool _isRingout;
         private int _groundBounceCount;
-        private int _maxHealth;
-        private int _health;
+        private readonly EnemyHealth _health = new();
         private bool _isDead;
         private bool _isGrabbed;
         private bool _isImpactProjectile;
         private bool _isInPool;
         private bool _needsGroundRecovery;
-        private bool _usesAgent;
 
         public bool IsGrabbed
         {
             get { return _isGrabbed; }
         }
 
-        public int Health => _health;
-        public int MaxHealth => _maxHealth;
+        public int Health => _health.Current;
+        public int MaxHealth => _health.Max;
         public EnemyTypeData TypeData => _typeData;
 
         [Inject]
@@ -87,9 +76,10 @@ namespace Game.Enemy
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
-            _maxHealth = Mathf.Max(1, _data.MaxHealth);
-            _health = _maxHealth;
-            ConfigureAgent();
+            _health.Changed += OnHealthChanged;
+            _health.Died += OnHealthDepleted;
+            _health.Reset(_data.MaxHealth);
+            _movement.ConfigureAgent();
             CreateHealthBar();
         }
 
@@ -104,18 +94,14 @@ namespace Game.Enemy
             ResetForSpawn();
             _target = target;
             _playerTarget = target.GetComponentInParent<PlayerController>();
-            ConfigureAgent();
+            _movement.ConfigureAgent();
             _visual?.ApplyTypeStyle(_typeData);
             ChangeToChaseState();
         }
 
         public void PrepareForPool()
         {
-            if (_flashRoutine != null)
-            {
-                StopCoroutine(_flashRoutine);
-                _flashRoutine = null;
-            }
+            _hitFlash.Restore();
 
             if (_deathRoutine != null)
             {
@@ -123,9 +109,8 @@ namespace Game.Enemy
                 _deathRoutine = null;
             }
 
-            RestoreMaterials();
             _stateMachine?.Clear();
-            DisableAgentControl();
+            _movement.DisableAgent();
             _target = null;
             _playerTarget = null;
             _isGrabbed = false;
@@ -134,7 +119,7 @@ namespace Game.Enemy
             _isRingout = false;
             _knockbackTimer = 0f;
             _stasisTimer = 0f;
-            _impactHitTimers.Clear();
+            _impact.Clear();
             transform.localScale = Vector3.one;
 
             if (_rigidbody == null)
@@ -148,7 +133,7 @@ namespace Game.Enemy
         public void Knockback(Vector3 force)
         {
             _isImpactProjectile = false;
-            _lastImpactPosition = transform.position;
+            _impact.ResetSweepOrigin();
             _stasisTimer = 0f;
             _physicsRecoveryTimer = 0f;
             _groundContactTimer = 0f;
@@ -164,7 +149,7 @@ namespace Game.Enemy
                 return;
 
             _isImpactProjectile = false;
-            _lastImpactPosition = transform.position;
+            _impact.ResetSweepOrigin();
             _stasisTimer = 0f;
             _physicsRecoveryTimer = 0f;
             _knockbackTimer = 0f;
@@ -187,8 +172,8 @@ namespace Game.Enemy
                 return;
 
             _isImpactProjectile = true;
-            _lastImpactPosition = transform.position;
-            _impactHitTimers.Clear();
+            _impact.ResetSweepOrigin();
+            _impact.Clear();
             _groundBounceCount = 0;
             _groundBounceCooldownTimer = 0f;
             _groundContactTimer = 0f;
@@ -207,7 +192,7 @@ namespace Game.Enemy
         public void PullTo(Vector3 targetPosition, float force, float upwardForceRatio, float stasisDuration)
         {
             _isImpactProjectile = false;
-            _lastImpactPosition = transform.position;
+            _impact.ResetSweepOrigin();
             _physicsRecoveryTimer = 0f;
             _groundContactTimer = 0f;
             _stasisTimer = Mathf.Max(_stasisTimer, stasisDuration);
@@ -232,18 +217,14 @@ namespace Game.Enemy
             if (_isDead)
                 return false;
 
-            _health -= Mathf.Max(0, damage);
-            HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
-            _healthBar?.SetHealth(Mathf.Max(0, _health), _maxHealth);
             _visual?.PlayHit();
+            _health.TakeDamage(damage);   // fires Changed (bar/event); on 0 fires Died (score + dead state)
 
-            if (_health > 0)
-            {
-                FlashHit();
-                return false;
-            }
+            if (_isDead)
+                return true;
 
-            return Die();
+            _hitFlash.Play();
+            return false;
         }
 
         public bool Kill()
@@ -256,18 +237,29 @@ namespace Game.Enemy
             if (_isDead)
                 return false;
 
+            _health.Kill();   // fires Changed(0) + Died → OnHealthDepleted
+            return true;
+        }
+
+        private void OnHealthChanged(int current, int max)
+        {
+            HealthChanged?.Invoke(current, max);
+            _healthBar?.SetHealth(current, max);
+        }
+
+        private void OnHealthDepleted()
+        {
+            if (_isDead)
+                return;
+
             _isDead = true;
-            HealthChanged?.Invoke(0, _maxHealth);
-            _healthBar?.SetHealth(0, _maxHealth);
             _scoreService.Add(GetScoreReward());
             ChangeToDeadState();
-
-            return true;
         }
 
         private void StopForDeath()
         {
-            DisableAgentControl();
+            _movement.DisableAgent();
             _isGrabbed = false;
             _isImpactProjectile = false;
             _needsGroundRecovery = false;
@@ -301,14 +293,18 @@ namespace Game.Enemy
                 _agent = gameObject.AddComponent<NavMeshAgent>();
 
             _agent.enabled = false;
+            _movement.Initialize(transform, _rigidbody, _agent, _data, GetMoveSpeed);
+            _impact.Initialize(this, transform, _rigidbody, _data, () => _typeData);
 
             NormalizeCapsuleRoot();
             DisablePlaceholderRenderers();
             EnsurePrimitiveVisual();
-            _renderers = GetComponentsInChildren<Renderer>();
+            _hitFlash.Initialize(GetComponentsInChildren<Renderer>(), _data.HitFlashColor, _data.HitFlashDuration);
+        }
 
-            CacheMaterials();
-            CreateHitFlashMaterial();
+        private void Update()
+        {
+            _hitFlash.Tick(Time.deltaTime);
         }
 
         private void NormalizeCapsuleRoot()
@@ -343,8 +339,8 @@ namespace Game.Enemy
             if (_healthBar != null)
                 return;
 
-            _healthBar = WorldHealthBar.Create(transform, _maxHealth, _data.HealthBarHeight, _settings.Ui);
-            _healthBar.SetHealth(_health, _maxHealth);
+            _healthBar = WorldHealthBar.Create(transform, _health.Max, _data.HealthBarHeight, _settings.Ui);
+            _healthBar.SetHealth(_health.Current, _health.Max);
         }
 
         private void EnsurePrimitiveVisual()
@@ -371,104 +367,6 @@ namespace Game.Enemy
             }
         }
 
-        private void FlashHit()
-        {
-            if (_flashRoutine != null)
-                StopCoroutine(_flashRoutine);
-
-            _flashRoutine = StartCoroutine(FlashRoutine());
-        }
-
-        private IEnumerator FlashRoutine()
-        {
-            ApplyFlashMaterials();
-
-            yield return new WaitForSeconds(_data.HitFlashDuration);
-
-            RestoreMaterials();
-            _flashRoutine = null;
-        }
-
-        private void CacheMaterials()
-        {
-            _originalMaterials = new Material[_renderers.Length][];
-
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] == null)
-                    continue;
-
-                _originalMaterials[i] = _renderers[i].sharedMaterials;
-            }
-        }
-
-        private void CreateHitFlashMaterial()
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            shader ??= Shader.Find("Sprites/Default");
-
-            _hitFlashMaterial = new Material(shader)
-            {
-                name = "Enemy Hit Flash"
-            };
-
-            if (_hitFlashMaterial.HasProperty("_BaseColor"))
-                _hitFlashMaterial.SetColor("_BaseColor", _data.HitFlashColor);
-
-            if (_hitFlashMaterial.HasProperty("_Color"))
-                _hitFlashMaterial.SetColor("_Color", _data.HitFlashColor);
-        }
-
-        private void ApplyFlashMaterials()
-        {
-            EnsureFlashMaterials();
-
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] != null && _flashMaterials[i] != null)
-                    _renderers[i].sharedMaterials = _flashMaterials[i];
-            }
-        }
-
-        private void EnsureFlashMaterials()
-        {
-            if (_flashMaterials != null)
-                return;
-
-            _flashMaterials = new Material[_renderers.Length][];
-
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] == null)
-                    continue;
-
-                Material[] flashMaterials = new Material[_renderers[i].sharedMaterials.Length];
-
-                for (int j = 0; j < flashMaterials.Length; j++)
-                    flashMaterials[j] = _hitFlashMaterial;
-
-                _flashMaterials[i] = flashMaterials;
-            }
-        }
-
-        private void RestoreMaterials()
-        {
-            if (_renderers == null || _originalMaterials == null)
-                return;
-
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] == null ||
-                    i >= _originalMaterials.Length ||
-                    _originalMaterials[i] == null)
-                {
-                    continue;
-                }
-
-                _renderers[i].sharedMaterials = _originalMaterials[i];
-            }
-        }
-
         private void OnDestroy()
         {
             if (!_isInPool)
@@ -479,11 +377,7 @@ namespace Game.Enemy
         {
             EnsureStateMachine();
 
-            if (_flashRoutine != null)
-            {
-                StopCoroutine(_flashRoutine);
-                _flashRoutine = null;
-            }
+            _hitFlash.Restore();
 
             if (_deathRoutine != null)
             {
@@ -491,35 +385,29 @@ namespace Game.Enemy
                 _deathRoutine = null;
             }
 
-            RestoreMaterials();
             _stateMachine.Clear();
-            DisableAgentControl();
+            _movement.DisableAgent();
 
             _isInPool = false;
             _isDead = false;
             _isGrabbed = false;
             _isImpactProjectile = false;
             _needsGroundRecovery = false;
-            _usesAgent = false;
             _knockbackTimer = 0f;
             _stasisTimer = 0f;
             _heldDamageTimer = 0f;
             _attackCooldownTimer = 0f;
             _impactDamageCooldownTimer = 0f;
-            _destinationUpdateTimer = 0f;
             _groundBounceCooldownTimer = 0f;
             _groundContactTimer = 0f;
             _physicsRecoveryTimer = 0f;
             _ringoutTimer = 0f;
             _isRingout = false;
             _groundBounceCount = 0;
-            _impactHitTimers.Clear();
+            _impact.Clear();
             transform.localScale = Vector3.one;
 
-            _maxHealth = GetTypeAdjustedMaxHealth();
-            _health = _maxHealth;
-            HealthChanged?.Invoke(_health, _maxHealth);
-            _healthBar?.SetHealth(_health, _maxHealth);
+            _health.Reset(GetTypeAdjustedMaxHealth());   // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
 
             if (_rigidbody == null)
@@ -604,7 +492,7 @@ namespace Game.Enemy
 
         internal void EnterGrabbedState()
         {
-            DisableAgentControl();
+            _movement.DisableAgent();
             _isGrabbed = true;
             _needsGroundRecovery = false;
             _isImpactProjectile = false;
@@ -622,7 +510,7 @@ namespace Game.Enemy
 
         internal void EnterPhysicsRecoveryState()
         {
-            DisableAgentControl();
+            _movement.DisableAgent();
             _isGrabbed = false;
             _needsGroundRecovery = true;
             _visual?.SetGrabbed(false);
@@ -681,8 +569,8 @@ namespace Game.Enemy
             _knockbackTimer = 0f;
             _stasisTimer = 0f;
             _ringoutTimer = 0f;
-            DisableAgentControl();
-            _healthBar?.SetHealth(0, _maxHealth);
+            _movement.DisableAgent();
+            _healthBar?.SetHealth(0, _health.Max);
             _scoreService.Add(GetScoreReward());
             SpawnRingoutFeedback();
 
@@ -760,11 +648,11 @@ namespace Game.Enemy
                 return;
 
             if (TryEnableAgentControl())
-                MoveToTargetByNavMesh();
+                _movement.MoveToTarget(_target);
             else
             {
                 ApplyExtraGravity();
-                MoveToTargetDirectly();
+                _movement.MoveDirectlyToTarget(_target);
             }
 
             TryAttackTarget();
@@ -805,9 +693,9 @@ namespace Game.Enemy
             if (_knockbackTimer > 0f)
             {
                 ApplyExtraGravity();
-                
+
                 if (_isImpactProjectile)
-                    DamageEnemiesDuringImpact();
+                    SweepImpactDamage();
 
                 return;
             }
@@ -818,7 +706,7 @@ namespace Game.Enemy
                 ApplyExtraGravity();
 
                 if (_isImpactProjectile)
-                    DamageEnemiesDuringImpact();
+                    SweepImpactDamage();
 
                 if (!CanFinishPhysicsRecovery())
                     return;
@@ -859,7 +747,7 @@ namespace Game.Enemy
                 if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
                     return;
 
-                if (!TryDamageOtherEnemy(collision))
+                if (!_impact.TryDamageOnCollision(collision))
                     return;
 
                 _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
@@ -903,97 +791,13 @@ namespace Game.Enemy
             _visual?.PlayGroundBounce();
         }
 
-        private bool TryDamageOtherEnemy(Collision collision)
+        private void SweepImpactDamage()
         {
-            Rigidbody otherBody = collision.rigidbody;
-            EnemyController otherEnemy = otherBody != null ? otherBody.GetComponent<EnemyController>() : null;
-
-            if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
-                return false;
-
-            HitEnemyWithImpact(otherEnemy);
-            otherEnemy.TakeDamage(GetImpactDamage());
-            _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
-
-            return true;
-        }
-
-        private void DamageEnemiesDuringImpact()
-        {
-            if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
-            {
-                _lastImpactPosition = transform.position;
+            if (!_impact.DamageDuringSweep())
                 return;
-            }
 
-            Vector3 velocity = _rigidbody.linearVelocity;
-            Vector3 currentPosition = transform.position;
-            Vector3 sweepStart = _lastImpactPosition;
-            Vector3 sweepEnd = currentPosition;
-
-            if (velocity.sqrMagnitude > 0.001f)
-                sweepEnd += velocity.normalized * _data.ImpactDamageForwardOffset;
-
-            Vector3 sweep = sweepEnd - sweepStart;
-            bool damagedEnemy = false;
-
-            if (sweep.sqrMagnitude > 0.001f)
-            {
-                int sweepHitCount = Physics.SphereCastNonAlloc(sweepStart, _data.ImpactDamageRadius,
-                    sweep.normalized, SweepHitBuffer, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
-
-                for (int i = 0; i < sweepHitCount; i++)
-                {
-                    if (TryHitEnemyDuringImpact(SweepHitBuffer[i].collider))
-                        damagedEnemy = true;
-                }
-            }
-
-            int overlapCount = Physics.OverlapSphereNonAlloc(sweepEnd, _data.ImpactDamageRadius, OverlapBuffer,
-                ~0, QueryTriggerInteraction.Ignore);
-
-            for (int i = 0; i < overlapCount; i++)
-            {
-                if (TryHitEnemyDuringImpact(OverlapBuffer[i]))
-                    damagedEnemy = true;
-            }
-
-            if (damagedEnemy)
-            {
-                _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
-                TakeDamage(_data.ImpactDamage);
-            }
-
-            _lastImpactPosition = currentPosition;
-        }
-
-        private bool TryHitEnemyDuringImpact(Collider hit)
-        {
-            Rigidbody hitBody = hit.attachedRigidbody;
-            EnemyController otherEnemy = hitBody != null ? hitBody.GetComponent<EnemyController>() : null;
-
-            if (otherEnemy == null || otherEnemy == this || _impactHitTimers.ContainsKey(otherEnemy))
-                return false;
-
-            HitEnemyWithImpact(otherEnemy);
-            otherEnemy.TakeDamage(GetImpactDamage());
-            _impactHitTimers[otherEnemy] = _data.ImpactDamageCooldown;
-
-            return true;
-        }
-
-        private void HitEnemyWithImpact(EnemyController otherEnemy)
-        {
-            Vector3 direction = otherEnemy.transform.position - transform.position;
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= 0.001f)
-                direction = _rigidbody.linearVelocity;
-
-            direction.y = 0f;
-
-            Vector3 knockbackDirection = (direction.normalized + Vector3.up * _data.ImpactKnockbackUpwardRatio).normalized;
-            otherEnemy.Knockback(knockbackDirection * (_data.ImpactKnockbackForce * _typeData.ImpactKnockbackMultiplier));
+            _impactDamageCooldownTimer = _data.ImpactDamageCooldown;
+            TakeDamage(_data.ImpactDamage);
         }
 
         private bool IsGroundCollision(Collision collision)
@@ -1035,7 +839,7 @@ namespace Game.Enemy
             if (_groundContactTimer > 0f)
                 _groundContactTimer -= Time.fixedDeltaTime;
 
-            TickImpactHitTimers();
+            _impact.Tick(Time.fixedDeltaTime);
         }
 
         private void MarkGroundContact()
@@ -1075,28 +879,6 @@ namespace Game.Enemy
             return ActorGroundingUtility.SnapToGround(transform, _data.GroundRecoveryProbeDistance);
         }
 
-        private void TickImpactHitTimers()
-        {
-            if (_impactHitTimers.Count == 0)
-                return;
-
-            List<EnemyController> enemies = new(_impactHitTimers.Keys);
-
-            foreach (EnemyController enemy in enemies)
-            {
-                if (enemy == null)
-                {
-                    _impactHitTimers.Remove(enemy);
-                    continue;
-                }
-
-                _impactHitTimers[enemy] -= Time.fixedDeltaTime;
-
-                if (_impactHitTimers[enemy] <= 0f)
-                    _impactHitTimers.Remove(enemy);
-            }
-        }
-
         private void ApplyExtraGravity()
         {
             _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
@@ -1104,186 +886,21 @@ namespace Game.Enemy
 
         private bool TryEnableAgentControl()
         {
-            if (_usesAgent)
+            if (_movement.UsesAgent)
                 return true;
 
-            if (_agent == null || _target == null || _isDead || _isGrabbed ||
+            if (_target == null || _isDead || _isGrabbed ||
                 _needsGroundRecovery || _knockbackTimer > 0f)
             {
                 return false;
             }
 
-            if (!_agent.enabled)
-                _agent.enabled = true;
-
-            if (!TryPlaceAgentOnNavMesh())
-            {
-                _agent.enabled = false;
-                _usesAgent = false;
-                _rigidbody.isKinematic = false;
-                return false;
-            }
-
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-            _rigidbody.isKinematic = true;
-            _usesAgent = true;
-            _destinationUpdateTimer = 0f;
-
-            return true;
-        }
-
-        private void DisableAgentControl()
-        {
-            if (_agent != null && _agent.enabled)
-            {
-                if (_agent.isOnNavMesh)
-                    _agent.ResetPath();
-
-                _agent.enabled = false;
-            }
-
-            _usesAgent = false;
-
-            if (_rigidbody != null)
-                _rigidbody.isKinematic = false;
-        }
-
-        private bool TryPlaceAgentOnNavMesh()
-        {
-            if (!ActorGroundingUtility.TryGetGroundedPosition(transform, _data.GroundRecoveryProbeDistance,
-                    0.02f, out Vector3 groundedPosition))
-            {
-                return false;
-            }
-
-            transform.position = groundedPosition;
-
-            if (!TrySampleRecoveryNavMesh(out NavMeshHit hit))
-            {
-                return _agent.isOnNavMesh;
-            }
-
-            bool warped = _agent.Warp(hit.position);
-
-            if (warped)
-                transform.position = groundedPosition;
-
-            return warped || _agent.isOnNavMesh;
-        }
-
-        private bool TrySampleRecoveryNavMesh(out NavMeshHit hit)
-        {
-            float sampleDistance = Mathf.Max(_data.NavMeshSampleDistance, _data.GroundRecoveryProbeDistance);
-            return NavMesh.SamplePosition(transform.position, out hit, sampleDistance, NavMesh.AllAreas);
-        }
-
-        private void ConfigureAgent()
-        {
-            if (_agent == null || _data == null)
-                return;
-
-            _agent.speed = GetMoveSpeed();
-            _agent.acceleration = _data.AgentAcceleration;
-            _agent.angularSpeed = _data.AgentAngularSpeed;
-            _agent.stoppingDistance = _data.AgentStoppingDistance;
-            _agent.radius = _data.AgentRadius;
-            _agent.height = _data.AgentHeight;
-            _agent.baseOffset = 0f;
-            _agent.updateRotation = false;
-            _agent.updatePosition = true;
-            _agent.autoBraking = false;
-            _agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-        }
-
-        private void MoveToTargetByNavMesh()
-        {
-            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh)
-            {
-                _usesAgent = false;
-                return;
-            }
-
-            if (IsWithinStoppingDistance())
-            {
-                if (_agent.hasPath)
-                    _agent.ResetPath();
-
-                RotateTo(_target.position - transform.position);
-                return;
-            }
-
-            _destinationUpdateTimer -= Time.fixedDeltaTime;
-
-            if (_destinationUpdateTimer <= 0f)
-            {
-                Vector3 destination = _target.position;
-
-                if (NavMesh.SamplePosition(_target.position, out NavMeshHit hit,
-                        _data.NavMeshSampleDistance, NavMesh.AllAreas))
-                {
-                    destination = hit.position;
-                }
-
-                _agent.SetDestination(destination);
-                _destinationUpdateTimer = _data.DestinationUpdateInterval;
-            }
-
-            RotateTo(_agent.desiredVelocity);
-        }
-
-        private void MoveToTargetDirectly()
-        {
-            Vector3 offset = _target.position - transform.position;
-            offset.y = 0f;
-
-            if (offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance)
-            {
-                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
-                RotateTo(offset);
-                return;
-            }
-
-            Vector3 direction = offset.normalized;
-            direction.y = 0f;
-            Vector3 horizontalVelocity = direction * GetMoveSpeed();
-
-            _rigidbody.linearVelocity = new Vector3(
-                horizontalVelocity.x,
-                _rigidbody.linearVelocity.y,
-                horizontalVelocity.z);
-
-            RotateTo(direction);
-        }
-
-        private bool IsWithinStoppingDistance()
-        {
-            Vector3 offset = _target.position - transform.position;
-            offset.y = 0f;
-
-            return offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance;
-        }
-
-        private void RotateTo(Vector3 direction)
-        {
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= 0.01f)
-                return;
-
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Lerp(transform.rotation,
-                targetRotation, _data.RotationSpeed * Time.fixedDeltaTime);
+            return _movement.TryEnableAgent();
         }
 
         private int GetTypeAdjustedMaxHealth()
         {
             return Mathf.Max(1, Mathf.RoundToInt(_data.MaxHealth * _typeData.HealthMultiplier));
-        }
-
-        private int GetImpactDamage()
-        {
-            return Mathf.Max(1, Mathf.RoundToInt(_data.ImpactDamage * _typeData.ImpactDamageMultiplier));
         }
 
         private float GetMoveSpeed()

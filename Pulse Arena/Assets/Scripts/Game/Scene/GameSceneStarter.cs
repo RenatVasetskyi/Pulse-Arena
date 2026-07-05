@@ -178,18 +178,12 @@ namespace Game.Scene
 
         private void OnPlayerDied()
         {
-            if (_isGameOver)
-                return;
+            EndGame("GAME OVER");
+        }
 
-            _isGameOver = true;
-            _inputService.Disable();
-            _enemySpawner.StopSpawn();
-            _pickupSpawner.StopSpawn();
-
-            if (_gameOverView != null)
-                _gameOverView.Show(_scoreService.Score);
-
-            Time.timeScale = 0f;
+        private void OnAllWavesCleared()
+        {
+            EndGame("YOU WIN!");
         }
 
         private void OnWaveChanged(int current, int total)
@@ -197,7 +191,7 @@ namespace Game.Scene
             _waveView?.SetWave(current, total);
         }
 
-        private void OnAllWavesCleared()
+        private void EndGame(string title)
         {
             if (_isGameOver)
                 return;
@@ -206,10 +200,7 @@ namespace Game.Scene
             _inputService.Disable();
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
-
-            if (_gameOverView != null)
-                _gameOverView.Show(_scoreService.Score, "YOU WIN!");
-
+            _gameOverView?.Show(_scoreService.Score, title);
             Time.timeScale = 0f;
         }
 
