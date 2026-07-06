@@ -71,3 +71,6 @@ MonoBehaviour:
     EnemyLayer:
       serializedVersion: 2
       m_Bits: 64
+    ObstacleLayer:
+      serializedVersion: 2
+      m_Bits: 1

@@ -133,6 +133,7 @@ MonoBehaviour:
   _titleText: {fileID: 3354939057624324390}
   _scoreText: {fileID: 7695772002140673359}
   _restartButton: {fileID: 2672786918131161982}
+  _window: {fileID: 1377115730798300854}
 --- !u!1 &1975848865068855697
 GameObject:
   m_ObjectHideFlags: 0

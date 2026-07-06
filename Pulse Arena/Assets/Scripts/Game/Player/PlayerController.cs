@@ -140,6 +140,12 @@ namespace Game.Player
         {
             EnsureStateMachine();
             _stateMachine.FixedTick();
+
+            // The Rigidbody leaves Y rotation free (so RotateToInput can turn the player via the
+            // transform), so a collision can impart spin. Facing is fully code-driven, so kill any
+            // physics-induced angular velocity every step to stop the player pinwheeling when idle.
+            if (!_isDead && _rigidbody != null)
+                _rigidbody.angularVelocity = Vector3.zero;
         }
 
         internal void MoveByInput()

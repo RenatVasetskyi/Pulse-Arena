@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,12 +22,20 @@ namespace UI.Loading
         private float _targetProgress;
         private float _visibleProgress;
         private int _lastPercent = -1;
+        private Vector3 _labelBaseScale = Vector3.one;
+
+        private void Awake()
+        {
+            if (_progressLabel != null)
+                _labelBaseScale = _progressLabel.transform.localScale;
+        }
 
         public void Show()
         {
             gameObject.SetActive(true);
             _canvasGroup.blocksRaycasts = true;
             _canvasGroup.interactable = true;
+            StartPulse();
         }
 
         public void ShowImmediate()
@@ -35,14 +44,37 @@ namespace UI.Loading
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;
             _canvasGroup.interactable = true;
+            StartPulse();
         }
 
         public void HideImmediate()
         {
+            StopPulse();
             _canvasGroup.alpha = 0f;
             _canvasGroup.blocksRaycasts = false;
             _canvasGroup.interactable = false;
             gameObject.SetActive(false);
+        }
+
+        private void StartPulse()
+        {
+            if (_progressLabel == null)
+                return;
+
+            Transform label = _progressLabel.transform;
+            label.DOKill();
+            label.localScale = _labelBaseScale;
+            label.DOScale(_labelBaseScale * 1.1f, 0.55f).SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(_progressLabel.gameObject);
+        }
+
+        private void StopPulse()
+        {
+            if (_progressLabel == null)
+                return;
+
+            _progressLabel.transform.DOKill();
+            _progressLabel.transform.localScale = _labelBaseScale;
         }
 
         public void SetProgress(float progress)

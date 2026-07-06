@@ -10,8 +10,11 @@ namespace UI.Hud
 
         public void SetWave(int current, int total)
         {
-            if (_label != null)
-                _label.text = $"Wave {current}/{total}";
+            if (_label == null)
+                return;
+
+            _label.text = $"Wave {current}/{total}";
+            UiTween.Punch(_label.transform, 0.4f, 0.35f);
         }
     }
 }

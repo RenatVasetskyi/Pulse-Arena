@@ -1,5 +1,6 @@
 using System;
 using Data;
+using DG.Tweening;
 using Game.Player;
 using UnityEngine;
 using Zenject;
@@ -51,8 +52,13 @@ namespace Game.Pickups
             UpdateBeam();
         }
 
+        private bool _collected;
+
         private void OnTriggerEnter(Collider other)
         {
+            if (_collected)
+                return;
+
             PlayerController player = other.GetComponentInParent<PlayerController>();
 
             if (player == null)
@@ -61,8 +67,22 @@ namespace Game.Pickups
             if (!player.TryHeal(_pickupData.HealthAmount))
                 return;
 
+            _collected = true;
             Collected?.Invoke(this);
-            Destroy(gameObject);
+            PlayCollect();
+        }
+
+        private void PlayCollect()
+        {
+            SphereCollider sphere = GetComponent<SphereCollider>();
+
+            if (sphere != null)
+                sphere.enabled = false;
+
+            if (_visualRoot != null)
+                _visualRoot.DOScale(_visualRoot.localScale * 1.8f, 0.22f).SetEase(Ease.OutQuad);
+
+            Destroy(gameObject, 0.24f);
         }
 
         private void EnsureCollider()

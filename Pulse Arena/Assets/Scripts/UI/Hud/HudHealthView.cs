@@ -15,6 +15,7 @@ namespace UI.Hud
         [SerializeField] private Sprite _emptySprite;
 
         private PlayerController _player;
+        private int _lastHealth = -1;
 
         public void Bind(PlayerController player)
         {
@@ -44,6 +45,26 @@ namespace UI.Hud
 
                 if (exists && _aliveSprite != null && _emptySprite != null)
                     _hearts[i].sprite = i < health ? _aliveSprite : _emptySprite;
+            }
+
+            AnimateChange(health);
+            _lastHealth = health;
+        }
+
+        private void AnimateChange(int health)
+        {
+            if (_lastHealth < 0 || _lastHealth == health)
+                return;
+
+            if (health < _lastHealth)
+            {
+                for (int i = health; i < _lastHealth && i < _hearts.Length; i++)
+                    UiTween.Shake(_hearts[i] != null ? _hearts[i].transform : null);
+            }
+            else
+            {
+                for (int i = _lastHealth; i < health && i < _hearts.Length; i++)
+                    UiTween.Pop(_hearts[i] != null ? _hearts[i].transform : null);
             }
         }
     }

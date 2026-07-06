@@ -1,18 +1,23 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace UI.MainMenu
 {
     /// <summary>
-    /// Prefab-based main menu. The layout lives in the prefab (built in the editor);
-    /// this script only wires the Play button and controls visibility.
-    /// Assign _canvasGroup and _playButton in the prefab inspector.
+    /// Prefab-based main menu. Wires the Play button, controls visibility and adds entrance juice
+    /// (title pop-in + Play pulse) relative to each element's designed scale so nothing is resized.
+    /// Assign _canvasGroup, _playButton and (optionally) _title in the prefab inspector.
     /// </summary>
     public class MainMenuView : MonoBehaviour
     {
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _playButton;
+        [SerializeField] private RectTransform _title;
+
+        private Vector3 _titleBaseScale = Vector3.one;
+        private Vector3 _playButtonBaseScale = Vector3.one;
 
         public event Action PlayClicked;
 
@@ -20,16 +25,20 @@ namespace UI.MainMenu
         {
             gameObject.SetActive(true);
 
-            if (_canvasGroup == null)
-                return;
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 1f;
+                _canvasGroup.interactable = true;
+                _canvasGroup.blocksRaycasts = true;
+            }
 
-            _canvasGroup.alpha = 1f;
-            _canvasGroup.interactable = true;
-            _canvasGroup.blocksRaycasts = true;
+            PlayIntro();
         }
 
         public void Hide()
         {
+            StopTweens();
+
             if (_canvasGroup == null)
                 return;
 
@@ -44,10 +53,56 @@ namespace UI.MainMenu
                 Destroy(gameObject);
         }
 
+        private void PlayIntro()
+        {
+            if (_title != null)
+            {
+                _title.DOKill();
+                _title.localScale = Vector3.zero;
+                _title.DOScale(_titleBaseScale, 0.5f).SetEase(Ease.OutBack).SetLink(_title.gameObject);
+            }
+
+            if (_playButton != null)
+            {
+                Transform button = _playButton.transform;
+                button.DOKill();
+                button.localScale = _playButtonBaseScale;
+                button.DOScale(_playButtonBaseScale * 1.06f, 0.8f).SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo).SetLink(_playButton.gameObject);
+            }
+        }
+
+        private void StopTweens()
+        {
+            if (_title != null)
+            {
+                _title.DOKill();
+                _title.localScale = _titleBaseScale;
+            }
+
+            if (_playButton != null)
+            {
+                _playButton.transform.DOKill();
+                _playButton.transform.localScale = _playButtonBaseScale;
+            }
+        }
+
         private void Awake()
         {
             if (_playButton != null)
+            {
+                _playButtonBaseScale = _playButton.transform.localScale;
                 _playButton.onClick.AddListener(OnPlayClicked);
+            }
+
+            if (_title != null)
+                _titleBaseScale = _title.localScale;
+        }
+
+        private void Start()
+        {
+            if (gameObject.activeInHierarchy)
+                PlayIntro();
         }
 
         private void OnDestroy()

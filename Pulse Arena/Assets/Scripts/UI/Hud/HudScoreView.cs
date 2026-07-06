@@ -13,6 +13,7 @@ namespace UI.Hud
         [SerializeField] private TextMeshProUGUI _label;
 
         private IScoreService _score;
+        private int _lastValue = int.MinValue;
 
         public void Bind(IScoreService score)
         {
@@ -31,6 +32,11 @@ namespace UI.Hud
         {
             if (_label != null)
                 _label.text = $"Score: {Format(value)}";
+
+            if (value > _lastValue && _lastValue != int.MinValue && _label != null)
+                UiTween.Punch(_label.transform, 0.35f);
+
+            _lastValue = value;
         }
 
         private static string Format(int value)

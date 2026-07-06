@@ -19,6 +19,10 @@ namespace UI.Hud
         [SerializeField] private HudZoomView _zoom;
         [SerializeField] private HudToastView _toast;
         [SerializeField] private HudTensionView _tension;
+        [SerializeField] private HudDamageFlash _damageFlash;
+
+        private PlayerController _player;
+        private int _lastHealth = -1;
 
         [Header("Touch controls (mobile)")]
         [SerializeField] private VirtualJoystick _joystick;
@@ -39,6 +43,28 @@ namespace UI.Hud
 
             if (_zoom != null)
                 _zoom.Bind(camera);
+
+            _player = player;
+
+            if (_player != null)
+            {
+                _lastHealth = _player.Health;
+                _player.HealthChanged += OnPlayerHealthChanged;
+            }
+        }
+
+        private void OnPlayerHealthChanged(int health, int maxHealth)
+        {
+            if (_lastHealth >= 0 && health < _lastHealth && _damageFlash != null)
+                _damageFlash.Flash();
+
+            _lastHealth = health;
+        }
+
+        private void OnDestroy()
+        {
+            if (_player != null)
+                _player.HealthChanged -= OnPlayerHealthChanged;
         }
 
         public void SetWave(int current, int total)

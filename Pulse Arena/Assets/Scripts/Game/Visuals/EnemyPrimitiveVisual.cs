@@ -1,4 +1,5 @@
 using Data;
+using DG.Tweening;
 using UnityEngine;
 
 namespace Game.Visuals
@@ -25,6 +26,8 @@ namespace Game.Visuals
         private Material _bodyMaterial;
         private Material _bellyMaterial;
         private float _typeScale = 1f;
+        private float _spawnScale = 1f;
+        private Tween _spawnTween;
         private Vector3 _lastPosition;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
@@ -87,6 +90,15 @@ namespace Game.Visuals
             }
 
             AlignBottomToCollider();
+            PlaySpawnPop();
+        }
+
+        private void PlaySpawnPop()
+        {
+            _spawnTween?.Kill();
+            _spawnScale = 0f;
+            _spawnTween = DOTween.To(() => _spawnScale, value => _spawnScale = value, 1f, 0.35f)
+                .SetEase(Ease.OutBack).SetLink(gameObject);
         }
 
         public void PlayHit()
@@ -335,6 +347,8 @@ namespace Game.Visuals
                 float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
                 transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
             }
+
+            transform.localScale *= _spawnScale;
 
             transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * 14f);
 

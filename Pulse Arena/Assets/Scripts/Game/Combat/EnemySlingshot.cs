@@ -273,6 +273,9 @@ namespace Game.Combat
                 if (enemy.IsGrabbed || enemy.Health <= 0)
                     continue;
 
+                if (!HasLineOfSight(enemy))
+                    continue;
+
                 float sqrDistance = (enemy.transform.position - transform.position).sqrMagnitude;
 
                 if (sqrDistance >= nearestSqrDistance)
@@ -283,6 +286,17 @@ namespace Game.Combat
             }
 
             return nearestEnemy;
+        }
+
+        private bool HasLineOfSight(EnemyController enemy)
+        {
+            if (_data.ObstacleLayer.value == 0)
+                return true;
+
+            const float height = 1f;
+            Vector3 from = transform.position + Vector3.up * height;
+            Vector3 to = enemy.transform.position + Vector3.up * height;
+            return !Physics.Linecast(from, to, _data.ObstacleLayer, QueryTriggerInteraction.Ignore);
         }
 
         private void UpdateTargetMarker()

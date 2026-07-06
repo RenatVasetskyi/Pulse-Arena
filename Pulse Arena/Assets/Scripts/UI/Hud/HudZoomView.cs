@@ -32,7 +32,16 @@ namespace UI.Hud
                 _zoomOut.onClick.RemoveListener(OnZoomOut);
         }
 
-        private void OnZoomIn() => _camera?.ZoomIn();
-        private void OnZoomOut() => _camera?.ZoomOut();
+        private void OnZoomIn()
+        {
+            _camera?.ZoomIn();
+            UiTween.Punch(_zoomIn != null ? _zoomIn.transform : null, 0.18f, 0.2f);
+        }
+
+        private void OnZoomOut()
+        {
+            _camera?.ZoomOut();
+            UiTween.Punch(_zoomOut != null ? _zoomOut.transform : null, 0.18f, 0.2f);
+        }
     }
 }

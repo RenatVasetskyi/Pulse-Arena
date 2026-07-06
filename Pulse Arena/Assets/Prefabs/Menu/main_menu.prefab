@@ -207,6 +207,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI.MainMenu.MainMenuView
   _canvasGroup: {fileID: 5396341843782105548}
   _playButton: {fileID: 8474319243262631395}
+  _title: {fileID: 4176982447048143964}
 --- !u!1 &4532714119622161892
 GameObject:
   m_ObjectHideFlags: 0

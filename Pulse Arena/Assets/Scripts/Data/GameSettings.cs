@@ -314,6 +314,7 @@ namespace Data
         public float BreakCooldownMultiplier = 1.6f;
         public Color TensionColor = new(1f, 0.25f, 0.15f, 1f);
         public LayerMask EnemyLayer;
+        public LayerMask ObstacleLayer;
     }
 
     [Serializable]
