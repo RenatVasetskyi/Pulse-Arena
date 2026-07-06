@@ -1,5 +1,6 @@
 using Architecture.Services.Interfaces;
 using Game.Cameras;
+using Game.Combat;
 using Game.Player;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ namespace UI.Hud
         [SerializeField] private HudWaveView _wave;
         [SerializeField] private HudZoomView _zoom;
         [SerializeField] private HudToastView _toast;
+        [SerializeField] private HudTensionView _tension;
 
         [Header("Touch controls (mobile)")]
         [SerializeField] private VirtualJoystick _joystick;
@@ -49,6 +51,12 @@ namespace UI.Hud
         {
             if (_toast != null)
                 _toast.Show(message, duration);
+        }
+
+        public void BindTension(EnemySlingshot slingshot)
+        {
+            if (_tension != null)
+                _tension.Bind(slingshot);
         }
     }
 }

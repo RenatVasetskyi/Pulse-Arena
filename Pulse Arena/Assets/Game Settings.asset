@@ -27,6 +27,7 @@ MonoBehaviour:
     LoadingScreenPrefab: {fileID: 6916533589258436576, guid: e828bc2ab82624dffab5d38224f3d4f5, type: 3}
     GameHudPrefab: {fileID: 5712622909582350780, guid: fdfb4fa44bdef42d29c36db0dbe2245b, type: 3}
     GameOverPrefab: {fileID: 1229148422229933395, guid: 0543822ace4fe422cb12d856007e60e9, type: 3}
+    ArenaPrefab: {fileID: 2106224971127039174, guid: b748f9fd2ff9c437587f82c71d37aeca, type: 3}
   _player: {fileID: 11400000, guid: 500ba64cda954b9d8fac688c11707894, type: 2}
   _enemy: {fileID: 11400000, guid: b8658dd11918436b945d2b78f68c582f, type: 2}
   _combat: {fileID: 11400000, guid: ac924186f4af4023af24e64fdb36a8e7, type: 2}

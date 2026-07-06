@@ -1,6 +1,7 @@
 using System;
 using Architecture.Services.Interfaces;
 using Data;
+using Game.Arena.Interfaces;
 using Game.Cameras;
 using Game.Combat;
 using Game.Enemy;
@@ -18,37 +19,36 @@ namespace Game.Scene
 {
     public class GameSceneStarter : IInitializable, IDisposable
     {
-        private readonly GameSceneReferences _sceneReferences;
+        private readonly IArenaFactory _arenaFactory;
         private readonly IPlayerFactory _playerFactory;
         private readonly IEnemyFactory _enemyFactory;
-        private readonly IBattleCamera _battleCamera;
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
         private readonly GameSettings _gameSettings;
+        private GameSceneReferences _sceneReferences;
+        private IBattleCamera _battleCamera;
+        private GameObject _arena;
         private PlayerController _player;
         private EnemySlingshot _enemySlingshot;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
-        private RopeTensionView _ropeTensionView;
         private bool _isGameOver;
 
         public GameSceneStarter(
-            GameSceneReferences sceneReferences,
+            IArenaFactory arenaFactory,
             IPlayerFactory playerFactory,
             IEnemyFactory enemyFactory,
-            IBattleCamera battleCamera,
             IEnemySpawner enemySpawner,
             IPickupSpawner pickupSpawner,
             IInputService inputService,
             IScoreService scoreService,
             GameSettings gameSettings)
         {
-            _sceneReferences = sceneReferences;
+            _arenaFactory = arenaFactory;
             _playerFactory = playerFactory;
             _enemyFactory = enemyFactory;
-            _battleCamera = battleCamera;
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _inputService = inputService;
@@ -62,6 +62,9 @@ namespace Game.Scene
             _isGameOver = false;
             _inputService.Enable();
             _scoreService.Reset();
+
+            if (!SpawnArena())
+                return;
 
             _sceneReferences.Validate();
             PreloadPools();
@@ -134,10 +137,23 @@ namespace Game.Scene
             if (_gameHud != null)
                 UnityEngine.Object.Destroy(_gameHud.gameObject);
 
-            if (_ropeTensionView != null)
-                UnityEngine.Object.Destroy(_ropeTensionView.gameObject);
-
             _enemyFactory.Clear();
+
+            if (_arena != null)
+                UnityEngine.Object.Destroy(_arena);
+        }
+
+        private bool SpawnArena()
+        {
+            _arena = _arenaFactory.Create();
+            _sceneReferences = _arena.GetComponentInChildren<GameSceneReferences>();
+            _battleCamera = _arena.GetComponentInChildren<BattleCamera>();
+
+            if (_sceneReferences != null && _battleCamera != null)
+                return true;
+
+            Debug.LogError("Arena prefab must contain GameSceneReferences and a BattleCamera.", _arena);
+            return false;
         }
 
         private PlayerController SpawnPlayer()
@@ -160,7 +176,7 @@ namespace Game.Scene
             {
                 _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
                 _enemySlingshot.RopeBroke += OnRopeBroke;
-                _ropeTensionView = RopeTensionView.Create(_enemySlingshot, _gameSettings.Ui);
+                _gameHud?.BindTension(_enemySlingshot);
             }
         }
 

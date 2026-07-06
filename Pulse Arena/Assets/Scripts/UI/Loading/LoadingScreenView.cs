@@ -15,7 +15,7 @@ namespace UI.Loading
         private const float ProgressSpeed = 3.5f;
 
         [SerializeField] private CanvasGroup _canvasGroup;
-        [SerializeField] private Image _progressFill;
+        [SerializeField] private Slider _progressBar;
         [SerializeField] private TextMeshProUGUI _progressLabel;
 
         private float _targetProgress;
@@ -78,8 +78,8 @@ namespace UI.Loading
 
         private void ApplyProgress(float progress)
         {
-            if (_progressFill != null)
-                _progressFill.fillAmount = progress;
+            if (_progressBar != null)
+                _progressBar.value = progress;
 
             if (_progressLabel == null)
                 return;

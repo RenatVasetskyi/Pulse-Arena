@@ -1,6 +1,8 @@
 using Architecture.Services;
 using Architecture.Services.Interfaces;
 using Data;
+using Game.Arena;
+using Game.Arena.Interfaces;
 using Game.Enemy;
 using Game.Enemy.Interfaces;
 using Game.Pickups;
@@ -90,6 +92,11 @@ namespace Architecture.Installers
 
         private void BindFactories()
         {
+            Container
+                .Bind<IArenaFactory>()
+                .To<ArenaFactory>()
+                .AsSingle();
+
             Container
                 .Bind<IPlayerFactory>()
                 .To<PlayerFactory>()

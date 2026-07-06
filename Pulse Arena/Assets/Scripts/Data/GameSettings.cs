@@ -367,5 +367,6 @@ namespace Data
         public GameObject LoadingScreenPrefab;
         public GameObject GameHudPrefab;
         public GameObject GameOverPrefab;
+        public GameObject ArenaPrefab;
     }
 }

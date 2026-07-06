@@ -37,14 +37,15 @@ namespace UI
 
         public void SetHealth(int health, int maxHealth)
         {
-            if (_segments == null)
-                return;
+            int count = Mathf.Max(1, maxHealth);
+
+            // Pooled enemies respawn as different types with different max HP, so rebuild the
+            // segments whenever the count changes (2 HP -> 2 pips, 3 -> 3, 4 -> 4).
+            if (_segments == null || _segments.Length != count)
+                RebuildSegments(count);
 
             for (int i = 0; i < _segments.Length; i++)
-            {
-                bool isAlive = i < health;
-                _segments[i].color = isAlive ? _aliveColor : _emptyColor;
-            }
+                _segments[i].color = i < health ? _aliveColor : _emptyColor;
         }
 
         private void LateUpdate()
@@ -72,12 +73,19 @@ namespace UI
             Image background = CreateImage("Background", root, _backgroundColor);
             Stretch(background.rectTransform);
 
-            CreateSegments(root, maxHealth);
+            SetHealth(maxHealth, maxHealth);
         }
 
-        private void CreateSegments(RectTransform parent, int maxHealth)
+        private void RebuildSegments(int count)
         {
-            int count = Mathf.Max(1, maxHealth);
+            if (_segments != null)
+            {
+                foreach (Image segment in _segments)
+                    if (segment != null)
+                        Destroy(segment.gameObject);
+            }
+
+            RectTransform parent = GetComponent<RectTransform>();
             _segments = new Image[count];
 
             float totalWidth = 1.05f;

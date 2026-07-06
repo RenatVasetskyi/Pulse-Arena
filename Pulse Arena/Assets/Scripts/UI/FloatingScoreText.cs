@@ -1,21 +1,55 @@
+using System.Collections.Generic;
 using Data;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace UI
 {
+    /// <summary>
+    /// World-space "+N" score popup that rises and fades out. Pooled and recycled on expiry (the
+    /// pool is cleared on scene unload) so a kill no longer allocates a fresh canvas + text each time.
+    /// </summary>
     public class FloatingScoreText : MonoBehaviour
     {
-        private Text _text;
+        private static readonly Queue<FloatingScoreText> Pool = new();
+        private static bool _sceneHookRegistered;
+
+        private TextMeshProUGUI _text;
         private Camera _camera;
+        private Color _baseColor = new(1f, 0.92f, 0.4f, 1f);
         private float _timer;
         private float _lifetime = 0.9f;
         private float _riseSpeed = 1.6f;
 
         public static FloatingScoreText Create(Vector3 position, string value, VfxData vfx = null)
         {
+            FloatingScoreText instance = Rent();
+            instance.Play(position, value, vfx);
+            return instance;
+        }
+
+        private static FloatingScoreText Rent()
+        {
+            EnsureSceneHook();
+
+            while (Pool.Count > 0)
+            {
+                FloatingScoreText pooled = Pool.Dequeue();
+
+                if (pooled != null)
+                {
+                    pooled.gameObject.SetActive(true);
+                    return pooled;
+                }
+            }
+
+            return Build();
+        }
+
+        private static FloatingScoreText Build()
+        {
             GameObject root = new("FloatingScoreText", typeof(RectTransform));
-            root.transform.position = position;
             root.transform.localScale = Vector3.one * 0.02f;
 
             Canvas canvas = root.AddComponent<Canvas>();
@@ -33,26 +67,39 @@ namespace UI
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            Text text = textObject.AddComponent<Text>();
-            text.text = value;
-            text.font = GetDefaultFont();
-            text.fontSize = 44;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color(1f, 0.92f, 0.4f, 1f);
+            TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
+            text.alignment = TextAlignmentOptions.Center;
+            text.fontStyle = FontStyles.Bold;
+            text.fontSize = 44f;
 
             FloatingScoreText floating = root.AddComponent<FloatingScoreText>();
             floating._text = text;
-            floating._camera = Camera.main;
+            return floating;
+        }
+
+        private void Play(Vector3 position, string value, VfxData vfx)
+        {
+            transform.position = position;
+            transform.localScale = Vector3.one * 0.02f;
+            _timer = 0f;
+            _camera = Camera.main;
+
+            _lifetime = 0.9f;
+            _riseSpeed = 1.6f;
+            _baseColor = new Color(1f, 0.92f, 0.4f, 1f);
 
             if (vfx != null)
             {
-                floating._lifetime = vfx.FloatingTextLifetime;
-                floating._riseSpeed = vfx.FloatingTextRiseSpeed;
-                text.color = vfx.FloatingTextColor;
+                _lifetime = vfx.FloatingTextLifetime;
+                _riseSpeed = vfx.FloatingTextRiseSpeed;
+                _baseColor = vfx.FloatingTextColor;
             }
 
-            return floating;
+            if (_text != null)
+            {
+                _text.text = value;
+                _text.color = _baseColor;
+            }
         }
 
         private void Update()
@@ -65,19 +112,28 @@ namespace UI
 
             if (_text != null)
             {
-                Color color = _text.color;
-                color.a = 1f - Mathf.SmoothStep(0.35f, 1f, _timer / _lifetime);
+                Color color = _baseColor;
+                color.a = _baseColor.a * (1f - Mathf.SmoothStep(0.35f, 1f, _timer / _lifetime));
                 _text.color = color;
             }
 
             if (_timer >= _lifetime)
-                Destroy(gameObject);
+                Release();
         }
 
-        private static Font GetDefaultFont()
+        private void Release()
         {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return font != null ? font : Resources.GetBuiltinResource<Font>("Arial.ttf");
+            gameObject.SetActive(false);
+            Pool.Enqueue(this);
+        }
+
+        private static void EnsureSceneHook()
+        {
+            if (_sceneHookRegistered)
+                return;
+
+            _sceneHookRegistered = true;
+            SceneManager.sceneUnloaded += _ => Pool.Clear();
         }
     }
 }
