@@ -9,6 +9,7 @@ using Game.Player;
 using Game.Player.Interfaces;
 using Game.Spawning;
 using UI;
+using UI.Hud;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Zenject;
@@ -28,13 +29,10 @@ namespace Game.Scene
         private readonly GameSettings _gameSettings;
         private PlayerController _player;
         private EnemySlingshot _enemySlingshot;
-        private PlayerHealthView _playerHealthView;
-        private ScoreView _scoreView;
-        private CameraZoomView _cameraZoomView;
+        private GameHud _gameHud;
         private GameOverView _gameOverView;
         private RarePickupToastView _rarePickupToastView;
         private RopeTensionView _ropeTensionView;
-        private WaveView _waveView;
         private bool _isGameOver;
 
         public GameSceneStarter(
@@ -68,13 +66,17 @@ namespace Game.Scene
 
             _sceneReferences.Validate();
             PreloadPools();
-            _gameOverView = GameOverView.Create(RestartScene);
+
+            _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
+            if (_gameOverView != null)
+                _gameOverView.RestartClicked += RestartScene;
 
             _player = SpawnPlayer();
             _player.Died += OnPlayerDied;
-            _playerHealthView = PlayerHealthView.Create(_player, _gameSettings.Ui);
-            _scoreView = ScoreView.Create(_scoreService, _gameSettings.Ui);
-            _cameraZoomView = CameraZoomView.Create(_battleCamera);
+
+            _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
+            _gameHud?.Bind(_player, _scoreService, _battleCamera);
+
             _rarePickupToastView = RarePickupToastView.Create(_gameSettings.Ui);
             _battleCamera.Follow(_player.transform);
             SubscribeToCombat(_player);
@@ -85,12 +87,22 @@ namespace Game.Scene
                 _sceneReferences.PickupSpawnHeightOffset);
             _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
 
-            _waveView = WaveView.Create(_gameSettings.Ui);
             _enemySpawner.WaveChanged += OnWaveChanged;
             _enemySpawner.AllWavesCleared += OnAllWavesCleared;
 
             _enemySpawner.StartSpawn();
             _pickupSpawner.StartSpawn();
+        }
+
+        private static T InstantiateHud<T>(GameObject prefab, string prefabName) where T : Component
+        {
+            if (prefab == null)
+            {
+                Debug.LogError($"{prefabName} is not assigned in Game Settings → Prefabs.");
+                return null;
+            }
+
+            return UnityEngine.Object.Instantiate(prefab).GetComponent<T>();
         }
 
         public void Dispose()
@@ -113,25 +125,19 @@ namespace Game.Scene
             _enemySpawner.AllWavesCleared -= OnAllWavesCleared;
 
             if (_gameOverView != null)
+            {
+                _gameOverView.RestartClicked -= RestartScene;
                 UnityEngine.Object.Destroy(_gameOverView.gameObject);
+            }
 
-            if (_playerHealthView != null)
-                UnityEngine.Object.Destroy(_playerHealthView.gameObject);
-
-            if (_cameraZoomView != null)
-                UnityEngine.Object.Destroy(_cameraZoomView.gameObject);
+            if (_gameHud != null)
+                UnityEngine.Object.Destroy(_gameHud.gameObject);
 
             if (_rarePickupToastView != null)
                 UnityEngine.Object.Destroy(_rarePickupToastView.gameObject);
 
             if (_ropeTensionView != null)
                 UnityEngine.Object.Destroy(_ropeTensionView.gameObject);
-
-            if (_waveView != null)
-                UnityEngine.Object.Destroy(_waveView.gameObject);
-
-            if (_scoreView != null)
-                UnityEngine.Object.Destroy(_scoreView.gameObject);
 
             _enemyFactory.Clear();
         }
@@ -188,7 +194,7 @@ namespace Game.Scene
 
         private void OnWaveChanged(int current, int total)
         {
-            _waveView?.SetWave(current, total);
+            _gameHud?.SetWave(current, total);
         }
 
         private void EndGame(string title)

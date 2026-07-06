@@ -365,5 +365,7 @@ namespace Data
         public GameObject EnemyPrefab;
         public GameObject MainMenuPrefab;
         public GameObject LoadingScreenPrefab;
+        public GameObject GameHudPrefab;
+        public GameObject GameOverPrefab;
     }
 }
