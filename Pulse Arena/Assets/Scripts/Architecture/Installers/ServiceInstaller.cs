@@ -69,7 +69,8 @@ namespace Architecture.Installers
 
         private void BindLoadingScreen()
         {
-            LoadingScreenView view = LoadingScreenView.Create(transform);
+            LoadingScreenView view = Instantiate(_gameSettings.Prefabs.LoadingScreenPrefab, transform)
+                .GetComponent<LoadingScreenView>();
 
             Container
                 .Bind<ILoadingScreen>()

@@ -2,6 +2,7 @@ using Architecture.Services.Interfaces;
 using Architecture.States.Interfaces;
 using Data;
 using UI.MainMenu;
+using UnityEngine;
 
 namespace Architecture.States
 {
@@ -36,7 +37,15 @@ namespace Architecture.States
 
         private void CreateMenu()
         {
-            MainMenuView view = MainMenuView.Create();
+            GameObject prefab = _gameSettings.Prefabs.MainMenuPrefab;
+
+            if (prefab == null)
+            {
+                Debug.LogError("MainMenuPrefab is not assigned in Game Settings → Prefabs.");
+                return;
+            }
+
+            MainMenuView view = Object.Instantiate(prefab).GetComponent<MainMenuView>();
 
             _presenter = new MainMenuPresenter(view, _stateMachine);
             _presenter.Initialize();

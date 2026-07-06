@@ -363,5 +363,7 @@ namespace Data
     {
         public GameObject PlayerPrefab;
         public GameObject EnemyPrefab;
+        public GameObject MainMenuPrefab;
+        public GameObject LoadingScreenPrefab;
     }
 }
