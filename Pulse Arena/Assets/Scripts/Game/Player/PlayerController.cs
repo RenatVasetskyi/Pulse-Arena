@@ -56,7 +56,6 @@ namespace Game.Player
                 _rigidbody = GetComponent<Rigidbody>();
 
             NormalizeCapsuleRoot();
-            DisablePlaceholderRenderers();
             EnsurePrimitiveVisual();
             _renderers = GetComponentsInChildren<Renderer>();
 
@@ -232,29 +231,17 @@ namespace Game.Player
         {
             _visual = GetComponentInChildren<PlayerPrimitiveVisual>();
 
-            EnemySlingshot slingshot = GetComponent<EnemySlingshot>();
-
             if (_visual == null)
-                _visual = PlayerPrimitiveVisual.Create(transform, _rigidbody, slingshot, _settings.PlayerVisuals);
-            else
-                _visual.Initialize(_rigidbody, slingshot, _settings.PlayerVisuals);
+            {
+                Debug.LogError("PlayerPrimitiveVisual is missing on the player prefab.", this);
+                return;
+            }
+
+            EnemySlingshot slingshot = GetComponent<EnemySlingshot>();
+            _visual.Initialize(_rigidbody, slingshot, _settings.PlayerVisuals);
 
             if (slingshot != null && _visual.LassoOrigin != null)
                 slingshot.SetLassoOrigin(_visual.LassoOrigin);
-        }
-
-        private void DisablePlaceholderRenderers()
-        {
-            Renderer[] renderers = GetComponentsInChildren<Renderer>();
-
-            foreach (Renderer placeholderRenderer in renderers)
-            {
-                if (placeholderRenderer == null ||
-                    placeholderRenderer.GetComponentInParent<PlayerPrimitiveVisual>() != null)
-                    continue;
-
-                placeholderRenderer.enabled = false;
-            }
         }
 
         private void FlashHit()

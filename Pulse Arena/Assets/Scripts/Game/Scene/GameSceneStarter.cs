@@ -31,7 +31,6 @@ namespace Game.Scene
         private EnemySlingshot _enemySlingshot;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
-        private RarePickupToastView _rarePickupToastView;
         private RopeTensionView _ropeTensionView;
         private bool _isGameOver;
 
@@ -76,8 +75,8 @@ namespace Game.Scene
 
             _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
             _gameHud?.Bind(_player, _scoreService, _battleCamera);
+            _inputService.SetTouchInput(_gameHud);
 
-            _rarePickupToastView = RarePickupToastView.Create(_gameSettings.Ui);
             _battleCamera.Follow(_player.transform);
             SubscribeToCombat(_player);
 
@@ -130,11 +129,10 @@ namespace Game.Scene
                 UnityEngine.Object.Destroy(_gameOverView.gameObject);
             }
 
+            _inputService.SetTouchInput(null);
+
             if (_gameHud != null)
                 UnityEngine.Object.Destroy(_gameHud.gameObject);
-
-            if (_rarePickupToastView != null)
-                UnityEngine.Object.Destroy(_rarePickupToastView.gameObject);
 
             if (_ropeTensionView != null)
                 UnityEngine.Object.Destroy(_ropeTensionView.gameObject);
@@ -179,7 +177,7 @@ namespace Game.Scene
 
         private void OnRarePickupSpawned(string message, float duration)
         {
-            _rarePickupToastView?.Show(message, duration);
+            _gameHud?.ShowToast(message, duration);
         }
 
         private void OnPlayerDied()

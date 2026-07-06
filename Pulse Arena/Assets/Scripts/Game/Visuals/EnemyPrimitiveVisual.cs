@@ -3,6 +3,11 @@ using UnityEngine;
 
 namespace Game.Visuals
 {
+    /// <summary>
+    /// Animates the enemy's baked primitive visual. The hierarchy (Body/Head/Belly/eyes/spikes)
+    /// lives in the enemy prefab; this component caches those child transforms, instances the
+    /// body/belly materials for per-enemy type tinting, and drives the wobble/hit/bounce/death.
+    /// </summary>
     public class EnemyPrimitiveVisual : MonoBehaviour
     {
         private const float GroundClearance = 0.02f;
@@ -32,20 +37,6 @@ namespace Game.Visuals
         private bool _isThrown;
         private bool _isDead;
 
-        public static EnemyPrimitiveVisual Create(Transform parent, Rigidbody rigidbody, EnemyVisualData visualData)
-        {
-            GameObject root = new("EnemyPrimitiveVisual");
-            root.transform.SetParent(parent, false);
-            root.transform.localRotation = Quaternion.identity;
-            root.transform.localScale = Vector3.one;
-
-            EnemyPrimitiveVisual visual = root.AddComponent<EnemyPrimitiveVisual>();
-            visual.Initialize(rigidbody, visualData);
-            root.transform.localPosition = visual._visualData.RootOffset;
-            visual.Build();
-            return visual;
-        }
-
         public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData = null)
         {
             _rigidbody = rigidbody;
@@ -54,6 +45,7 @@ namespace Game.Visuals
                 _visualData = visualData;
 
             _lastPosition = GetMovementReferencePosition();
+            EnsureParts();
         }
 
         public void ResetState()
@@ -141,50 +133,55 @@ namespace Game.Visuals
             Animate(deltaTime);
         }
 
-        private void Build()
+        private void EnsureParts()
         {
-            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Body", _visualData.BodyColor);
-            Material bellyMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Belly", _visualData.BellyColor);
-            _bodyMaterial = bodyMaterial;
-            _bellyMaterial = bellyMaterial;
-            Material eyeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Eye", _visualData.EyeColor);
-            Material pupilMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Pupil", _visualData.PupilColor);
-            Material spikeMaterial = PrimitiveVisualUtility.CreateMaterial("Enemy Spike", _visualData.SpikeColor);
+            if (_body != null)
+                return;
 
-            _body = PrimitiveVisualUtility.CreatePart("Body", PrimitiveType.Sphere, transform,
-                new Vector3(0f, 0.68f, 0f), Vector3.zero, new Vector3(0.9f, 1.05f, 0.78f), bodyMaterial);
-            _head = PrimitiveVisualUtility.CreatePart("Head", PrimitiveType.Sphere, transform,
-                new Vector3(0f, 1.34f, 0.08f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.58f), bodyMaterial);
-            _belly = PrimitiveVisualUtility.CreatePart("Belly", PrimitiveType.Sphere, transform,
-                new Vector3(0f, 0.66f, 0.33f), Vector3.zero, new Vector3(0.5f, 0.6f, 0.28f), bellyMaterial);
+            CacheParts();
+            FinishSetup();
+        }
 
-            _faceRoot = new GameObject("FaceRoot").transform;
-            _faceRoot.SetParent(transform, false);
-            _faceRoot.localPosition = new Vector3(0f, 1.34f, 0.08f);
+        private void CacheParts()
+        {
+            _body = transform.Find("Body");
+            _head = transform.Find("Head");
+            _belly = transform.Find("Belly");
+            _faceRoot = transform.Find("FaceRoot");
+            _leftEye = _faceRoot != null ? _faceRoot.Find("LeftEye") : null;
+            _rightEye = _faceRoot != null ? _faceRoot.Find("RightEye") : null;
+            _spikeRoot = transform.Find("SpikeRoot");
 
-            _leftEye = PrimitiveVisualUtility.CreatePart("LeftEye", PrimitiveType.Sphere, _faceRoot,
-                new Vector3(-0.175f, 0.1f, 0.27f), Vector3.zero, new Vector3(0.21f, 0.21f, 0.12f), eyeMaterial);
-            _rightEye = PrimitiveVisualUtility.CreatePart("RightEye", PrimitiveType.Sphere, _faceRoot,
-                new Vector3(0.175f, 0.1f, 0.27f), Vector3.zero, new Vector3(0.21f, 0.21f, 0.12f), eyeMaterial);
-            PrimitiveVisualUtility.CreatePart("LeftPupil", PrimitiveType.Sphere, _leftEye,
-                new Vector3(0f, 0f, 0.6f), Vector3.zero, new Vector3(0.42f, 0.42f, 0.22f), pupilMaterial);
-            PrimitiveVisualUtility.CreatePart("RightPupil", PrimitiveType.Sphere, _rightEye,
-                new Vector3(0f, 0f, 0.6f), Vector3.zero, new Vector3(0.42f, 0.42f, 0.22f), pupilMaterial);
+            _bodyMaterial = GetInstancedMaterial(_body);
+            _bellyMaterial = GetInstancedMaterial(_belly);
 
-            _spikeRoot = new GameObject("SpikeRoot").transform;
-            _spikeRoot.SetParent(transform, false);
-            PrimitiveVisualUtility.CreatePart("Spike_Back_1", PrimitiveType.Cube, _spikeRoot,
-                new Vector3(0f, 1.52f, -0.34f), new Vector3(42f, 0f, 0f), new Vector3(0.24f, 0.42f, 0.24f), spikeMaterial);
-            PrimitiveVisualUtility.CreatePart("Spike_Back_2", PrimitiveType.Cube, _spikeRoot,
-                new Vector3(-0.28f, 1.16f, -0.34f), new Vector3(48f, -18f, 0f), new Vector3(0.18f, 0.34f, 0.18f), spikeMaterial);
-            PrimitiveVisualUtility.CreatePart("Spike_Back_3", PrimitiveType.Cube, _spikeRoot,
-                new Vector3(0.28f, 1.16f, -0.34f), new Vector3(48f, 18f, 0f), new Vector3(0.18f, 0.34f, 0.18f), spikeMaterial);
+            // Body and head share one material asset in the prefab; point the head at the body's
+            // material instance so an enemy-type tint recolours both together.
+            if (_head != null && _bodyMaterial != null)
+            {
+                Renderer headRenderer = _head.GetComponent<Renderer>();
 
+                if (headRenderer != null)
+                    headRenderer.sharedMaterial = _bodyMaterial;
+            }
+        }
+
+        private static Material GetInstancedMaterial(Transform part)
+        {
+            if (part == null)
+                return null;
+
+            Renderer partRenderer = part.GetComponent<Renderer>();
+            return partRenderer != null ? partRenderer.material : null;
+        }
+
+        private void FinishSetup()
+        {
             _bottomRenderers = GetComponentsInChildren<Renderer>();
             AlignBottomToCollider();
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
-            _headBaseScale = _head.localScale;
+            _headBaseScale = _head != null ? _head.localScale : Vector3.one;
         }
 
         public void ApplyTypeStyle(EnemyTypeData type)

@@ -4,6 +4,11 @@ using UnityEngine;
 
 namespace Game.Visuals
 {
+    /// <summary>
+    /// Animates the player's baked primitive visual. The hierarchy (Body/Head/arms/hat/LassoOrigin)
+    /// lives in the player prefab; this component caches those child transforms and drives the
+    /// idle bob, arm swing, throw, hit-squash and death roll.
+    /// </summary>
     public class PlayerPrimitiveVisual : MonoBehaviour
     {
         private const float GroundClearance = 0.02f;
@@ -26,21 +31,6 @@ namespace Game.Visuals
 
         public Transform LassoOrigin => _lassoOrigin;
 
-        public static PlayerPrimitiveVisual Create(Transform parent, Rigidbody rigidbody, EnemySlingshot slingshot,
-            PlayerVisualData visualData)
-        {
-            GameObject root = new("PlayerPrimitiveVisual");
-            root.transform.SetParent(parent, false);
-            root.transform.localRotation = Quaternion.identity;
-            root.transform.localScale = Vector3.one;
-
-            PlayerPrimitiveVisual visual = root.AddComponent<PlayerPrimitiveVisual>();
-            visual.Initialize(rigidbody, slingshot, visualData);
-            root.transform.localPosition = visual._visualData.RootOffset;
-            visual.Build();
-            return visual;
-        }
-
         public void Initialize(Rigidbody rigidbody, EnemySlingshot slingshot, PlayerVisualData visualData = null)
         {
             _rigidbody = rigidbody;
@@ -55,6 +45,8 @@ namespace Game.Visuals
 
             if (_slingshot != null)
                 _slingshot.LassoThrown += PlayThrow;
+
+            EnsureParts();
         }
 
         public void PlayHit()
@@ -87,39 +79,27 @@ namespace Game.Visuals
             _throwTimer = _visualData.ThrowSwingDuration;
         }
 
-        private void Build()
+        private void EnsureParts()
         {
-            Material bodyMaterial = PrimitiveVisualUtility.CreateMaterial("Player Body", _visualData.BodyColor);
-            Material headMaterial = PrimitiveVisualUtility.CreateMaterial("Player Head", _visualData.HeadColor);
-            Material darkMaterial = PrimitiveVisualUtility.CreateMaterial("Player Dark", _visualData.DarkColor);
-            Material accentMaterial = PrimitiveVisualUtility.CreateMaterial("Player Accent", _visualData.AccentColor);
+            if (_body != null)
+                return;
 
-            _body = PrimitiveVisualUtility.CreatePart("Body", PrimitiveType.Capsule, transform,
-                new Vector3(0f, 0.62f, 0f), Vector3.zero, new Vector3(0.72f, 0.84f, 0.72f), bodyMaterial);
-            _head = PrimitiveVisualUtility.CreatePart("Head", PrimitiveType.Sphere, transform,
-                new Vector3(0f, 1.44f, 0f), Vector3.zero, new Vector3(0.58f, 0.58f, 0.58f), headMaterial);
+            CacheParts();
+            FinishSetup();
+        }
 
-            _leftArm = PrimitiveVisualUtility.CreatePart("LeftArm", PrimitiveType.Capsule, transform,
-                new Vector3(-0.48f, 0.86f, 0f), new Vector3(0f, 0f, -22f),
-                new Vector3(0.22f, 0.48f, 0.22f), bodyMaterial);
-            _rightArm = PrimitiveVisualUtility.CreatePart("RightArm", PrimitiveType.Capsule, transform,
-                new Vector3(0.48f, 0.88f, 0f), new Vector3(0f, 0f, 22f),
-                new Vector3(0.22f, 0.52f, 0.22f), bodyMaterial);
+        private void CacheParts()
+        {
+            _body = transform.Find("Body");
+            _head = transform.Find("Head");
+            _leftArm = transform.Find("LeftArm");
+            _rightArm = transform.Find("RightArm");
+            _hatRoot = transform.Find("HatRoot");
+            _lassoOrigin = _rightArm != null ? _rightArm.Find("LassoOrigin") : null;
+        }
 
-            _hatRoot = new GameObject("HatRoot").transform;
-            _hatRoot.SetParent(transform, false);
-            _hatRoot.localPosition = new Vector3(0f, 1.72f, 0f);
-            PrimitiveVisualUtility.CreatePart("HatBrim", PrimitiveType.Cylinder, _hatRoot,
-                Vector3.zero, Vector3.zero, new Vector3(0.78f, 0.08f, 0.78f), darkMaterial);
-            PrimitiveVisualUtility.CreatePart("HatTop", PrimitiveType.Cylinder, _hatRoot,
-                new Vector3(0f, 0.12f, 0f), Vector3.zero, new Vector3(0.43f, 0.28f, 0.43f), darkMaterial);
-            PrimitiveVisualUtility.CreatePart("HatBand", PrimitiveType.Cylinder, _hatRoot,
-                new Vector3(0f, 0.09f, 0f), Vector3.zero, new Vector3(0.46f, 0.05f, 0.46f), accentMaterial);
-
-            _lassoOrigin = new GameObject("LassoOrigin").transform;
-            _lassoOrigin.SetParent(_rightArm, false);
-            _lassoOrigin.localPosition = new Vector3(0f, -0.62f, 0.08f);
-
+        private void FinishSetup()
+        {
             _bottomRenderers = GetComponentsInChildren<Renderer>();
             AlignBottomToCollider();
             _baseLocalPosition = transform.localPosition;
@@ -206,9 +186,6 @@ namespace Game.Visuals
             _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * 95f, 0f, 22f + throwProgress * 18f);
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.2f) * 3f, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
-
-            if (_isDead)
-                return;
         }
 
         private float GetPlanarSpeed()

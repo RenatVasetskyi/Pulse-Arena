@@ -13,5 +13,6 @@ namespace Architecture.Services.Interfaces
 
         void Enable();
         void Disable();
+        void SetTouchInput(ITouchInput touchInput);
     }
 }

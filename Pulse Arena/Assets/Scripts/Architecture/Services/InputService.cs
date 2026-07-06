@@ -8,6 +8,7 @@ namespace Architecture.Services
     public class InputService : IInputService
     {
         private readonly EventSystem _eventSystem;
+        private ITouchInput _touch;
 
         public bool IsEnabled { get; private set; } = true;
 
@@ -15,75 +16,39 @@ namespace Architecture.Services
         {
             _eventSystem = eventSystem;
         }
-        
+
+        public void SetTouchInput(ITouchInput touchInput)
+        {
+            _touch = touchInput;
+        }
+
         public Vector2 MoveDirection
         {
             get
             {
-                if (!IsEnabled || Keyboard.current == null)
+                if (!IsEnabled)
                     return Vector2.zero;
 
-                Vector2 direction = Vector2.zero;
+                Vector2 keyboard = KeyboardMove();
 
-                if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-                    direction.x -= 1f;
+                if (keyboard.sqrMagnitude > 0.01f)
+                    return keyboard;
 
-                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-                    direction.x += 1f;
-
-                if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
-                    direction.y -= 1f;
-
-                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
-                    direction.y += 1f;
-
-                return Vector2.ClampMagnitude(direction, 1f);
+                return _touch != null ? Vector2.ClampMagnitude(_touch.Move, 1f) : Vector2.zero;
             }
         }
 
-        public bool IsSlingshotPressedThisFrame
-        {
-            get
-            {
-                if (!IsEnabled)
-                    return false;
+        public bool IsSlingshotPressedThisFrame =>
+            IsEnabled && (KeyboardEPressed() || MouseRightPressed() ||
+                          (_touch != null && _touch.LassoPressedThisFrame));
 
-                bool keyPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
-                bool mousePressed = !IsPointerOverUi() && Mouse.current != null &&
-                                    Mouse.current.rightButton.wasPressedThisFrame;
+        public bool IsSlingshotHeld =>
+            IsEnabled && (KeyboardEHeld() || MouseRightHeld() ||
+                          (_touch != null && _touch.LassoHeld));
 
-                return keyPressed || mousePressed;
-            }
-        }
-
-        public bool IsSlingshotHeld
-        {
-            get
-            {
-                if (!IsEnabled)
-                    return false;
-
-                bool keyHeld = Keyboard.current != null && Keyboard.current.eKey.isPressed;
-                bool mouseHeld = Mouse.current != null && Mouse.current.rightButton.isPressed;
-
-                return keyHeld || mouseHeld;
-            }
-        }
-
-        public bool IsSlingshotReleasedThisFrame
-        {
-            get
-            {
-                if (!IsEnabled)
-                    return false;
-
-                bool keyReleased = Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
-                bool mouseReleased = !IsPointerOverUi() && Mouse.current != null &&
-                                     Mouse.current.rightButton.wasReleasedThisFrame;
-
-                return keyReleased || mouseReleased;
-            }
-        }
+        public bool IsSlingshotReleasedThisFrame =>
+            IsEnabled && (KeyboardEReleased() || MouseRightReleased() ||
+                          (_touch != null && _touch.LassoReleasedThisFrame));
 
         public bool IsOrbitBurstPressedThisFrame
         {
@@ -100,15 +65,49 @@ namespace Architecture.Services
             }
         }
 
-        public void Enable()
+        public void Enable() => IsEnabled = true;
+
+        public void Disable() => IsEnabled = false;
+
+        private static Vector2 KeyboardMove()
         {
-            IsEnabled = true;
+            if (Keyboard.current == null)
+                return Vector2.zero;
+
+            Vector2 direction = Vector2.zero;
+
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
+                direction.x -= 1f;
+
+            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
+                direction.x += 1f;
+
+            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
+                direction.y -= 1f;
+
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
+                direction.y += 1f;
+
+            return Vector2.ClampMagnitude(direction, 1f);
         }
 
-        public void Disable()
-        {
-            IsEnabled = false;
-        }
+        private static bool KeyboardEPressed() =>
+            Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+
+        private static bool KeyboardEHeld() =>
+            Keyboard.current != null && Keyboard.current.eKey.isPressed;
+
+        private static bool KeyboardEReleased() =>
+            Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
+
+        private bool MouseRightPressed() =>
+            !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+
+        private static bool MouseRightHeld() =>
+            Mouse.current != null && Mouse.current.rightButton.isPressed;
+
+        private bool MouseRightReleased() =>
+            !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasReleasedThisFrame;
 
         private bool IsPointerOverUi()
         {

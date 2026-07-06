@@ -297,7 +297,6 @@ namespace Game.Enemy
             _impact.Initialize(this, transform, _rigidbody, _data, () => _typeData);
 
             NormalizeCapsuleRoot();
-            DisablePlaceholderRenderers();
             EnsurePrimitiveVisual();
             _hitFlash.Initialize(GetComponentsInChildren<Renderer>(), _data.HitFlashColor, _data.HitFlashDuration);
         }
@@ -348,23 +347,12 @@ namespace Game.Enemy
             _visual = GetComponentInChildren<EnemyPrimitiveVisual>();
 
             if (_visual == null)
-                _visual = EnemyPrimitiveVisual.Create(transform, _rigidbody, _settings.EnemyVisuals);
-            else
-                _visual.Initialize(_rigidbody, _settings.EnemyVisuals);
-        }
-
-        private void DisablePlaceholderRenderers()
-        {
-            Renderer[] renderers = GetComponentsInChildren<Renderer>();
-
-            foreach (Renderer placeholderRenderer in renderers)
             {
-                if (placeholderRenderer == null ||
-                    placeholderRenderer.GetComponentInParent<EnemyPrimitiveVisual>() != null)
-                    continue;
-
-                placeholderRenderer.enabled = false;
+                Debug.LogError("EnemyPrimitiveVisual is missing on the enemy prefab.", this);
+                return;
             }
+
+            _visual.Initialize(_rigidbody, _settings.EnemyVisuals);
         }
 
         private void OnDestroy()

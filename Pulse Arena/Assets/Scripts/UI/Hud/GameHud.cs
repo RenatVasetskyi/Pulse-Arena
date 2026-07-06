@@ -7,15 +7,25 @@ namespace UI.Hud
 {
     /// <summary>
     /// One HUD canvas for the game scene. Holds the sub-views (health/score/wave/zoom) and
-    /// wires each to its data source. All sub-views are optional (null-safe) so you can
-    /// build a partial HUD. Assign the sub-view components on the prefab root.
+    /// the touch controls (joystick + lasso button), and wires each to its source. All refs
+    /// are optional (null-safe) so a partial HUD works. Assign the components on the prefab root.
     /// </summary>
-    public class GameHud : MonoBehaviour
+    public class GameHud : MonoBehaviour, ITouchInput
     {
         [SerializeField] private HudHealthView _health;
         [SerializeField] private HudScoreView _score;
         [SerializeField] private HudWaveView _wave;
         [SerializeField] private HudZoomView _zoom;
+        [SerializeField] private HudToastView _toast;
+
+        [Header("Touch controls (mobile)")]
+        [SerializeField] private VirtualJoystick _joystick;
+        [SerializeField] private LassoButton _lassoButton;
+
+        Vector2 ITouchInput.Move => _joystick != null ? _joystick.Value : Vector2.zero;
+        bool ITouchInput.LassoPressedThisFrame => _lassoButton != null && _lassoButton.PressedThisFrame;
+        bool ITouchInput.LassoHeld => _lassoButton != null && _lassoButton.Held;
+        bool ITouchInput.LassoReleasedThisFrame => _lassoButton != null && _lassoButton.ReleasedThisFrame;
 
         public void Bind(PlayerController player, IScoreService score, IBattleCamera camera)
         {
@@ -33,6 +43,12 @@ namespace UI.Hud
         {
             if (_wave != null)
                 _wave.SetWave(current, total);
+        }
+
+        public void ShowToast(string message, float duration)
+        {
+            if (_toast != null)
+                _toast.Show(message, duration);
         }
     }
 }
