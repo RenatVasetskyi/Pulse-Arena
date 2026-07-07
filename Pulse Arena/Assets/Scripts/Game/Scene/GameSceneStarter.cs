@@ -1,25 +1,25 @@
 using System;
 using Architecture.Services.Interfaces;
-using Architecture.States;
-using Architecture.States.Interfaces;
 using Data;
 using Game.Arena.Interfaces;
 using Game.Cameras;
-using Game.Combat;
 using Game.Enemy;
 using Game.Enemy.Interfaces;
 using Game.Player;
 using Game.Player.Interfaces;
 using Game.Spawning;
-using UI;
 using UI.Hud;
-using UI.Pause;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Zenject;
 
 namespace Game.Scene
 {
+    /// <summary>
+    /// Scene coordinator for the game. It builds the world (arena → player), then hands the world to focused
+    /// collaborators and starts the run — it delegates rather than doing the work itself:
+    /// <see cref="HudPresenter"/> (HUD), <see cref="GameplayFeedbackDirector"/> (SFX/camera/slow-mo/haptics)
+    /// and <see cref="GameFlowController"/> (win/lose, game over, pause, restart, quit).
+    /// </summary>
     public class GameSceneStarter : IInitializable, IDisposable
     {
         private readonly IArenaFactory _arenaFactory;
@@ -31,26 +31,16 @@ namespace Game.Scene
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
         private readonly IComboService _comboService;
-        private readonly ISlowMoService _slowMoService;
         private readonly ISuperMeterService _superMeterService;
         private readonly IAudioService _audioService;
-        private readonly ISettingsService _settingsService;
-        private readonly ISettingsController _settingsController;
-        private readonly IStateMachine _stateMachine;
+        private readonly HudPresenter _hudPresenter;
+        private readonly GameplayFeedbackDirector _feedback;
+        private readonly GameFlowController _gameFlow;
         private readonly GameSettings _gameSettings;
-        private float _lastSlowMoTime = -99f;
         private GameSceneReferences _sceneReferences;
         private IBattleCamera _battleCamera;
         private GameObject _arena;
         private PlayerController _player;
-        private PlayerUltimate _playerUltimate;
-        private EnemySlingshot _enemySlingshot;
-        private GameHud _gameHud;
-        private GameOverView _gameOverView;
-        private PausePanelView _pausePanel;
-        private PauseController _pauseController;
-        private bool _isGameOver;
-        private int _lastPlayerHealth = -1;
 
         public GameSceneStarter(
             IArenaFactory arenaFactory,
@@ -62,12 +52,11 @@ namespace Game.Scene
             IInputService inputService,
             IScoreService scoreService,
             IComboService comboService,
-            ISlowMoService slowMoService,
             ISuperMeterService superMeterService,
             IAudioService audioService,
-            ISettingsService settingsService,
-            ISettingsController settingsController,
-            IStateMachine stateMachine,
+            HudPresenter hudPresenter,
+            GameplayFeedbackDirector feedback,
+            GameFlowController gameFlow,
             GameSettings gameSettings)
         {
             _arenaFactory = arenaFactory;
@@ -79,24 +68,17 @@ namespace Game.Scene
             _inputService = inputService;
             _scoreService = scoreService;
             _comboService = comboService;
-            _slowMoService = slowMoService;
             _superMeterService = superMeterService;
             _audioService = audioService;
-            _settingsService = settingsService;
-            _settingsController = settingsController;
-            _stateMachine = stateMachine;
+            _hudPresenter = hudPresenter;
+            _feedback = feedback;
+            _gameFlow = gameFlow;
             _gameSettings = gameSettings;
         }
 
         public void Initialize()
         {
-            Time.timeScale = 1f;
-            _isGameOver = false;
-            _inputService.Enable();
-            _scoreService.Reset();
-            _comboService.Reset();
-            _superMeterService.Reset();
-            _audioService.PlayMusic(_gameSettings.AudioData.BattleMusic);
+            ResetSession();
 
             if (!SpawnArena())
                 return;
@@ -104,118 +86,42 @@ namespace Game.Scene
             _sceneReferences.Validate();
             PreloadPools();
 
-            _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
-            if (_gameOverView != null)
-            {
-                _gameOverView.RestartClicked += RestartScene;
-                _gameOverView.MenuClicked += QuitToMenu;
-            }
-
             _player = SpawnPlayer();
-            _player.Died += OnPlayerDied;
-            _lastPlayerHealth = _player.Health;
-            _player.HealthChanged += OnPlayerHealthChanged;
-            _player.Dashed += OnPlayerDashed;
-            _playerUltimate = _player.GetComponent<PlayerUltimate>();
-            if (_playerUltimate != null)
-                _playerUltimate.Activated += OnUltimateActivated;
-
-            _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
-            _gameHud?.Bind(_player, _scoreService, _battleCamera);
-            _inputService.SetTouchInput(_gameHud);
-            _comboService.ComboChanged += OnComboChanged;
-            _superMeterService.ChargeChanged += OnSuperChargeChanged;
-            _superMeterService.Ready += OnSuperReady;
-            _gameHud?.SetSuperCharge(_superMeterService.Charge01);
-
-            SetupPause();
-
             _battleCamera.Follow(_player.transform);
-            SubscribeToCombat(_player);
 
-            _enemySpawner.Initialize(_player.transform, _sceneReferences.EnemySpawnPoints,
-                _sceneReferences.EnemySpawnParent, _sceneReferences.EnemySpawnHeightOffset);
-            _pickupSpawner.Initialize(_sceneReferences.PickupSpawnPoints, _sceneReferences.PickupSpawnParent,
-                _sceneReferences.PickupSpawnHeightOffset);
-            _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
-            _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
-                _player.transform, _arena.transform);
+            GameHud gameHud = _hudPresenter.Bind(_player, _battleCamera);
+            _feedback.Bind(_player, _battleCamera);
+            _gameFlow.Bind(_player, gameHud);
 
-            _enemySpawner.WaveChanged += OnWaveChanged;
-            _enemySpawner.AllWavesCleared += OnAllWavesCleared;
-
-            _enemySpawner.StartSpawn();
-            _pickupSpawner.StartSpawn();
-            _pitSpawner.StartSpawn();
-        }
-
-        private static T InstantiateHud<T>(GameObject prefab, string prefabName) where T : Component
-        {
-            if (prefab == null)
-            {
-                Debug.LogError($"{prefabName} is not assigned in Game Settings → Prefabs.");
-                return null;
-            }
-
-            return UnityEngine.Object.Instantiate(prefab).GetComponent<T>();
+            StartSpawners();
         }
 
         public void Dispose()
         {
             Time.timeScale = 1f;
 
-            if (_player != null)
-            {
-                _player.Died -= OnPlayerDied;
-                _player.HealthChanged -= OnPlayerHealthChanged;
-                _player.Dashed -= OnPlayerDashed;
-
-                if (_playerUltimate != null)
-                    _playerUltimate.Activated -= OnUltimateActivated;
-            }
-
-            if (_enemySlingshot != null)
-            {
-                _enemySlingshot.LassoThrown -= OnLassoThrown;
-                _enemySlingshot.EnemyGrabbed -= OnEnemyGrabbed;
-                _enemySlingshot.EnemyLaunched -= OnEnemyLaunched;
-                _enemySlingshot.RopeBroke -= OnRopeBroke;
-            }
+            _hudPresenter.Unbind();
+            _feedback.Unbind();
+            _gameFlow.Unbind();
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
             _pitSpawner.StopSpawn();
-            _pickupSpawner.RarePickupSpawned -= OnRarePickupSpawned;
-            _enemySpawner.WaveChanged -= OnWaveChanged;
-            _enemySpawner.AllWavesCleared -= OnAllWavesCleared;
-            _comboService.ComboChanged -= OnComboChanged;
-            _superMeterService.ChargeChanged -= OnSuperChargeChanged;
-            _superMeterService.Ready -= OnSuperReady;
-
-            if (_gameOverView != null)
-            {
-                _gameOverView.RestartClicked -= RestartScene;
-                _gameOverView.MenuClicked -= QuitToMenu;
-                UnityEngine.Object.Destroy(_gameOverView.gameObject);
-            }
-
-            _inputService.SetTouchInput(null);
-
-            if (_gameHud != null)
-            {
-                _gameHud.PauseRequested -= OnPauseRequested;
-                UnityEngine.Object.Destroy(_gameHud.gameObject);
-            }
-
-            _pauseController?.Dispose();
-
-            if (_pausePanel != null)
-                UnityEngine.Object.Destroy(_pausePanel.gameObject);
 
             _enemyFactory.Clear();
 
             if (_arena != null)
                 UnityEngine.Object.Destroy(_arena);
+        }
+
+        private void ResetSession()
+        {
+            Time.timeScale = 1f;
+            _inputService.Enable();
+            _scoreService.Reset();
+            _comboService.Reset();
+            _superMeterService.Reset();
+            _audioService.PlayMusic(_gameSettings.AudioData.BattleMusic);
         }
 
         private bool SpawnArena()
@@ -243,181 +149,18 @@ namespace Game.Scene
             _enemyFactory.Preload();
         }
 
-        private void SubscribeToCombat(PlayerController player)
+        private void StartSpawners()
         {
-            _enemySlingshot = player.GetComponent<EnemySlingshot>();
+            _enemySpawner.Initialize(_player.transform, _sceneReferences.EnemySpawnPoints,
+                _sceneReferences.EnemySpawnParent, _sceneReferences.EnemySpawnHeightOffset);
+            _pickupSpawner.Initialize(_sceneReferences.PickupSpawnPoints, _sceneReferences.PickupSpawnParent,
+                _sceneReferences.PickupSpawnHeightOffset);
+            _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
+                _player.transform, _arena.transform);
 
-            if (_enemySlingshot != null)
-            {
-                _enemySlingshot.LassoThrown += OnLassoThrown;
-                _enemySlingshot.EnemyGrabbed += OnEnemyGrabbed;
-                _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
-                _enemySlingshot.RopeBroke += OnRopeBroke;
-                _gameHud?.BindTension(_enemySlingshot);
-            }
-        }
-
-        private void OnLassoThrown()
-        {
-            _audioService.PlaySfx(GameSfx.LassoThrow);
-        }
-
-        private void OnEnemyGrabbed()
-        {
-            _audioService.PlaySfx(GameSfx.EnemyGrab);
-        }
-
-        private void OnEnemyLaunched(float chargeProgress)
-        {
-            _battleCamera.PlayLassoLaunch(chargeProgress);
-            _audioService.PlaySfx(GameSfx.EnemyLaunch);
-            TryLaunchSlowMo(chargeProgress);
-        }
-
-        // Brief bullet-time on a big (high-charge) fling, rate-limited so it never spams.
-        private void TryLaunchSlowMo(float chargeProgress)
-        {
-            SlowMoData data = _gameSettings.SlowMoData;
-
-            if (data == null || chargeProgress < data.LaunchChargeThreshold)
-                return;
-
-            if (Time.unscaledTime - _lastSlowMoTime < data.Cooldown)
-                return;
-
-            _lastSlowMoTime = Time.unscaledTime;
-            _slowMoService.Trigger(data.Scale, data.Duration);
-        }
-
-        private void OnRopeBroke()
-        {
-            _battleCamera.Shake(_gameSettings.CameraData.RopeBreakShakeDuration,
-                _gameSettings.CameraData.RopeBreakShakeStrength);
-            _audioService.PlaySfx(GameSfx.RopeBreak);
-        }
-
-        private void OnPlayerHealthChanged(int health, int maxHealth)
-        {
-            if (_lastPlayerHealth >= 0 && health < _lastPlayerHealth)
-            {
-                _audioService.PlaySfx(GameSfx.PlayerHit);
-                TryVibrate();
-            }
-
-            _lastPlayerHealth = health;
-        }
-
-        private void OnPlayerDashed()
-        {
-            _audioService.PlaySfx(GameSfx.Dash);
-        }
-
-        private void OnUltimateActivated()
-        {
-            SuperData data = _gameSettings.SuperData;
-            _battleCamera.Shake(data.ShakeDuration, data.ShakeStrength);
-            _slowMoService.Trigger(data.SlowMoScale, data.SlowMoDuration);
-            _audioService.PlaySfx(GameSfx.Ultimate);
-        }
-
-        private void TryVibrate()
-        {
-            if (_settingsService == null || !_settingsService.VibrationEnabled)
-                return;
-
-#if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-#endif
-        }
-
-        private void OnRarePickupSpawned(string message, float duration)
-        {
-            _gameHud?.ShowToast(message, duration);
-        }
-
-        private void OnPlayerDied()
-        {
-            _audioService.PlaySfx(GameSfx.Defeat);
-            EndGame("GAME OVER");
-        }
-
-        private void OnAllWavesCleared()
-        {
-            _audioService.PlaySfx(GameSfx.Victory);
-            EndGame("YOU WIN!");
-        }
-
-        private void OnWaveChanged(int current, int total)
-        {
-            _gameHud?.SetWave(current, total);
-            _audioService.PlaySfx(GameSfx.WaveStart);
-        }
-
-        private void OnComboChanged(int combo)
-        {
-            _gameHud?.SetCombo(combo);
-        }
-
-        private void OnSuperChargeChanged(float charge01)
-        {
-            _gameHud?.SetSuperCharge(charge01);
-
-            if (charge01 < 1f)
-                _gameHud?.SetSuperReady(false);
-        }
-
-        private void OnSuperReady()
-        {
-            _gameHud?.SetSuperReady(true);
-        }
-
-        private void EndGame(string title)
-        {
-            if (_isGameOver)
-                return;
-
-            _isGameOver = true;
-            _slowMoService.Stop();
-            _inputService.Disable();
-            _enemySpawner.StopSpawn();
-            _pickupSpawner.StopSpawn();
-            _pitSpawner.StopSpawn();
-            _gameOverView?.Show(_scoreService.Score, title);
-            Time.timeScale = 0f;
-        }
-
-        private void SetupPause()
-        {
-            _pausePanel = InstantiateHud<PausePanelView>(_gameSettings.Prefabs.PausePanelPrefab, "PausePanelPrefab");
-
-            if (_pausePanel != null)
-                _pauseController = new PauseController(_pausePanel, _inputService, _settingsController,
-                    _slowMoService, RestartScene, QuitToMenu);
-
-            if (_gameHud != null)
-                _gameHud.PauseRequested += OnPauseRequested;
-        }
-
-        private void OnPauseRequested()
-        {
-            if (_isGameOver)
-                return;
-
-            _pauseController?.Toggle();
-        }
-
-        private void QuitToMenu()
-        {
-            Time.timeScale = 1f;
-            _stateMachine.Enter<LoadMainMenuState>();
-        }
-
-        private void RestartScene()
-        {
-            _audioService.PlaySfx(GameSfx.UiClick);
-            Time.timeScale = 1f;
-            UnityEngine.SceneManagement.Scene activeScene = SceneManager.GetActiveScene();
-            SceneManager.LoadScene(activeScene.name);
+            _enemySpawner.StartSpawn();
+            _pickupSpawner.StartSpawn();
+            _pitSpawner.StartSpawn();
         }
     }
 }

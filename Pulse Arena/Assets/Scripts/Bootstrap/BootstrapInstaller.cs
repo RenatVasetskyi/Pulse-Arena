@@ -2,7 +2,7 @@ using Architecture.States;
 using Architecture.States.Interfaces;
 using Zenject;
 
-namespace Architecture.Installers
+namespace Bootstrap
 {
     public class BootstrapInstaller : MonoInstaller, IInitializable
     {

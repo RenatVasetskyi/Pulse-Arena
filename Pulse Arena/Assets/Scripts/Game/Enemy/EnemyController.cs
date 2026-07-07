@@ -6,8 +6,8 @@ using Game.Common;
 using Game.Common.StateMachine;
 using Game.Enemy.States;
 using Game.Player;
+using Game.Enemy.Interfaces;
 using Game.Visuals;
-using UI;
 using UnityEngine;
 using UnityEngine.AI;
 using Zenject;
@@ -32,7 +32,8 @@ namespace Game.Enemy
         private readonly HitFlash _hitFlash = new();
         private readonly EnemyMovement _movement = new();
         private CapsuleCollider _capsule;
-        private WorldHealthBar _healthBar;
+        private IWorldHealthBar _healthBar;
+        private IScorePopupService _scorePopups;
         private EnemyPrimitiveVisual _visual;
         private readonly EnemyImpact _impact = new();
         private Action<EnemyController> _releaseToPool;
@@ -74,13 +75,14 @@ namespace Game.Enemy
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
-            IComboService comboService)
+            IComboService comboService, IScorePopupService scorePopups)
         {
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
             _audioService = audioService;
             _comboService = comboService;
+            _scorePopups = scorePopups;
             _health.Changed += OnHealthChanged;
             _health.Died += OnHealthDepleted;
             _health.Reset(_data.MaxHealth);
@@ -192,29 +194,6 @@ namespace Game.Enemy
             _rigidbody.angularVelocity = Vector3.zero;
             _rigidbody.linearVelocity = velocity;
             _rigidbody.WakeUp();
-        }
-
-        public void PullTo(Vector3 targetPosition, float force, float upwardForceRatio, float stasisDuration)
-        {
-            _isImpactProjectile = false;
-            _impact.ResetSweepOrigin();
-            _physicsRecoveryTimer = 0f;
-            _groundContactTimer = 0f;
-            _stasisTimer = Mathf.Max(_stasisTimer, stasisDuration);
-            _knockbackTimer = 0f;
-            ChangeToPhysicsRecoveryState();
-
-            Vector3 direction = targetPosition - transform.position;
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= 0.001f)
-                return;
-
-            Vector3 pullVelocity = direction.normalized * force;
-            pullVelocity += Vector3.up * (force * upwardForceRatio);
-
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.AddForce(pullVelocity, ForceMode.VelocityChange);
         }
 
         public bool TakeDamage(int damage)
@@ -357,8 +336,8 @@ namespace Game.Enemy
             if (prefab == null)
                 return;
 
-            _healthBar = Instantiate(prefab, transform, false).GetComponent<WorldHealthBar>();
-            _healthBar.Initialize(_health.Max, _data.HealthBarHeight, _settings.Ui);
+            _healthBar = Instantiate(prefab, transform, false).GetComponent<IWorldHealthBar>();
+            _healthBar.Initialize(_health.Max, _data.HealthBarHeight);
             _healthBar.SetHealth(_health.Current, _health.Max);
         }
 
@@ -621,8 +600,7 @@ namespace Game.Enemy
         private void SpawnRingoutFeedback(int awarded)
         {
             Vector3 feedbackPosition = new(transform.position.x, _data.RingoutTextHeight, transform.position.z);
-            FloatingScoreText.Create(_settings.Prefabs.FloatingScoreTextPrefab, feedbackPosition,
-                $"+{awarded}", _settings.Vfx);
+            _scorePopups.Show(feedbackPosition, $"+{awarded}");
             PlayRingoutBurst(feedbackPosition);
         }
 

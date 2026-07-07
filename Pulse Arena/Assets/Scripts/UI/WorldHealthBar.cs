@@ -1,4 +1,4 @@
-using Data;
+using Game.Enemy.Interfaces;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +9,7 @@ namespace UI
     /// segment template live on the prefab; segments are cloned from that template at runtime because
     /// pooled enemies respawn with different max HP (2 -&gt; 2 pips, 3 -&gt; 3, 4 -&gt; 4).
     /// </summary>
-    public class WorldHealthBar : MonoBehaviour
+    public class WorldHealthBar : MonoBehaviour, IWorldHealthBar
     {
         private const float SegmentSpacing = 0.04f;
 
@@ -19,22 +19,15 @@ namespace UI
 
         private Image[] _segments;
         private Camera _camera;
-        private Color _aliveColor = new(1f, 0.2f, 0.12f, 1f);
-        private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
-        private Color _backgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
+        [SerializeField] private Color _aliveColor = new(1f, 0.2f, 0.12f, 1f);
+        [SerializeField] private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
+        [SerializeField] private Color _backgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
 
-        public void Initialize(int maxHealth, float height, UiData ui = null)
+        public void Initialize(int maxHealth, float height)
         {
             transform.localPosition = Vector3.up * height;
             transform.localRotation = Quaternion.identity;
             transform.localScale = Vector3.one;
-
-            if (ui != null)
-            {
-                _aliveColor = ui.WorldHealthAliveColor;
-                _emptyColor = ui.WorldHealthEmptyColor;
-                _backgroundColor = ui.WorldHealthBackgroundColor;
-            }
 
             if (_background != null)
                 _background.color = _backgroundColor;

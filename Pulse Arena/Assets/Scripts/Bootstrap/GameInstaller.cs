@@ -5,7 +5,7 @@ using Game.Scene;
 using Game.Spawning;
 using Zenject;
 
-namespace Game.Installers
+namespace Bootstrap
 {
     public class GameInstaller : MonoInstaller
     {
@@ -40,6 +40,21 @@ namespace Game.Installers
 
         private void BindSceneStarter()
         {
+            // Sensory-feedback wiring (SFX / camera / slow-mo / haptics), split out of GameSceneStarter.
+            Container
+                .Bind<GameplayFeedbackDirector>()
+                .AsSingle();
+
+            // HUD wiring (combo / super meter / waves / toast → HUD), split out of GameSceneStarter.
+            Container
+                .Bind<HudPresenter>()
+                .AsSingle();
+
+            // Game flow (win/lose, game over screen, pause, restart, quit), split out of GameSceneStarter.
+            Container
+                .Bind<GameFlowController>()
+                .AsSingle();
+
             // GameSceneStarter creates the arena via IArenaFactory and pulls the scene references +
             // battle camera off the instantiated arena — nothing scene-bound is needed here anymore.
             Container

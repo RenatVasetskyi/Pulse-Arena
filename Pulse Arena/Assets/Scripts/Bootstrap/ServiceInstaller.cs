@@ -9,13 +9,14 @@ using Game.Pickups;
 using Game.Pickups.Interfaces;
 using Game.Player;
 using Game.Player.Interfaces;
+using UI;
 using UI.Loading;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using Zenject;
 
-namespace Architecture.Installers
+namespace Bootstrap
 {
     public class ServiceInstaller : MonoInstaller
     {
@@ -145,6 +146,11 @@ namespace Architecture.Installers
                 .BindInterfacesTo<SuperMeterService>()
                 .AsSingle()
                 .NonLazy();
+
+            Container
+                .Bind<IScorePopupService>()
+                .To<ScorePopupService>()
+                .AsSingle();
         }
 
         private void BindSettingsService()
