@@ -32,6 +32,10 @@ namespace Data
         public EnemyTypeData[] EnemyTypes => _enemy.Types;
         public EnemyVisualData EnemyVisuals => _enemy.Visuals;
         public SlingshotData SlingshotData => _combat.Slingshot;
+        public ComboData ComboData => _combat.Combo;
+        public SlowMoData SlowMoData => _combat.SlowMo;
+        public PitData PitData => _combat.Pit;
+        public SuperData SuperData => _combat.Super;
         public SpawnData SpawnData => _level.Spawn;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
@@ -76,6 +80,16 @@ namespace Data
         public float HitFlashDuration = 0.12f;
         public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
         public float RingoutHeight = -2.5f;
+
+        [Header("Dash / Dodge")]
+        [Tooltip("Burst speed during a dash (vs MoveSpeed for normal movement).")]
+        public float DashSpeed = 24f;
+        [Tooltip("How long the dash burst lasts.")]
+        public float DashDuration = 0.18f;
+        [Tooltip("Seconds before the player can dash again.")]
+        public float DashCooldown = 0.9f;
+        [Tooltip("Invulnerability window granted by a dash (dodge i-frames).")]
+        public float DashInvulnerability = 0.3f;
     }
 
     [Serializable]
@@ -235,6 +249,83 @@ namespace Data
         [Tooltip("FOV delta punched on lasso launch (negative = quick zoom-in). Scaled by charge.")]
         public float LaunchFovPunch = -3f;
         public float LaunchFovDuration = 0.26f;
+    }
+
+    [Serializable]
+    public class SlowMoData
+    {
+        [Range(0.05f, 1f)] public float Scale = 0.4f;
+        public float Duration = 0.22f;
+        [Tooltip("Launch charge (0-1) at/above which a big fling triggers slow-mo.")]
+        [Range(0f, 1f)] public float LaunchChargeThreshold = 0.85f;
+        [Tooltip("Minimum seconds between launch-triggered slow-mos.")]
+        public float Cooldown = 1.4f;
+    }
+
+    [Serializable]
+    public class PitData
+    {
+        [Header("Spawn")]
+        [Tooltip("Seconds between pit spawn attempts.")]
+        public float SpawnInterval = 5f;
+        [Tooltip("Max pits open at once.")]
+        public int MaxActive = 3;
+        [Tooltip("Inner/outer ring (from arena center) where pits can appear.")]
+        public float MinRadius = 4f;
+        public float MaxRadius = 18f;
+        [Tooltip("Pits never spawn closer than this (horizontal) to the player.")]
+        public float MinPlayerDistance = 3.5f;
+        [Tooltip("Extra clearance (beyond the pit's own radius) kept from the player and every enemy, so a pit never opens right on top of someone.")]
+        public float SpawnClearance = 1.5f;
+        [Tooltip("Height (Y) pits sit at, just above the floor.")]
+        public float SpawnHeight = 0.05f;
+
+        [Header("Size / Lifetime")]
+        [Tooltip("Random uniform scale each pit spawns at (bigger = wider catch zone).")]
+        public float MinScale = 0.7f;
+        public float MaxScale = 1.8f;
+        [Tooltip("Seconds an unused pit stays open before it closes on its own.")]
+        public float MinLifetime = 6f;
+        public float MaxLifetime = 11f;
+
+        [Header("Suck-In")]
+        [Tooltip("Horizontal speed the eaten enemy is yanked toward the pit center.")]
+        public float SuckSpeed = 12f;
+        [Tooltip("Downward speed added as the enemy is swallowed.")]
+        public float SuckDown = 4f;
+    }
+
+    [Serializable]
+    public class ComboData
+    {
+        [Tooltip("Seconds within which the next kill keeps the combo chain alive.")]
+        public float Window = 2.5f;
+        [Tooltip("Highest score multiplier the combo can reach.")]
+        public int MaxMultiplier = 8;
+    }
+
+    [Serializable]
+    public class SuperData
+    {
+        [Header("Charge")]
+        [Tooltip("Kills needed to fill the super meter.")]
+        public int KillsToCharge = 10;
+
+        [Header("Ultimate — Shockwave")]
+        [Tooltip("Radius around the player that the ultimate flings enemies within.")]
+        public float Radius = 12f;
+        [Tooltip("Outward launch speed applied to caught enemies.")]
+        public float LaunchSpeed = 22f;
+        [Tooltip("Upward launch ratio (arc height) on top of the outward speed.")]
+        public float UpwardRatio = 0.4f;
+        [Tooltip("How long caught enemies stay airborne / launched.")]
+        public float LaunchDuration = 1f;
+
+        [Header("Ultimate — Juice")]
+        public float ShakeDuration = 0.4f;
+        public float ShakeStrength = 0.7f;
+        [Range(0.05f, 1f)] public float SlowMoScale = 0.35f;
+        public float SlowMoDuration = 0.4f;
     }
 
     [Serializable]
@@ -412,6 +503,9 @@ namespace Data
 
         [Header("Pickups")]
         public GameObject HealthOrbPrefab;
+
+        [Header("Hazards")]
+        public GameObject PitPrefab;
 
         [Header("UI")]
         public GameObject SettingsPanelPrefab;

@@ -1,6 +1,7 @@
 using System;
 using Architecture.Services.Interfaces;
 using TMPro;
+using UI.Hud;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,6 +15,7 @@ namespace UI.Settings
     public class SettingsView : MonoBehaviour
     {
         [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private RectTransform _window;
         [SerializeField] private Slider _masterSlider;
         [SerializeField] private Slider _musicSlider;
         [SerializeField] private Slider _sfxSlider;
@@ -29,6 +31,7 @@ namespace UI.Settings
         [SerializeField] private TextMeshProUGUI _zoomValue;
 
         private ISettingsService _settings;
+        private Vector3 _windowBaseScale = Vector3.one;
         private bool _suppress;
 
         public event Action Closed;
@@ -36,6 +39,9 @@ namespace UI.Settings
         public void Bind(ISettingsService settings, float zoomMin, float zoomMax)
         {
             _settings = settings;
+
+            if (_window != null)
+                _windowBaseScale = _window.localScale;
 
             if (_zoomSlider != null)
             {
@@ -62,7 +68,14 @@ namespace UI.Settings
             // stick and gets re-derived from the handle on enable.
             gameObject.SetActive(true);
             RefreshFromSettings();
-            SetVisible(true);
+
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.interactable = true;
+                _canvasGroup.blocksRaycasts = true;
+            }
+
+            UiTween.OpenWindow(_window, _canvasGroup, _windowBaseScale);
         }
 
         public void Hide()

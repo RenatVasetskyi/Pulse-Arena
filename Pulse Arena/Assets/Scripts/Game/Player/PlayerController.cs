@@ -15,9 +15,11 @@ namespace Game.Player
     {
         public event Action Died;
         public event Action<int, int> HealthChanged;
+        public event Action Dashed;
 
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
+        [SerializeField] private TrailRenderer _dashTrail;
 
         private PlayerPrimitiveVisual _visual;
         private IInputService _inputService;
@@ -29,15 +31,23 @@ namespace Game.Player
         private ActorStateMachine _stateMachine;
         private PlayerMoveState _moveState;
         private PlayerHitState _hitState;
+        private PlayerDashState _dashState;
         private PlayerDeadState _deadState;
         private int _maxHealth;
         private int _health;
         private float _hitInvulnerabilityTimer;
+        private float _dashCooldownTimer;
+        private Vector3 _dashDirection;
         private bool _isDead;
 
         public int Health => _health;
         public int MaxHealth => _maxHealth;
         internal PlayerData Data => _data;
+
+        /// <summary>Dash readiness for the HUD: 0 just after a dash, filling to 1 when the cooldown is up.</summary>
+        public float DashCharge01 => _data != null && _data.DashCooldown > 0f
+            ? 1f - Mathf.Clamp01(_dashCooldownTimer / _data.DashCooldown)
+            : 1f;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings)
@@ -60,6 +70,7 @@ namespace Game.Player
             _renderers = GetComponentsInChildren<Renderer>();
 
             CacheMaterials();
+            SetDashTrail(false);
         }
 
         private void NormalizeCapsuleRoot()
@@ -78,6 +89,8 @@ namespace Game.Player
         {
             EnsureStateMachine();
             TickHitInvulnerability();
+            TickDashCooldown();
+            TryDash();
             TickRingout();
             _stateMachine.Tick();
         }
@@ -174,6 +187,75 @@ namespace Game.Player
                 _hitInvulnerabilityTimer -= Time.deltaTime;
         }
 
+        private void TickDashCooldown()
+        {
+            if (_dashCooldownTimer > 0f)
+                _dashCooldownTimer -= Time.deltaTime;
+        }
+
+        private void TryDash()
+        {
+            if (_isDead || _dashCooldownTimer > 0f)
+                return;
+
+            if (_stateMachine.ActiveState == _dashState)
+                return;
+
+            if (!_inputService.IsDashPressedThisFrame)
+                return;
+
+            StartDash();
+        }
+
+        private void StartDash()
+        {
+            Vector2 input = _inputService.MoveDirection;
+            Vector3 direction = new Vector3(input.x, 0f, input.y);
+
+            if (direction.sqrMagnitude < 0.01f)
+                direction = transform.forward;
+
+            _dashDirection = direction.normalized;
+            _dashCooldownTimer = _data.DashCooldown;
+            _hitInvulnerabilityTimer = Mathf.Max(_hitInvulnerabilityTimer, _data.DashInvulnerability);
+
+            ChangeToDashState();
+            Dashed?.Invoke();
+        }
+
+        internal void ApplyDashVelocity()
+        {
+            _rigidbody.linearVelocity = new Vector3(
+                _dashDirection.x * _data.DashSpeed,
+                _rigidbody.linearVelocity.y,
+                _dashDirection.z * _data.DashSpeed);
+        }
+
+        internal void FaceDashDirection()
+        {
+            if (_dashDirection.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.LookRotation(_dashDirection);
+        }
+
+        internal void SetDashTrail(bool active)
+        {
+            if (_dashTrail == null)
+                return;
+
+            if (active)
+                _dashTrail.Clear();
+
+            _dashTrail.emitting = active;
+        }
+
+        private void ChangeToDashState()
+        {
+            EnsureStateMachine();
+
+            if (!_isDead)
+                _stateMachine.ChangeState(_dashState);
+        }
+
         internal void RotateToInput()
         {
             Vector2 input = _inputService.MoveDirection;
@@ -229,6 +311,7 @@ namespace Game.Player
             _stateMachine = new ActorStateMachine();
             _moveState = new PlayerMoveState(this);
             _hitState = new PlayerHitState(this);
+            _dashState = new PlayerDashState(this);
             _deadState = new PlayerDeadState();
             _stateMachine.ChangeState(_moveState);
         }

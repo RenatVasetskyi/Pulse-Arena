@@ -23,6 +23,10 @@ MonoBehaviour:
     HitFlashDuration: 0.12
     HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
     RingoutHeight: -2.5
+    DashSpeed: 24
+    DashDuration: 0.18
+    DashCooldown: 10
+    DashInvulnerability: 0.3
   Visuals:
     RootOffset: {x: 0, y: -0.78, z: 0}
     BodyColor: {r: 0.2, g: 0.75, b: 0.95, a: 1}

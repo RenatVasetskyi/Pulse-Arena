@@ -27,17 +27,23 @@ namespace Game.Scene
         private readonly IEnemyFactory _enemyFactory;
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
+        private readonly IPitSpawner _pitSpawner;
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
+        private readonly IComboService _comboService;
+        private readonly ISlowMoService _slowMoService;
+        private readonly ISuperMeterService _superMeterService;
         private readonly IAudioService _audioService;
         private readonly ISettingsService _settingsService;
         private readonly ISettingsController _settingsController;
         private readonly IStateMachine _stateMachine;
         private readonly GameSettings _gameSettings;
+        private float _lastSlowMoTime = -99f;
         private GameSceneReferences _sceneReferences;
         private IBattleCamera _battleCamera;
         private GameObject _arena;
         private PlayerController _player;
+        private PlayerUltimate _playerUltimate;
         private EnemySlingshot _enemySlingshot;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
@@ -52,8 +58,12 @@ namespace Game.Scene
             IEnemyFactory enemyFactory,
             IEnemySpawner enemySpawner,
             IPickupSpawner pickupSpawner,
+            IPitSpawner pitSpawner,
             IInputService inputService,
             IScoreService scoreService,
+            IComboService comboService,
+            ISlowMoService slowMoService,
+            ISuperMeterService superMeterService,
             IAudioService audioService,
             ISettingsService settingsService,
             ISettingsController settingsController,
@@ -65,8 +75,12 @@ namespace Game.Scene
             _enemyFactory = enemyFactory;
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
+            _pitSpawner = pitSpawner;
             _inputService = inputService;
             _scoreService = scoreService;
+            _comboService = comboService;
+            _slowMoService = slowMoService;
+            _superMeterService = superMeterService;
             _audioService = audioService;
             _settingsService = settingsService;
             _settingsController = settingsController;
@@ -80,6 +94,8 @@ namespace Game.Scene
             _isGameOver = false;
             _inputService.Enable();
             _scoreService.Reset();
+            _comboService.Reset();
+            _superMeterService.Reset();
             _audioService.PlayMusic(_gameSettings.AudioData.BattleMusic);
 
             if (!SpawnArena())
@@ -99,10 +115,18 @@ namespace Game.Scene
             _player.Died += OnPlayerDied;
             _lastPlayerHealth = _player.Health;
             _player.HealthChanged += OnPlayerHealthChanged;
+            _player.Dashed += OnPlayerDashed;
+            _playerUltimate = _player.GetComponent<PlayerUltimate>();
+            if (_playerUltimate != null)
+                _playerUltimate.Activated += OnUltimateActivated;
 
             _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
             _gameHud?.Bind(_player, _scoreService, _battleCamera);
             _inputService.SetTouchInput(_gameHud);
+            _comboService.ComboChanged += OnComboChanged;
+            _superMeterService.ChargeChanged += OnSuperChargeChanged;
+            _superMeterService.Ready += OnSuperReady;
+            _gameHud?.SetSuperCharge(_superMeterService.Charge01);
 
             SetupPause();
 
@@ -114,12 +138,15 @@ namespace Game.Scene
             _pickupSpawner.Initialize(_sceneReferences.PickupSpawnPoints, _sceneReferences.PickupSpawnParent,
                 _sceneReferences.PickupSpawnHeightOffset);
             _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
+            _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
+                _player.transform, _arena.transform);
 
             _enemySpawner.WaveChanged += OnWaveChanged;
             _enemySpawner.AllWavesCleared += OnAllWavesCleared;
 
             _enemySpawner.StartSpawn();
             _pickupSpawner.StartSpawn();
+            _pitSpawner.StartSpawn();
         }
 
         private static T InstantiateHud<T>(GameObject prefab, string prefabName) where T : Component
@@ -141,6 +168,10 @@ namespace Game.Scene
             {
                 _player.Died -= OnPlayerDied;
                 _player.HealthChanged -= OnPlayerHealthChanged;
+                _player.Dashed -= OnPlayerDashed;
+
+                if (_playerUltimate != null)
+                    _playerUltimate.Activated -= OnUltimateActivated;
             }
 
             if (_enemySlingshot != null)
@@ -153,9 +184,13 @@ namespace Game.Scene
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
+            _pitSpawner.StopSpawn();
             _pickupSpawner.RarePickupSpawned -= OnRarePickupSpawned;
             _enemySpawner.WaveChanged -= OnWaveChanged;
             _enemySpawner.AllWavesCleared -= OnAllWavesCleared;
+            _comboService.ComboChanged -= OnComboChanged;
+            _superMeterService.ChargeChanged -= OnSuperChargeChanged;
+            _superMeterService.Ready -= OnSuperReady;
 
             if (_gameOverView != null)
             {
@@ -236,6 +271,22 @@ namespace Game.Scene
         {
             _battleCamera.PlayLassoLaunch(chargeProgress);
             _audioService.PlaySfx(GameSfx.EnemyLaunch);
+            TryLaunchSlowMo(chargeProgress);
+        }
+
+        // Brief bullet-time on a big (high-charge) fling, rate-limited so it never spams.
+        private void TryLaunchSlowMo(float chargeProgress)
+        {
+            SlowMoData data = _gameSettings.SlowMoData;
+
+            if (data == null || chargeProgress < data.LaunchChargeThreshold)
+                return;
+
+            if (Time.unscaledTime - _lastSlowMoTime < data.Cooldown)
+                return;
+
+            _lastSlowMoTime = Time.unscaledTime;
+            _slowMoService.Trigger(data.Scale, data.Duration);
         }
 
         private void OnRopeBroke()
@@ -254,6 +305,19 @@ namespace Game.Scene
             }
 
             _lastPlayerHealth = health;
+        }
+
+        private void OnPlayerDashed()
+        {
+            _audioService.PlaySfx(GameSfx.Dash);
+        }
+
+        private void OnUltimateActivated()
+        {
+            SuperData data = _gameSettings.SuperData;
+            _battleCamera.Shake(data.ShakeDuration, data.ShakeStrength);
+            _slowMoService.Trigger(data.SlowMoScale, data.SlowMoDuration);
+            _audioService.PlaySfx(GameSfx.Ultimate);
         }
 
         private void TryVibrate()
@@ -289,15 +353,35 @@ namespace Game.Scene
             _audioService.PlaySfx(GameSfx.WaveStart);
         }
 
+        private void OnComboChanged(int combo)
+        {
+            _gameHud?.SetCombo(combo);
+        }
+
+        private void OnSuperChargeChanged(float charge01)
+        {
+            _gameHud?.SetSuperCharge(charge01);
+
+            if (charge01 < 1f)
+                _gameHud?.SetSuperReady(false);
+        }
+
+        private void OnSuperReady()
+        {
+            _gameHud?.SetSuperReady(true);
+        }
+
         private void EndGame(string title)
         {
             if (_isGameOver)
                 return;
 
             _isGameOver = true;
+            _slowMoService.Stop();
             _inputService.Disable();
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
+            _pitSpawner.StopSpawn();
             _gameOverView?.Show(_scoreService.Score, title);
             Time.timeScale = 0f;
         }
@@ -308,7 +392,7 @@ namespace Game.Scene
 
             if (_pausePanel != null)
                 _pauseController = new PauseController(_pausePanel, _inputService, _settingsController,
-                    RestartScene, QuitToMenu);
+                    _slowMoService, RestartScene, QuitToMenu);
 
             if (_gameHud != null)
                 _gameHud.PauseRequested += OnPauseRequested;

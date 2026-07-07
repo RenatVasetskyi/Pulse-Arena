@@ -1,3 +1,5 @@
+using Game.Arena;
+using Game.Arena.Interfaces;
 using Game.Enemy;
 using Game.Scene;
 using Game.Spawning;
@@ -23,6 +25,16 @@ namespace Game.Installers
             Container
                 .Bind<IPickupSpawner>()
                 .To<PickupSpawner>()
+                .AsSingle();
+
+            Container
+                .Bind<IPitFactory>()
+                .To<PitFactory>()
+                .AsSingle();
+
+            Container
+                .Bind<IPitSpawner>()
+                .To<PitSpawner>()
                 .AsSingle();
         }
 

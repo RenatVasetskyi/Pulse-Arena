@@ -14,6 +14,8 @@ namespace Data
         WaveStart,
         Victory,
         Defeat,
-        RopeBreak
+        RopeBreak,
+        Dash,
+        Ultimate
     }
 }

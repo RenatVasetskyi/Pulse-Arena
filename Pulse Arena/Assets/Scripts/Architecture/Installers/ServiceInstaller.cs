@@ -130,6 +130,21 @@ namespace Architecture.Installers
                 .Bind<IScoreService>()
                 .To<ScoreService>()
                 .AsSingle();
+
+            Container
+                .Bind<IComboService>()
+                .To<ComboService>()
+                .AsSingle();
+
+            Container
+                .Bind<ISlowMoService>()
+                .To<SlowMoService>()
+                .AsSingle();
+
+            Container
+                .BindInterfacesTo<SuperMeterService>()
+                .AsSingle()
+                .NonLazy();
         }
 
         private void BindSettingsService()

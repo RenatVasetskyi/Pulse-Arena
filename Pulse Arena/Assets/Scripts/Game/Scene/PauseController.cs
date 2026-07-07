@@ -14,17 +14,19 @@ namespace Game.Scene
         private readonly PausePanelView _view;
         private readonly IInputService _inputService;
         private readonly ISettingsController _settingsController;
+        private readonly ISlowMoService _slowMoService;
         private readonly Action _restart;
         private readonly Action _quitToMenu;
 
         private bool _paused;
 
         public PauseController(PausePanelView view, IInputService inputService,
-            ISettingsController settingsController, Action restart, Action quitToMenu)
+            ISettingsController settingsController, ISlowMoService slowMoService, Action restart, Action quitToMenu)
         {
             _view = view;
             _inputService = inputService;
             _settingsController = settingsController;
+            _slowMoService = slowMoService;
             _restart = restart;
             _quitToMenu = quitToMenu;
 
@@ -51,6 +53,7 @@ namespace Game.Scene
                 return;
 
             _paused = true;
+            _slowMoService?.Stop();
             Time.timeScale = 0f;
             _inputService.Disable();
             _view.Show();

@@ -131,6 +131,16 @@ MonoBehaviour:
       Volume: 0.8
       PitchMin: 0.95
       PitchMax: 1.08
+    - Id: 12
+      Clip: {fileID: 8300000, guid: fdc7e347d137b42a5848bb8652b6022d, type: 3}
+      Volume: 0.7
+      PitchMin: 1.35
+      PitchMax: 1.5
+    - Id: 13
+      Clip: {fileID: 8300000, guid: 08de106f3b4b54db497ed65bcbc56644, type: 3}
+      Volume: 1
+      PitchMin: 0.55
+      PitchMax: 0.65
     MusicVolume: 0.45
     MenuMusic: {fileID: 8300000, guid: 055abe364dc7b43a0bd15c9493b4e382, type: 3}
     BattleMusic: {fileID: 8300000, guid: fbb84bf22d550499d9cb2ed2014fd282, type: 3}

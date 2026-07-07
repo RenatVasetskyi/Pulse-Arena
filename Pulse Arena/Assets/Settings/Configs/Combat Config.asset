@@ -74,3 +74,35 @@ MonoBehaviour:
     ObstacleLayer:
       serializedVersion: 2
       m_Bits: 1
+  Combo:
+    Window: 2.5
+    MaxMultiplier: 8
+  SlowMo:
+    Scale: 0.4
+    Duration: 0.22
+    LaunchChargeThreshold: 0.85
+    Cooldown: 1.4
+  Pit:
+    SpawnInterval: 6
+    MaxActive: 2
+    MinRadius: 4
+    MaxRadius: 18
+    MinPlayerDistance: 3.5
+    SpawnClearance: 1.5
+    SpawnHeight: 0.05
+    MinScale: 0.6
+    MaxScale: 1.2
+    MinLifetime: 6
+    MaxLifetime: 11
+    SuckSpeed: 12
+    SuckDown: 4
+  Super:
+    KillsToCharge: 10
+    Radius: 12
+    LaunchSpeed: 22
+    UpwardRatio: 0.4
+    LaunchDuration: 1
+    ShakeDuration: 0.4
+    ShakeStrength: 0.7
+    SlowMoScale: 0.35
+    SlowMoDuration: 0.4

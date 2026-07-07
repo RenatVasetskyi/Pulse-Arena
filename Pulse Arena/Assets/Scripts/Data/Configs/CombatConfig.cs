@@ -6,5 +6,9 @@ namespace Data
     public class CombatConfig : ScriptableObject
     {
         public SlingshotData Slingshot;
+        public ComboData Combo = new();
+        public SlowMoData SlowMo = new();
+        public PitData Pit = new();
+        public SuperData Super = new();
     }
 }

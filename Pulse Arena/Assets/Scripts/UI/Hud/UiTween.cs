@@ -38,5 +38,26 @@ namespace UI.Hud
             target.DOKill(true);
             target.DOShakeScale(duration, target.localScale * strength, 10, 90f, true).SetLink(target.gameObject);
         }
+
+        /// <summary>
+        /// Reusable "window opens" animation for any popup: the window bounces up from a smaller scale
+        /// while the group fades in. Runs on unscaled time so it plays even when the game is paused.
+        /// </summary>
+        public static void OpenWindow(RectTransform window, CanvasGroup group, Vector3 baseScale)
+        {
+            if (window != null)
+            {
+                window.DOKill();
+                window.localScale = baseScale * 0.72f;
+                window.DOScale(baseScale, 0.32f).SetEase(Ease.OutBack).SetUpdate(true).SetLink(window.gameObject);
+            }
+
+            if (group != null)
+            {
+                group.DOKill();
+                group.alpha = 0f;
+                group.DOFade(1f, 0.18f).SetUpdate(true).SetLink(group.gameObject);
+            }
+        }
     }
 }

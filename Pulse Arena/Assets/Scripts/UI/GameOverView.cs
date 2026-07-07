@@ -21,6 +21,7 @@ namespace UI
 
         private Vector3 _windowBaseScale = Vector3.one;
         private Vector3 _restartBaseScale = Vector3.one;
+        private Vector3 _menuBaseScale = Vector3.one;
 
         public event Action RestartClicked;
         public event Action MenuClicked;
@@ -64,6 +65,16 @@ namespace UI
                 button.DOScale(_restartBaseScale * 1.05f, 0.7f).SetEase(Ease.InOutSine)
                     .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(_restartButton.gameObject);
             }
+
+            if (_mainMenuButton != null)
+            {
+                Transform button = _mainMenuButton.transform;
+                button.DOKill();
+                button.localScale = _menuBaseScale;
+                // gentler than Restart so it stays secondary
+                button.DOScale(_menuBaseScale * 1.025f, 0.95f).SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(_mainMenuButton.gameObject);
+            }
         }
 
         private void Awake()
@@ -78,7 +89,10 @@ namespace UI
             }
 
             if (_mainMenuButton != null)
+            {
+                _menuBaseScale = _mainMenuButton.transform.localScale;
                 _mainMenuButton.onClick.AddListener(OnMenu);
+            }
 
             gameObject.SetActive(false);
         }

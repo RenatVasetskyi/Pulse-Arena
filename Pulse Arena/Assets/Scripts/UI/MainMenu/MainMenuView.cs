@@ -19,6 +19,7 @@ namespace UI.MainMenu
 
         private Vector3 _titleBaseScale = Vector3.one;
         private Vector3 _playButtonBaseScale = Vector3.one;
+        private Vector3 _settingsButtonBaseScale = Vector3.one;
 
         public event Action PlayClicked;
         public event Action SettingsClicked;
@@ -72,6 +73,16 @@ namespace UI.MainMenu
                 button.DOScale(_playButtonBaseScale * 1.06f, 0.8f).SetEase(Ease.InOutSine)
                     .SetLoops(-1, LoopType.Yoyo).SetLink(_playButton.gameObject);
             }
+
+            if (_settingsButton != null)
+            {
+                Transform button = _settingsButton.transform;
+                button.DOKill();
+                button.localScale = _settingsButtonBaseScale;
+                // gentler than Play: smaller amplitude + slower, so it breathes without stealing focus
+                button.DOScale(_settingsButtonBaseScale * 1.03f, 1.1f).SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo).SetLink(_settingsButton.gameObject);
+            }
         }
 
         private void StopTweens()
@@ -87,6 +98,12 @@ namespace UI.MainMenu
                 _playButton.transform.DOKill();
                 _playButton.transform.localScale = _playButtonBaseScale;
             }
+
+            if (_settingsButton != null)
+            {
+                _settingsButton.transform.DOKill();
+                _settingsButton.transform.localScale = _settingsButtonBaseScale;
+            }
         }
 
         private void Awake()
@@ -98,7 +115,10 @@ namespace UI.MainMenu
             }
 
             if (_settingsButton != null)
+            {
+                _settingsButtonBaseScale = _settingsButton.transform.localScale;
                 _settingsButton.onClick.AddListener(OnSettingsClicked);
+            }
 
             if (_title != null)
                 _titleBaseScale = _title.localScale;

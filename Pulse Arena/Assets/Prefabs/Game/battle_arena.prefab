@@ -239,6 +239,10 @@ MonoBehaviour:
   _launchKickDuration: 0.2
   _launchShakeDuration: 0.12
   _launchShakeStrength: 0.18
+  _launchFovPunch: -3
+  _launchFovDuration: 0.26
+  _playerHitShakeDuration: 0.15
+  _playerHitShakeStrength: 0.25
 --- !u!1 &1055408529793923238
 GameObject:
   m_ObjectHideFlags: 0

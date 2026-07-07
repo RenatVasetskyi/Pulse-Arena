@@ -26,6 +26,7 @@ namespace Game.Enemy
         private EnemyData _data;
         private IScoreService _scoreService;
         private IAudioService _audioService;
+        private IComboService _comboService;
         private Transform _target;
         private PlayerController _playerTarget;
         private readonly HitFlash _hitFlash = new();
@@ -72,12 +73,14 @@ namespace Game.Enemy
         public EnemyTypeData TypeData => _typeData;
 
         [Inject]
-        public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService)
+        public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
+            IComboService comboService)
         {
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
             _audioService = audioService;
+            _comboService = comboService;
             _health.Changed += OnHealthChanged;
             _health.Died += OnHealthDepleted;
             _health.Reset(_data.MaxHealth);
@@ -256,8 +259,16 @@ namespace Game.Enemy
                 return;
 
             _isDead = true;
-            _scoreService.Add(GetScoreReward());
+            AwardKill();
             ChangeToDeadState();
+        }
+
+        // Registers the kill with the combo chain and awards score × the current multiplier.
+        private int AwardKill()
+        {
+            int multiplier = _comboService != null ? _comboService.RegisterKill() : 1;
+            _scoreService.Add(GetScoreReward() * multiplier);
+            return multiplier;
         }
 
         private void StopForDeath()
@@ -414,6 +425,9 @@ namespace Game.Enemy
             _rigidbody.isKinematic = false;
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
+            // Restore the upright constraints the ringout tumble removed.
+            _rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            transform.rotation = Quaternion.identity;
             _rigidbody.WakeUp();
         }
 
@@ -557,6 +571,12 @@ namespace Game.Enemy
             _stateMachine.ChangeState(_ringoutState);
         }
 
+        /// <summary>Rings the enemy out on the spot — used by arena pits it gets flung into.</summary>
+        public void FallIntoPit()
+        {
+            StartRingout();
+        }
+
         internal void EnterRingoutState()
         {
             _isDead = true;
@@ -568,15 +588,22 @@ namespace Game.Enemy
             _ringoutTimer = 0f;
             _movement.DisableAgent();
             _healthBar?.SetHealth(0, _health.Max);
-            _scoreService.Add(GetScoreReward());
-            _audioService?.PlaySfx(GameSfx.Ringout);
-            SpawnRingoutFeedback();
+            int multiplier = AwardKill();
+            _audioService?.PlaySfx(GameSfx.Ringout, 1f + (multiplier - 1) * 0.06f);
+            SpawnRingoutFeedback(GetScoreReward() * multiplier);
 
             if (_rigidbody == null)
                 return;
 
             _rigidbody.isKinematic = false;
             _rigidbody.useGravity = true;
+
+            // Ragdoll-ish tumble: free the upright constraints and spin it as it flies off the edge.
+            _rigidbody.constraints = RigidbodyConstraints.None;
+            _rigidbody.angularVelocity = new Vector3(
+                UnityEngine.Random.Range(-10f, 10f),
+                UnityEngine.Random.Range(-4f, 4f),
+                UnityEngine.Random.Range(-10f, 10f));
         }
 
         internal void FixedTickRingoutState()
@@ -591,11 +618,11 @@ namespace Game.Enemy
                 ReturnToPool();
         }
 
-        private void SpawnRingoutFeedback()
+        private void SpawnRingoutFeedback(int awarded)
         {
             Vector3 feedbackPosition = new(transform.position.x, _data.RingoutTextHeight, transform.position.z);
             FloatingScoreText.Create(_settings.Prefabs.FloatingScoreTextPrefab, feedbackPosition,
-                $"+{GetScoreReward()}", _settings.Vfx);
+                $"+{awarded}", _settings.Vfx);
             PlayRingoutBurst(feedbackPosition);
         }
 

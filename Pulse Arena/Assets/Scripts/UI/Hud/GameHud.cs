@@ -22,6 +22,8 @@ namespace UI.Hud
         [SerializeField] private HudZoomView _zoom;
         [SerializeField] private HudToastView _toast;
         [SerializeField] private HudTensionView _tension;
+        [SerializeField] private HudComboView _combo;
+        [SerializeField] private HudSuperMeterView _superMeter;
         [SerializeField] private HudDamageFlash _damageFlash;
 
         private PlayerController _player;
@@ -31,6 +33,8 @@ namespace UI.Hud
         [Header("Touch controls (mobile)")]
         [SerializeField] private VirtualJoystick _joystick;
         [SerializeField] private LassoButton _lassoButton;
+        [SerializeField] private AbilityButton _dashButton;
+        [SerializeField] private AbilityButton _ultimateButton;
 
         [Header("Pause")]
         [SerializeField] private Button _pauseButton;
@@ -41,6 +45,8 @@ namespace UI.Hud
         bool ITouchInput.LassoPressedThisFrame => _lassoButton != null && _lassoButton.PressedThisFrame;
         bool ITouchInput.LassoHeld => _lassoButton != null && _lassoButton.Held;
         bool ITouchInput.LassoReleasedThisFrame => _lassoButton != null && _lassoButton.ReleasedThisFrame;
+        bool ITouchInput.DashPressedThisFrame => _dashButton != null && _dashButton.PressedThisFrame;
+        bool ITouchInput.UltimatePressedThisFrame => _ultimateButton != null && _ultimateButton.PressedThisFrame;
 
         private void Awake()
         {
@@ -54,6 +60,9 @@ namespace UI.Hud
 
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
                 PauseRequested?.Invoke();
+
+            if (_player != null && _dashButton != null)
+                _dashButton.SetCharge(_player.DashCharge01);
         }
 
         public void Bind(PlayerController player, IScoreService score, IBattleCamera camera)
@@ -112,6 +121,32 @@ namespace UI.Hud
         {
             if (_tension != null)
                 _tension.Bind(slingshot);
+        }
+
+        public void SetCombo(int combo)
+        {
+            if (_combo == null)
+                return;
+
+            if (combo >= 2)
+                _combo.Show(combo);
+            else
+                _combo.Hide();
+        }
+
+        public void SetSuperCharge(float charge01)
+        {
+            if (_superMeter != null)
+                _superMeter.SetCharge(charge01);
+
+            if (_ultimateButton != null)
+                _ultimateButton.SetCharge(charge01);
+        }
+
+        public void SetSuperReady(bool ready)
+        {
+            if (_superMeter != null)
+                _superMeter.SetReady(ready);
         }
     }
 }

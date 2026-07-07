@@ -65,6 +65,14 @@ namespace Architecture.Services
             }
         }
 
+        public bool IsDashPressedThisFrame =>
+            IsEnabled && ((Keyboard.current != null && Keyboard.current.leftShiftKey.wasPressedThisFrame)
+                          || (_touch != null && _touch.DashPressedThisFrame));
+
+        public bool IsUltimatePressedThisFrame =>
+            IsEnabled && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
+                          || (_touch != null && _touch.UltimatePressedThisFrame));
+
         public void Enable() => IsEnabled = true;
 
         public void Disable() => IsEnabled = false;

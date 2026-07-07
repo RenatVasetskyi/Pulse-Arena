@@ -102,6 +102,16 @@ namespace Architecture.Services
 
         public void PlaySfx(GameSfx sfx)
         {
+            PlayInternal(sfx, null);
+        }
+
+        public void PlaySfx(GameSfx sfx, float pitch)
+        {
+            PlayInternal(sfx, Mathf.Clamp(pitch, 0.1f, 3f));
+        }
+
+        private void PlayInternal(GameSfx sfx, float? pitch)
+        {
             if (_data == null || _map == null || _sources == null)
                 return;
 
@@ -111,7 +121,7 @@ namespace Architecture.Services
             AudioSource source = _sources[_next];
             _next = (_next + 1) % _sources.Length;
 
-            source.pitch = ResolvePitch(entry);
+            source.pitch = pitch ?? ResolvePitch(entry);
             source.PlayOneShot(entry.Clip, entry.Volume * SfxScale());
         }
 

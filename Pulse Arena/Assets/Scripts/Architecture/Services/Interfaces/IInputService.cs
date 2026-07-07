@@ -9,6 +9,8 @@ namespace Architecture.Services.Interfaces
         bool IsSlingshotHeld { get; }
         bool IsSlingshotReleasedThisFrame { get; }
         bool IsOrbitBurstPressedThisFrame { get; }
+        bool IsDashPressedThisFrame { get; }
+        bool IsUltimatePressedThisFrame { get; }
         bool IsEnabled { get; }
 
         void Enable();

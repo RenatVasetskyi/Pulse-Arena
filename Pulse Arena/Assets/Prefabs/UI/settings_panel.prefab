@@ -3440,6 +3440,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI.Settings.SettingsView
   _canvasGroup: {fileID: 8058956482155566801}
+  _window: {fileID: 5690653024925255374}
   _masterSlider: {fileID: 8168291785178407773}
   _musicSlider: {fileID: 8665252241984033716}
   _sfxSlider: {fileID: 956254091983974036}
