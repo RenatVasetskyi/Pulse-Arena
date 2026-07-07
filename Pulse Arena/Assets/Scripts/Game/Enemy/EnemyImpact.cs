@@ -131,7 +131,11 @@ namespace Game.Enemy
 
             ApplyKnockback(other);
             other.TakeDamage(GetImpactDamage());
-            _hitTimers[other] = _data.ImpactDamageCooldown;
+
+            // Flag the target for the WHOLE flight (the set is cleared on the next throw) so a
+            // thrown enemy damages each enemy exactly once — no rapid re-hits every cooldown when
+            // it lingers in contact (e.g. pinning a target against a wall).
+            _hitTimers[other] = float.MaxValue;
             return true;
         }
 
