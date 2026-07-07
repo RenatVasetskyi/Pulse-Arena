@@ -1,4 +1,5 @@
 using System;
+using Architecture.Services.Interfaces;
 using Data;
 using DG.Tweening;
 using Game.Player;
@@ -15,6 +16,7 @@ namespace Game.Pickups
         public event Action<HealthOrbPickup> Collected;
 
         private PickupData _pickupData;
+        private IAudioService _audioService;
         private Transform _visualRoot;
         private Transform _core;
         private Transform _innerRing;
@@ -23,9 +25,10 @@ namespace Game.Pickups
         private Vector3 _startPosition;
 
         [Inject]
-        public void Construct(GameSettings gameSettings)
+        public void Construct(GameSettings gameSettings, IAudioService audioService)
         {
             _pickupData = gameSettings.PickupData;
+            _audioService = audioService;
         }
 
         public void Initialize()
@@ -74,6 +77,8 @@ namespace Game.Pickups
 
         private void PlayCollect()
         {
+            _audioService?.PlaySfx(GameSfx.HealthPickup);
+
             SphereCollider sphere = GetComponent<SphereCollider>();
 
             if (sphere != null)

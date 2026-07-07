@@ -1,0 +1,13 @@
+Music — Juhani Junkala, "5 Action Chiptunes" (Retro Game Music Pack)
+Source: https://opengameart.org/content/5-chiptunes-action
+License: Creative Commons CC0 1.0 Universal (public domain).
+Free for commercial use, no attribution required. This note is provenance only.
+
+Tracks used:
+  menu_music.wav   <- "Title Screen"  (menu, ~11s loop)
+  battle_music.wav <- "Level 1"       (battle, ~74s loop)
+
+Import: Vorbis compressed + Streaming load type (small build size, low memory).
+Assigned in: Assets/Settings/Configs/Presentation Config.asset (Audio > MenuMusic / BattleMusic).
+Volume: AudioData.MusicVolume (0.45). Other tracks (Level 2, Level 3, Ending) are in the
+source pack if you want to swap.

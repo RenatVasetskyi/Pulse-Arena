@@ -1,0 +1,25 @@
+Sound effects — Kenney (kenney.nl)
+License: Creative Commons CC0 1.0 Universal (public domain).
+Free for commercial use, no attribution required. This note is provenance only.
+
+Packs used:
+- Interface Sounds  (kenney.nl/assets/interface-sounds)
+- Digital Audio     (kenney.nl/assets/digital-audio)
+- Impact Sounds     (kenney.nl/assets/impact-sounds)
+
+Mapping (GameSfx -> original file):
+  UiClick      <- interface  click_001
+  LassoThrow   <- digital    phaseJump1
+  EnemyGrab    <- impact      impactSoft_medium_001
+  EnemyLaunch  <- digital    laser1  (rope-release / fling)
+  Impact       <- impact      impactWood_medium_001
+  Ringout      <- digital    powerUp5
+  PlayerHit    <- impact      impactPunch_heavy_001
+  HealthPickup <- digital    powerUp11
+  WaveStart    <- digital    threeTone1
+  Victory      <- digital    zapThreeToneUp
+  Defeat       <- digital    zapThreeToneDown
+  RopeBreak    <- impact      impactGlass_light_001
+
+Clips are assigned in: Assets/Settings/Configs/Presentation Config.asset (Audio > Sfx).
+To swap any sound: drop a new clip in and reassign it there, or ask to re-map.

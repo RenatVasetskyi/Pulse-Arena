@@ -26,6 +26,7 @@ namespace Game.Scene
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
+        private readonly IAudioService _audioService;
         private readonly GameSettings _gameSettings;
         private GameSceneReferences _sceneReferences;
         private IBattleCamera _battleCamera;
@@ -35,6 +36,7 @@ namespace Game.Scene
         private GameHud _gameHud;
         private GameOverView _gameOverView;
         private bool _isGameOver;
+        private int _lastPlayerHealth = -1;
 
         public GameSceneStarter(
             IArenaFactory arenaFactory,
@@ -44,6 +46,7 @@ namespace Game.Scene
             IPickupSpawner pickupSpawner,
             IInputService inputService,
             IScoreService scoreService,
+            IAudioService audioService,
             GameSettings gameSettings)
         {
             _arenaFactory = arenaFactory;
@@ -53,6 +56,7 @@ namespace Game.Scene
             _pickupSpawner = pickupSpawner;
             _inputService = inputService;
             _scoreService = scoreService;
+            _audioService = audioService;
             _gameSettings = gameSettings;
         }
 
@@ -62,6 +66,7 @@ namespace Game.Scene
             _isGameOver = false;
             _inputService.Enable();
             _scoreService.Reset();
+            _audioService.PlayMusic(_gameSettings.AudioData.BattleMusic);
 
             if (!SpawnArena())
                 return;
@@ -75,6 +80,8 @@ namespace Game.Scene
 
             _player = SpawnPlayer();
             _player.Died += OnPlayerDied;
+            _lastPlayerHealth = _player.Health;
+            _player.HealthChanged += OnPlayerHealthChanged;
 
             _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
             _gameHud?.Bind(_player, _scoreService, _battleCamera);
@@ -112,10 +119,15 @@ namespace Game.Scene
             Time.timeScale = 1f;
 
             if (_player != null)
+            {
                 _player.Died -= OnPlayerDied;
+                _player.HealthChanged -= OnPlayerHealthChanged;
+            }
 
             if (_enemySlingshot != null)
             {
+                _enemySlingshot.LassoThrown -= OnLassoThrown;
+                _enemySlingshot.EnemyGrabbed -= OnEnemyGrabbed;
                 _enemySlingshot.EnemyLaunched -= OnEnemyLaunched;
                 _enemySlingshot.RopeBroke -= OnRopeBroke;
             }
@@ -174,21 +186,43 @@ namespace Game.Scene
 
             if (_enemySlingshot != null)
             {
+                _enemySlingshot.LassoThrown += OnLassoThrown;
+                _enemySlingshot.EnemyGrabbed += OnEnemyGrabbed;
                 _enemySlingshot.EnemyLaunched += OnEnemyLaunched;
                 _enemySlingshot.RopeBroke += OnRopeBroke;
                 _gameHud?.BindTension(_enemySlingshot);
             }
         }
 
+        private void OnLassoThrown()
+        {
+            _audioService.PlaySfx(GameSfx.LassoThrow);
+        }
+
+        private void OnEnemyGrabbed()
+        {
+            _audioService.PlaySfx(GameSfx.EnemyGrab);
+        }
+
         private void OnEnemyLaunched(float chargeProgress)
         {
             _battleCamera.PlayLassoLaunch(chargeProgress);
+            _audioService.PlaySfx(GameSfx.EnemyLaunch);
         }
 
         private void OnRopeBroke()
         {
             _battleCamera.Shake(_gameSettings.CameraData.RopeBreakShakeDuration,
                 _gameSettings.CameraData.RopeBreakShakeStrength);
+            _audioService.PlaySfx(GameSfx.RopeBreak);
+        }
+
+        private void OnPlayerHealthChanged(int health, int maxHealth)
+        {
+            if (_lastPlayerHealth >= 0 && health < _lastPlayerHealth)
+                _audioService.PlaySfx(GameSfx.PlayerHit);
+
+            _lastPlayerHealth = health;
         }
 
         private void OnRarePickupSpawned(string message, float duration)
@@ -198,17 +232,20 @@ namespace Game.Scene
 
         private void OnPlayerDied()
         {
+            _audioService.PlaySfx(GameSfx.Defeat);
             EndGame("GAME OVER");
         }
 
         private void OnAllWavesCleared()
         {
+            _audioService.PlaySfx(GameSfx.Victory);
             EndGame("YOU WIN!");
         }
 
         private void OnWaveChanged(int current, int total)
         {
             _gameHud?.SetWave(current, total);
+            _audioService.PlaySfx(GameSfx.WaveStart);
         }
 
         private void EndGame(string title)
@@ -226,6 +263,7 @@ namespace Game.Scene
 
         private void RestartScene()
         {
+            _audioService.PlaySfx(GameSfx.UiClick);
             Time.timeScale = 1f;
             UnityEngine.SceneManagement.Scene activeScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(activeScene.name);

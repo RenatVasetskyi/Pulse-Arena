@@ -8,5 +8,6 @@ namespace Data
         public VfxData Vfx = new();
         public CameraData Camera;
         public UiData Ui = new();
+        public AudioData Audio = new();
     }
 }

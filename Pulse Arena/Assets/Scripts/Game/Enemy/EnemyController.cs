@@ -25,6 +25,7 @@ namespace Game.Enemy
         private GameSettings _settings;
         private EnemyData _data;
         private IScoreService _scoreService;
+        private IAudioService _audioService;
         private Transform _target;
         private PlayerController _playerTarget;
         private readonly HitFlash _hitFlash = new();
@@ -71,11 +72,12 @@ namespace Game.Enemy
         public EnemyTypeData TypeData => _typeData;
 
         [Inject]
-        public void Construct(GameSettings gameSettings, IScoreService scoreService)
+        public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService)
         {
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
             _scoreService = scoreService;
+            _audioService = audioService;
             _health.Changed += OnHealthChanged;
             _health.Died += OnHealthDepleted;
             _health.Reset(_data.MaxHealth);
@@ -218,6 +220,7 @@ namespace Game.Enemy
                 return false;
 
             _visual?.PlayHit();
+            _audioService?.PlaySfx(GameSfx.Impact);
             _health.TakeDamage(damage);   // fires Changed (bar/event); on 0 fires Died (score + dead state)
 
             if (_isDead)
@@ -566,6 +569,7 @@ namespace Game.Enemy
             _movement.DisableAgent();
             _healthBar?.SetHealth(0, _health.Max);
             _scoreService.Add(GetScoreReward());
+            _audioService?.PlaySfx(GameSfx.Ringout);
             SpawnRingoutFeedback();
 
             if (_rigidbody == null)

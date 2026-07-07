@@ -67,3 +67,70 @@ MonoBehaviour:
     WorldHealthAliveColor: {r: 1, g: 0.2, b: 0.12, a: 1}
     WorldHealthEmptyColor: {r: 0.12, g: 0.12, b: 0.15, a: 0.76}
     WorldHealthBackgroundColor: {r: 0.02, g: 0.025, b: 0.035, a: 0.72}
+  Audio:
+    MasterVolume: 1
+    SfxVolume: 0.85
+    Sfx:
+    - Id: 0
+      Clip: {fileID: 8300000, guid: 325d4251b45f04ca08c96144b60a72ae, type: 3}
+      Volume: 0.55
+      PitchMin: 0.98
+      PitchMax: 1.02
+    - Id: 1
+      Clip: {fileID: 8300000, guid: fdc7e347d137b42a5848bb8652b6022d, type: 3}
+      Volume: 0.7
+      PitchMin: 0.95
+      PitchMax: 1.05
+    - Id: 2
+      Clip: {fileID: 8300000, guid: 650703a5e258741518459da62efda062, type: 3}
+      Volume: 0.75
+      PitchMin: 0.95
+      PitchMax: 1.05
+    - Id: 3
+      Clip: {fileID: 8300000, guid: 65a3bb4e6a8af4c72b79df24388f9b88, type: 3}
+      Volume: 0.9
+      PitchMin: 0.92
+      PitchMax: 1.02
+    - Id: 4
+      Clip: {fileID: 8300000, guid: 08de106f3b4b54db497ed65bcbc56644, type: 3}
+      Volume: 0.8
+      PitchMin: 0.9
+      PitchMax: 1.1
+    - Id: 5
+      Clip: {fileID: 8300000, guid: 26d3df7ef1c4b4b91ad377e65b22b8c1, type: 3}
+      Volume: 0.8
+      PitchMin: 0.98
+      PitchMax: 1.03
+    - Id: 6
+      Clip: {fileID: 8300000, guid: 921248e744375429f9b3975015200b72, type: 3}
+      Volume: 0.85
+      PitchMin: 0.95
+      PitchMax: 1.05
+    - Id: 7
+      Clip: {fileID: 8300000, guid: eefb8f8153f914738861dc559bead465, type: 3}
+      Volume: 0.8
+      PitchMin: 1
+      PitchMax: 1
+    - Id: 8
+      Clip: {fileID: 8300000, guid: e3f0816c76c3e4d4bb283ba3734990a0, type: 3}
+      Volume: 0.85
+      PitchMin: 1
+      PitchMax: 1
+    - Id: 9
+      Clip: {fileID: 8300000, guid: edb32e9468afa47acb321dd378ac3b45, type: 3}
+      Volume: 0.9
+      PitchMin: 1
+      PitchMax: 1
+    - Id: 10
+      Clip: {fileID: 8300000, guid: 8179bcc327cb341a49b2e7c4bc291901, type: 3}
+      Volume: 0.9
+      PitchMin: 1
+      PitchMax: 1
+    - Id: 11
+      Clip: {fileID: 8300000, guid: 326a7f8ebc52447748919a92a7358de3, type: 3}
+      Volume: 0.8
+      PitchMin: 0.95
+      PitchMax: 1.08
+    MusicVolume: 0.45
+    MenuMusic: {fileID: 8300000, guid: 055abe364dc7b43a0bd15c9493b4e382, type: 3}
+    BattleMusic: {fileID: 8300000, guid: fbb84bf22d550499d9cb2ed2014fd282, type: 3}

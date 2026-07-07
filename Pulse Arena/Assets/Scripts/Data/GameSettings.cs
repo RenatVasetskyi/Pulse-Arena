@@ -39,6 +39,7 @@ namespace Data
         public VfxData Vfx => _presentation.Vfx;
         public CameraData CameraData => _presentation.Camera;
         public UiData Ui => _presentation.Ui;
+        public AudioData AudioData => _presentation.Audio;
 
         [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
 
@@ -234,6 +235,29 @@ namespace Data
         [Tooltip("FOV delta punched on lasso launch (negative = quick zoom-in). Scaled by charge.")]
         public float LaunchFovPunch = -3f;
         public float LaunchFovDuration = 0.26f;
+    }
+
+    [Serializable]
+    public class AudioData
+    {
+        [Range(0f, 1f)] public float MasterVolume = 1f;
+        [Range(0f, 1f)] public float SfxVolume = 0.85f;
+        public SfxEntry[] Sfx;
+
+        [Header("Music")]
+        [Range(0f, 1f)] public float MusicVolume = 0.45f;
+        public AudioClip MenuMusic;
+        public AudioClip BattleMusic;
+    }
+
+    [Serializable]
+    public class SfxEntry
+    {
+        public GameSfx Id;
+        public AudioClip Clip;
+        [Range(0f, 1f)] public float Volume = 1f;
+        public float PitchMin = 1f;
+        public float PitchMax = 1f;
     }
 
     [Serializable]
