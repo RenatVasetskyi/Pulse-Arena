@@ -1,4 +1,5 @@
 using System.Collections;
+using Architecture.Services.Interfaces;
 using Data;
 using Unity.Cinemachine;
 using Unity.Cinemachine.TargetTracking;
@@ -9,8 +10,6 @@ namespace Game.Cameras
 {
     public class BattleCamera : MonoBehaviour, IBattleCamera
     {
-        private const string ZoomPrefsKey = "BattleCamera.Zoom";
-
         [Header("Cinemachine")]
         [SerializeField] private CinemachineCamera _camera;
         [SerializeField] private CinemachineFollow _follow;
@@ -48,6 +47,7 @@ namespace Game.Cameras
         [SerializeField] private float _playerHitShakeDuration = 0.15f;
         [SerializeField] private float _playerHitShakeStrength = 0.25f;
 
+        private ISettingsService _settings;
         private Coroutine _shakeRoutine;
         private Coroutine _offsetKickRoutine;
         private Coroutine _fovKickRoutine;
@@ -58,29 +58,43 @@ namespace Game.Cameras
         private float _zoomVelocity;
 
         [Inject]
-        public void Construct(GameSettings gameSettings)
+        public void Construct(GameSettings gameSettings, ISettingsService settings)
         {
+            _settings = settings;
             CameraData cameraData = gameSettings.CameraData;
 
-            if (cameraData == null)
-                return;
+            if (cameraData != null)
+            {
+                _defaultZoom = cameraData.DefaultZoom;
+                _minZoom = cameraData.MinZoom;
+                _maxZoom = cameraData.MaxZoom;
+                _zoomStep = cameraData.ZoomStep;
+                _zoomSmoothTime = cameraData.ZoomSmoothTime;
+                _defaultShakeDuration = cameraData.DefaultShakeDuration;
+                _defaultShakeStrength = cameraData.DefaultShakeStrength;
+                _shakeFrequency = cameraData.ShakeFrequency;
+                _launchKickOffset = cameraData.LaunchKickOffset;
+                _launchKickDuration = cameraData.LaunchKickDuration;
+                _launchShakeDuration = cameraData.LaunchShakeDuration;
+                _launchShakeStrength = cameraData.LaunchShakeStrength;
+                _launchFovPunch = cameraData.LaunchFovPunch;
+                _launchFovDuration = cameraData.LaunchFovDuration;
+                _playerHitShakeDuration = cameraData.PlayerHitShakeDuration;
+                _playerHitShakeStrength = cameraData.PlayerHitShakeStrength;
+            }
 
-            _defaultZoom = cameraData.DefaultZoom;
-            _minZoom = cameraData.MinZoom;
-            _maxZoom = cameraData.MaxZoom;
-            _zoomStep = cameraData.ZoomStep;
-            _zoomSmoothTime = cameraData.ZoomSmoothTime;
-            _defaultShakeDuration = cameraData.DefaultShakeDuration;
-            _defaultShakeStrength = cameraData.DefaultShakeStrength;
-            _shakeFrequency = cameraData.ShakeFrequency;
-            _launchKickOffset = cameraData.LaunchKickOffset;
-            _launchKickDuration = cameraData.LaunchKickDuration;
-            _launchShakeDuration = cameraData.LaunchShakeDuration;
-            _launchShakeStrength = cameraData.LaunchShakeStrength;
-            _launchFovPunch = cameraData.LaunchFovPunch;
-            _launchFovDuration = cameraData.LaunchFovDuration;
-            _playerHitShakeDuration = cameraData.PlayerHitShakeDuration;
-            _playerHitShakeStrength = cameraData.PlayerHitShakeStrength;
+            if (_settings != null)
+            {
+                _settings.Changed += OnSettingsChanged;
+                SetTargetZoom(_settings.CameraZoom);
+                _zoom = _targetZoom;
+            }
+        }
+
+        private void OnSettingsChanged()
+        {
+            if (_settings != null)
+                SetTargetZoom(_settings.CameraZoom);
         }
 
         private void Awake()
@@ -119,9 +133,11 @@ namespace Game.Cameras
             }
         }
 
+        private bool CameraEffectsEnabled => _settings == null || _settings.CameraEffectsEnabled;
+
         public void Shake(float duration, float strength)
         {
-            if (_noise == null)
+            if (_noise == null || !CameraEffectsEnabled)
                 return;
 
             if (_shakeRoutine != null)
@@ -137,6 +153,9 @@ namespace Game.Cameras
 
         public void PlayLassoLaunch(float chargeProgress)
         {
+            if (!CameraEffectsEnabled)
+                return;
+
             float safeProgress = Mathf.Clamp01(chargeProgress);
 
             Shake(_launchShakeDuration, Mathf.Lerp(_launchShakeStrength * 0.65f, _launchShakeStrength, safeProgress));
@@ -151,12 +170,21 @@ namespace Game.Cameras
 
         public void ZoomIn()
         {
-            SetTargetZoom(_targetZoom - _zoomStep);
+            ApplyZoom(_targetZoom - _zoomStep);
         }
 
         public void ZoomOut()
         {
-            SetTargetZoom(_targetZoom + _zoomStep);
+            ApplyZoom(_targetZoom + _zoomStep);
+        }
+
+        // Route zoom through settings so the +/- buttons and the settings slider share one persisted value.
+        private void ApplyZoom(float value)
+        {
+            if (_settings != null)
+                _settings.SetCameraZoom(value);
+            else
+                SetTargetZoom(value);
         }
 
         private IEnumerator ShakeRoutine(float duration, float strength)
@@ -255,8 +283,8 @@ namespace Game.Cameras
 
         private void LoadZoom()
         {
-            _zoom = PlayerPrefs.GetFloat(ZoomPrefsKey, _defaultZoom);
-            _zoom = Mathf.Clamp(_zoom, _minZoom, _maxZoom);
+            float initial = _settings != null ? _settings.CameraZoom : _defaultZoom;
+            _zoom = Mathf.Clamp(initial, _minZoom, _maxZoom);
             _targetZoom = _zoom;
         }
 
@@ -267,7 +295,8 @@ namespace Game.Cameras
 
         private void OnDestroy()
         {
-            PlayerPrefs.SetFloat(ZoomPrefsKey, _targetZoom);
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
         }
 
         private void TickZoom()

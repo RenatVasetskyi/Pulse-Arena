@@ -22,6 +22,7 @@ namespace Game.Enemy
         private Transform _target;
         private Transform _spawnParent;
         private Transform[] _spawnPoints;
+        private readonly List<Transform> _spawnCandidates = new();
         private float _spawnHeightOffset;
         private int _aliveEnemies;
 
@@ -145,16 +146,60 @@ namespace Game.Enemy
 
         private void Spawn(EnemyTypeData type)
         {
-            if (_spawnPoints == null || _spawnPoints.Length == 0)
+            Transform point = PickSpawnPoint();
+
+            if (point == null)
                 return;
 
-            Transform point = _spawnPoints[Random.Range(0, _spawnPoints.Length)];
             Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
             EnemyController enemy = _enemyFactory.Create(spawnPosition, point.rotation, _spawnParent, _target,
                 type);
             enemy.Destroyed += OnEnemyDestroyed;
             _aliveEnemies++;
+        }
+
+        /// <summary>
+        /// Picks a random spawn point that is at least MinPlayerSpawnDistance (horizontal) from the
+        /// player, so enemies never pop up right next to you. If every point is too close (tiny arena),
+        /// falls back to the farthest one.
+        /// </summary>
+        private Transform PickSpawnPoint()
+        {
+            if (_spawnPoints == null || _spawnPoints.Length == 0)
+                return null;
+
+            Vector3 playerPosition = _target != null ? _target.position : Vector3.zero;
+            float minDistance = Mathf.Max(0f, _gameSettings.SpawnData.MinPlayerSpawnDistance);
+            float minDistanceSqr = minDistance * minDistance;
+
+            _spawnCandidates.Clear();
+            Transform farthest = null;
+            float farthestSqr = -1f;
+
+            foreach (Transform point in _spawnPoints)
+            {
+                if (point == null)
+                    continue;
+
+                Vector3 delta = point.position - playerPosition;
+                delta.y = 0f;
+                float distanceSqr = delta.sqrMagnitude;
+
+                if (distanceSqr >= minDistanceSqr)
+                    _spawnCandidates.Add(point);
+
+                if (distanceSqr > farthestSqr)
+                {
+                    farthestSqr = distanceSqr;
+                    farthest = point;
+                }
+            }
+
+            if (_spawnCandidates.Count > 0)
+                return _spawnCandidates[Random.Range(0, _spawnCandidates.Count)];
+
+            return farthest;
         }
 
         private EnemyTypeData PickEnemyType()

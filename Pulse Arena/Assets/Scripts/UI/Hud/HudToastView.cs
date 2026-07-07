@@ -1,63 +1,75 @@
-using System.Collections;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
 namespace UI.Hud
 {
     /// <summary>
-    /// HUD toast: fades a short message in, holds, then fades out (e.g. "Rare Health Orb spawned!").
-    /// Assign the CanvasGroup (for the fade) and the TMP label in the prefab. Starts hidden.
+    /// Text-only HUD toast (e.g. "Rare Health Orb spawned!"). Pops in with a bounce, holds, then
+    /// floats up and fades out. Assign the CanvasGroup (fade) and the TMP label. Starts hidden.
     /// </summary>
     public class HudToastView : MonoBehaviour
     {
-        private const float FadeDuration = 0.18f;
+        private const float PopDuration = 0.32f;
+        private const float OutDuration = 0.45f;
+        private const float RiseDistance = 46f;
 
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private TextMeshProUGUI _label;
 
-        private Coroutine _routine;
-
-        public void Show(string message, float duration)
-        {
-            if (_label != null)
-                _label.text = message;
-
-            if (_routine != null)
-                StopCoroutine(_routine);
-
-            _routine = StartCoroutine(ShowRoutine(duration));
-        }
+        private RectTransform _rect;
+        private Vector2 _basePosition;
+        private Vector3 _baseScale;
+        private Sequence _sequence;
 
         private void Awake()
         {
+            _rect = (RectTransform)transform;
+            _basePosition = _rect.anchoredPosition;
+            _baseScale = _rect.localScale;
+
             if (_canvasGroup != null)
                 _canvasGroup.alpha = 0f;
         }
 
-        private IEnumerator ShowRoutine(float duration)
+        public void Show(string message, float duration)
         {
-            yield return FadeTo(1f, FadeDuration);
-            yield return new WaitForSeconds(Mathf.Max(0.1f, duration));
-            yield return FadeTo(0f, FadeDuration);
-            _routine = null;
-        }
+            if (_rect == null)
+                _rect = (RectTransform)transform;
 
-        private IEnumerator FadeTo(float target, float duration)
-        {
-            if (_canvasGroup == null)
-                yield break;
+            if (_label != null)
+                _label.text = message;
 
-            float start = _canvasGroup.alpha;
-            float elapsed = 0f;
+            _sequence?.Kill();
 
-            while (elapsed < duration)
+            _rect.anchoredPosition = _basePosition;
+            _rect.localScale = _baseScale * 0.6f;
+
+            if (_canvasGroup != null)
+                _canvasGroup.alpha = 0f;
+
+            _sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+
+            // pop in (bounce + fade)
+            _sequence.Append(_rect.DOScale(_baseScale, PopDuration).SetEase(Ease.OutBack));
+
+            if (_canvasGroup != null)
+                _sequence.Join(_canvasGroup.DOFade(1f, PopDuration * 0.6f));
+
+            // hold
+            _sequence.AppendInterval(Mathf.Max(0.1f, duration));
+
+            // float up + fade out
+            _sequence.Append(_rect.DOAnchorPosY(_basePosition.y + RiseDistance, OutDuration).SetEase(Ease.InQuad));
+
+            if (_canvasGroup != null)
+                _sequence.Join(_canvasGroup.DOFade(0f, OutDuration));
+
+            _sequence.OnComplete(() =>
             {
-                elapsed += Time.unscaledDeltaTime;
-                _canvasGroup.alpha = Mathf.Lerp(start, target, elapsed / duration);
-                yield return null;
-            }
-
-            _canvasGroup.alpha = target;
+                _rect.anchoredPosition = _basePosition;
+                _rect.localScale = _baseScale;
+            });
         }
     }
 }

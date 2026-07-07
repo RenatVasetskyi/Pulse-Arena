@@ -14,12 +14,14 @@ namespace UI.MainMenu
     {
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _playButton;
+        [SerializeField] private Button _settingsButton;
         [SerializeField] private RectTransform _title;
 
         private Vector3 _titleBaseScale = Vector3.one;
         private Vector3 _playButtonBaseScale = Vector3.one;
 
         public event Action PlayClicked;
+        public event Action SettingsClicked;
 
         public void Show()
         {
@@ -95,6 +97,9 @@ namespace UI.MainMenu
                 _playButton.onClick.AddListener(OnPlayClicked);
             }
 
+            if (_settingsButton != null)
+                _settingsButton.onClick.AddListener(OnSettingsClicked);
+
             if (_title != null)
                 _titleBaseScale = _title.localScale;
         }
@@ -109,11 +114,19 @@ namespace UI.MainMenu
         {
             if (_playButton != null)
                 _playButton.onClick.RemoveListener(OnPlayClicked);
+
+            if (_settingsButton != null)
+                _settingsButton.onClick.RemoveListener(OnSettingsClicked);
         }
 
         private void OnPlayClicked()
         {
             PlayClicked?.Invoke();
+        }
+
+        private void OnSettingsClicked()
+        {
+            SettingsClicked?.Invoke();
         }
     }
 }

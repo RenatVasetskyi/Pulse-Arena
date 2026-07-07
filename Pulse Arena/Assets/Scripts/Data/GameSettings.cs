@@ -368,6 +368,9 @@ namespace Data
         public int MaxEnemies = 8;
         public int MaxPickups = 1;
         public float WavePollInterval = 0.25f;
+
+        [Tooltip("Enemies won't spawn at points closer than this (horizontal) to the player, so they never pop up right on top of you.")]
+        public float MinPlayerSpawnDistance = 5f;
     }
 
     [Serializable]
@@ -406,5 +409,12 @@ namespace Data
         public GameObject WorldHealthBarPrefab;
         public GameObject HookTargetMarkerPrefab;
         public GameObject FloatingScoreTextPrefab;
+
+        [Header("Pickups")]
+        public GameObject HealthOrbPrefab;
+
+        [Header("UI")]
+        public GameObject SettingsPanelPrefab;
+        public GameObject PausePanelPrefab;
     }
 }

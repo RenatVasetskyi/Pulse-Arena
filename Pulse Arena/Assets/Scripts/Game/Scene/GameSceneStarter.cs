@@ -1,5 +1,7 @@
 using System;
 using Architecture.Services.Interfaces;
+using Architecture.States;
+using Architecture.States.Interfaces;
 using Data;
 using Game.Arena.Interfaces;
 using Game.Cameras;
@@ -11,6 +13,7 @@ using Game.Player.Interfaces;
 using Game.Spawning;
 using UI;
 using UI.Hud;
+using UI.Pause;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Zenject;
@@ -27,6 +30,9 @@ namespace Game.Scene
         private readonly IInputService _inputService;
         private readonly IScoreService _scoreService;
         private readonly IAudioService _audioService;
+        private readonly ISettingsService _settingsService;
+        private readonly ISettingsController _settingsController;
+        private readonly IStateMachine _stateMachine;
         private readonly GameSettings _gameSettings;
         private GameSceneReferences _sceneReferences;
         private IBattleCamera _battleCamera;
@@ -35,6 +41,8 @@ namespace Game.Scene
         private EnemySlingshot _enemySlingshot;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
+        private PausePanelView _pausePanel;
+        private PauseController _pauseController;
         private bool _isGameOver;
         private int _lastPlayerHealth = -1;
 
@@ -47,6 +55,9 @@ namespace Game.Scene
             IInputService inputService,
             IScoreService scoreService,
             IAudioService audioService,
+            ISettingsService settingsService,
+            ISettingsController settingsController,
+            IStateMachine stateMachine,
             GameSettings gameSettings)
         {
             _arenaFactory = arenaFactory;
@@ -57,6 +68,9 @@ namespace Game.Scene
             _inputService = inputService;
             _scoreService = scoreService;
             _audioService = audioService;
+            _settingsService = settingsService;
+            _settingsController = settingsController;
+            _stateMachine = stateMachine;
             _gameSettings = gameSettings;
         }
 
@@ -76,7 +90,10 @@ namespace Game.Scene
 
             _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
             if (_gameOverView != null)
+            {
                 _gameOverView.RestartClicked += RestartScene;
+                _gameOverView.MenuClicked += QuitToMenu;
+            }
 
             _player = SpawnPlayer();
             _player.Died += OnPlayerDied;
@@ -86,6 +103,8 @@ namespace Game.Scene
             _gameHud = InstantiateHud<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
             _gameHud?.Bind(_player, _scoreService, _battleCamera);
             _inputService.SetTouchInput(_gameHud);
+
+            SetupPause();
 
             _battleCamera.Follow(_player.transform);
             SubscribeToCombat(_player);
@@ -141,13 +160,22 @@ namespace Game.Scene
             if (_gameOverView != null)
             {
                 _gameOverView.RestartClicked -= RestartScene;
+                _gameOverView.MenuClicked -= QuitToMenu;
                 UnityEngine.Object.Destroy(_gameOverView.gameObject);
             }
 
             _inputService.SetTouchInput(null);
 
             if (_gameHud != null)
+            {
+                _gameHud.PauseRequested -= OnPauseRequested;
                 UnityEngine.Object.Destroy(_gameHud.gameObject);
+            }
+
+            _pauseController?.Dispose();
+
+            if (_pausePanel != null)
+                UnityEngine.Object.Destroy(_pausePanel.gameObject);
 
             _enemyFactory.Clear();
 
@@ -220,9 +248,22 @@ namespace Game.Scene
         private void OnPlayerHealthChanged(int health, int maxHealth)
         {
             if (_lastPlayerHealth >= 0 && health < _lastPlayerHealth)
+            {
                 _audioService.PlaySfx(GameSfx.PlayerHit);
+                TryVibrate();
+            }
 
             _lastPlayerHealth = health;
+        }
+
+        private void TryVibrate()
+        {
+            if (_settingsService == null || !_settingsService.VibrationEnabled)
+                return;
+
+#if UNITY_ANDROID || UNITY_IOS
+            Handheld.Vibrate();
+#endif
         }
 
         private void OnRarePickupSpawned(string message, float duration)
@@ -259,6 +300,32 @@ namespace Game.Scene
             _pickupSpawner.StopSpawn();
             _gameOverView?.Show(_scoreService.Score, title);
             Time.timeScale = 0f;
+        }
+
+        private void SetupPause()
+        {
+            _pausePanel = InstantiateHud<PausePanelView>(_gameSettings.Prefabs.PausePanelPrefab, "PausePanelPrefab");
+
+            if (_pausePanel != null)
+                _pauseController = new PauseController(_pausePanel, _inputService, _settingsController,
+                    RestartScene, QuitToMenu);
+
+            if (_gameHud != null)
+                _gameHud.PauseRequested += OnPauseRequested;
+        }
+
+        private void OnPauseRequested()
+        {
+            if (_isGameOver)
+                return;
+
+            _pauseController?.Toggle();
+        }
+
+        private void QuitToMenu()
+        {
+            Time.timeScale = 1f;
+            _stateMachine.Enter<LoadMainMenuState>();
         }
 
         private void RestartScene()

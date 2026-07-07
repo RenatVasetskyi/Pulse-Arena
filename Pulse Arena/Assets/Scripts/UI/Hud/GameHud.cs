@@ -1,8 +1,11 @@
+using System;
 using Architecture.Services.Interfaces;
 using Game.Cameras;
 using Game.Combat;
 using Game.Player;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace UI.Hud
 {
@@ -29,10 +32,29 @@ namespace UI.Hud
         [SerializeField] private VirtualJoystick _joystick;
         [SerializeField] private LassoButton _lassoButton;
 
+        [Header("Pause")]
+        [SerializeField] private Button _pauseButton;
+
+        public event Action PauseRequested;
+
         Vector2 ITouchInput.Move => _joystick != null ? _joystick.Value : Vector2.zero;
         bool ITouchInput.LassoPressedThisFrame => _lassoButton != null && _lassoButton.PressedThisFrame;
         bool ITouchInput.LassoHeld => _lassoButton != null && _lassoButton.Held;
         bool ITouchInput.LassoReleasedThisFrame => _lassoButton != null && _lassoButton.ReleasedThisFrame;
+
+        private void Awake()
+        {
+            if (_pauseButton != null)
+                _pauseButton.onClick.AddListener(() => PauseRequested?.Invoke());
+        }
+
+        private void Update()
+        {
+            Keyboard keyboard = Keyboard.current;
+
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+                PauseRequested?.Invoke();
+        }
 
         public void Bind(PlayerController player, IScoreService score, IBattleCamera camera)
         {

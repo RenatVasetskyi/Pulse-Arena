@@ -8,21 +8,29 @@ using Zenject;
 
 namespace Game.Pickups
 {
+    /// <summary>
+    /// Floating health orb. The whole look (core, glow halo, rings, point light, trigger) lives on the
+    /// prefab and is editable by hand; this component only drives the bob, spin, breathing glow and the
+    /// collect pop. Assign the visual references on the prefab.
+    /// </summary>
     public class HealthOrbPickup : MonoBehaviour
     {
-        private static readonly Color CoreColor = new(0.25f, 1f, 0.38f, 1f);
-        private static readonly Color GlowColor = new(0.35f, 1f, 0.58f, 0.72f);
-
         public event Action<HealthOrbPickup> Collected;
+
+        [Header("Visual (assigned on the prefab)")]
+        [SerializeField] private Transform _visualRoot;
+        [SerializeField] private Transform _innerGlow;
+        [SerializeField] private Transform _innerRing;
+        [SerializeField] private Transform _outerRing;
+        [SerializeField] private Light _light;
+        [SerializeField] private SphereCollider _collider;
 
         private PickupData _pickupData;
         private IAudioService _audioService;
-        private Transform _visualRoot;
-        private Transform _core;
-        private Transform _innerRing;
-        private Transform _outerRing;
-        private LineRenderer _beam;
+        private Vector3 _baseGlowScale = Vector3.one;
+        private float _baseLightIntensity = 2.1f;
         private Vector3 _startPosition;
+        private bool _collected;
 
         [Inject]
         public void Construct(GameSettings gameSettings, IAudioService audioService)
@@ -34,12 +42,19 @@ namespace Game.Pickups
         public void Initialize()
         {
             _startPosition = transform.position;
-            EnsureCollider();
-            CreateVisual();
+
+            if (_innerGlow != null)
+                _baseGlowScale = _innerGlow.localScale;
+
+            if (_light != null)
+                _baseLightIntensity = _light.intensity;
         }
 
         private void Update()
         {
+            if (_pickupData == null || _collected)
+                return;
+
             float bobOffset = Mathf.Sin(Time.time * _pickupData.BobSpeed) * _pickupData.BobHeight;
             transform.position = _startPosition + Vector3.up * bobOffset;
 
@@ -52,10 +67,20 @@ namespace Game.Pickups
             if (_outerRing != null)
                 _outerRing.Rotate(Vector3.right, -_pickupData.RotateSpeed * 0.9f * Time.deltaTime, Space.Self);
 
-            UpdateBeam();
+            UpdateGlow();
         }
 
-        private bool _collected;
+        // Breathing glow: pulses the halo sphere + point light so the orb reads as "special".
+        private void UpdateGlow()
+        {
+            float pulse = 1f + Mathf.Sin(Time.time * _pickupData.BobSpeed * 1.5f) * 0.22f;
+
+            if (_innerGlow != null)
+                _innerGlow.localScale = _baseGlowScale * pulse;
+
+            if (_light != null)
+                _light.intensity = _baseLightIntensity * pulse;
+        }
 
         private void OnTriggerEnter(Collider other)
         {
@@ -79,187 +104,40 @@ namespace Game.Pickups
         {
             _audioService?.PlaySfx(GameSfx.HealthPickup);
 
-            SphereCollider sphere = GetComponent<SphereCollider>();
+            if (_collider != null)
+                _collider.enabled = false;
 
-            if (sphere != null)
-                sphere.enabled = false;
-
-            if (_visualRoot != null)
-                _visualRoot.DOScale(_visualRoot.localScale * 1.8f, 0.22f).SetEase(Ease.OutQuad);
-
-            Destroy(gameObject, 0.24f);
-        }
-
-        private void EnsureCollider()
-        {
-            SphereCollider sphere = GetComponent<SphereCollider>();
-
-            if (sphere == null)
-                sphere = gameObject.AddComponent<SphereCollider>();
-
-            sphere.isTrigger = true;
-            sphere.radius = 0.72f;
-            sphere.center = Vector3.zero;
-        }
-
-        private void CreateVisual()
-        {
-            if (_visualRoot != null)
-                return;
-
-            _visualRoot = new GameObject("Health Orb Visual").transform;
-            _visualRoot.SetParent(transform, false);
-
-            Material coreMaterial = CreateMaterial(CoreColor, "Health Orb Core");
-            Material glowMaterial = CreateMaterial(GlowColor, "Health Orb Glow");
-
-            _core = CreatePrimitive("Core", PrimitiveType.Sphere, _visualRoot,
-                Vector3.zero, Vector3.one * 0.52f, coreMaterial);
-            CreatePrimitive("Inner Glow", PrimitiveType.Sphere, _visualRoot,
-                Vector3.zero, Vector3.one * 0.74f, glowMaterial);
-
-            _innerRing = CreateRing("Inner Ring", _visualRoot, 0.58f, 0.045f, glowMaterial);
-            _outerRing = CreateRing("Outer Ring", _visualRoot, 0.72f, 0.035f, glowMaterial);
-            _outerRing.localRotation = Quaternion.Euler(90f, 0f, 0f);
-
-            CreateBeam(glowMaterial);
-            CreateLight();
-        }
-
-        private Transform CreatePrimitive(
-            string objectName,
-            PrimitiveType primitiveType,
-            Transform parent,
-            Vector3 localPosition,
-            Vector3 localScale,
-            Material material)
-        {
-            GameObject part = GameObject.CreatePrimitive(primitiveType);
-            part.name = objectName;
-            part.transform.SetParent(parent, false);
-            part.transform.localPosition = localPosition;
-            part.transform.localScale = localScale;
-
-            Collider partCollider = part.GetComponent<Collider>();
-
-            if (partCollider != null)
-                Destroy(partCollider);
-
-            Renderer renderer = part.GetComponent<Renderer>();
-
-            if (renderer != null)
-                renderer.sharedMaterial = material;
-
-            return part.transform;
-        }
-
-        private static Transform CreateRing(
-            string objectName,
-            Transform parent,
-            float radius,
-            float width,
-            Material material)
-        {
-            const int segments = 64;
-
-            GameObject ringObject = new(objectName);
-            ringObject.transform.SetParent(parent, false);
-
-            LineRenderer ring = ringObject.AddComponent<LineRenderer>();
-            ring.useWorldSpace = false;
-            ring.loop = true;
-            ring.positionCount = segments;
-            ring.widthMultiplier = width;
-            ring.numCapVertices = 4;
-            ring.material = material;
-
-            for (int i = 0; i < segments; i++)
+            // bright flash then snap to dark
+            if (_light != null)
             {
-                float angle = (float)i / segments * Mathf.PI * 2f;
-                ring.SetPosition(i, new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius));
+                _light.DOKill();
+                _light.DOIntensity(_baseLightIntensity * 3.2f, 0.05f)
+                    .SetLink(gameObject)
+                    .OnComplete(() =>
+                    {
+                        if (_light != null)
+                            _light.DOIntensity(0f, 0.14f).SetLink(gameObject);
+                    });
             }
 
-            return ringObject.transform;
-        }
+            // small hop as it's "sucked in"
+            transform.DOMoveY(transform.position.y + 0.5f, 0.2f).SetEase(Ease.OutQuad).SetLink(gameObject);
 
-        private void CreateBeam(Material material)
-        {
-            GameObject beamObject = new("Health Orb Beam");
-            beamObject.transform.SetParent(transform, false);
-
-            _beam = beamObject.AddComponent<LineRenderer>();
-            _beam.useWorldSpace = true;
-            _beam.positionCount = 2;
-            _beam.widthCurve = new AnimationCurve(
-                new Keyframe(0f, 0.14f),
-                new Keyframe(1f, 0.38f));
-            _beam.colorGradient = CreateBeamGradient();
-            _beam.material = material;
-            _beam.numCapVertices = 4;
-        }
-
-        private void UpdateBeam()
-        {
-            if (_beam == null)
-                return;
-
-            Vector3 basePosition = _startPosition + Vector3.down * 0.45f;
-            _beam.SetPosition(0, basePosition);
-            _beam.SetPosition(1, basePosition + Vector3.up * 5.5f);
-        }
-
-        private void CreateLight()
-        {
-            Light light = gameObject.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = CoreColor;
-            light.range = 4.5f;
-            light.intensity = 2.1f;
-        }
-
-        private static Material CreateMaterial(Color color, string materialName)
-        {
-            GameObject template = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            template.SetActive(false);
-            template.hideFlags = HideFlags.HideAndDontSave;
-
-            Renderer renderer = template.GetComponent<Renderer>();
-            Material material = new(renderer.sharedMaterial)
+            if (_visualRoot == null)
             {
-                name = materialName,
-                color = color
-            };
+                Destroy(gameObject, 0.05f);
+                return;
+            }
 
-            if (material.HasProperty("_BaseColor"))
-                material.SetColor("_BaseColor", color);
+            Vector3 baseScale = _visualRoot.localScale;
+            _visualRoot.DOKill();
 
-            if (material.HasProperty("_Color"))
-                material.SetColor("_Color", color);
-
-            if (material.HasProperty("_EmissionColor"))
-                material.SetColor("_EmissionColor", color * 2.2f);
-
-            Destroy(template);
-
-            return material;
-        }
-
-        private static Gradient CreateBeamGradient()
-        {
-            Gradient gradient = new();
-            gradient.SetKeys(
-                new[]
-                {
-                    new GradientColorKey(CoreColor, 0f),
-                    new GradientColorKey(CoreColor, 1f)
-                },
-                new[]
-                {
-                    new GradientAlphaKey(0.7f, 0f),
-                    new GradientAlphaKey(0f, 1f)
-                });
-
-            return gradient;
+            Sequence sequence = DOTween.Sequence().SetLink(gameObject);
+            sequence.Append(_visualRoot.DOScale(baseScale * 1.4f, 0.07f).SetEase(Ease.OutBack));   // quick pop
+            sequence.Append(_visualRoot.DOScale(Vector3.zero, 0.12f).SetEase(Ease.InBack));        // fast collapse
+            sequence.Join(_visualRoot.DOLocalRotate(new Vector3(0f, 260f, 0f), 0.12f,
+                RotateMode.FastBeyond360).SetEase(Ease.InQuad));                                   // spin away
+            sequence.OnComplete(() => Destroy(gameObject));
         }
     }
 }

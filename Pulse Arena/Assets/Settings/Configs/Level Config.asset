@@ -18,6 +18,7 @@ MonoBehaviour:
     MaxEnemies: 8
     MaxPickups: 1
     WavePollInterval: 0.25
+    MinPlayerSpawnDistance: 5
   Waves:
   - DelayBeforeWave: 2.5
     SpawnInterval: 1

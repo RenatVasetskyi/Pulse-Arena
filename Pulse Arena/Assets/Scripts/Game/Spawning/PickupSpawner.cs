@@ -85,6 +85,10 @@ namespace Game.Spawning
             Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
 
             HealthOrbPickup pickup = _pickupFactory.CreateHealthOrb(spawnPosition, point.rotation, _spawnParent);
+
+            if (pickup == null)
+                return;
+
             pickup.Collected += OnPickupCollected;
 
             _alivePickups++;

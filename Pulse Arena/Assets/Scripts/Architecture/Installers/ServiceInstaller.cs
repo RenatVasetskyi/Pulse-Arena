@@ -33,6 +33,7 @@ namespace Architecture.Installers
             BindFactories();
             BindInputService();
             BindScoreService();
+            BindSettingsService();
             BindAudioService();
         }
 
@@ -131,12 +132,26 @@ namespace Architecture.Installers
                 .AsSingle();
         }
 
+        private void BindSettingsService()
+        {
+            Container
+                .Bind<ISettingsService>()
+                .To<SettingsService>()
+                .AsSingle()
+                .NonLazy();
+
+            Container
+                .Bind<ISettingsController>()
+                .To<SettingsController>()
+                .AsSingle();
+        }
+
         private void BindAudioService()
         {
             AudioService audioService = new GameObject("AudioService")
                 .AddComponent<AudioService>();
             audioService.transform.SetParent(transform);
-            audioService.Initialize(_gameSettings.AudioData);
+            audioService.Initialize(_gameSettings.AudioData, Container.Resolve<ISettingsService>());
 
             Container
                 .Bind<IAudioService>()

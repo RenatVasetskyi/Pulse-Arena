@@ -16,12 +16,14 @@ namespace UI
         [SerializeField] private TextMeshProUGUI _titleText;
         [SerializeField] private TextMeshProUGUI _scoreText;
         [SerializeField] private Button _restartButton;
+        [SerializeField] private Button _mainMenuButton;
         [SerializeField] private RectTransform _window;
 
         private Vector3 _windowBaseScale = Vector3.one;
         private Vector3 _restartBaseScale = Vector3.one;
 
         public event Action RestartClicked;
+        public event Action MenuClicked;
 
         public void Show(int score, string title)
         {
@@ -75,6 +77,9 @@ namespace UI
                 _restartButton.onClick.AddListener(OnRestart);
             }
 
+            if (_mainMenuButton != null)
+                _mainMenuButton.onClick.AddListener(OnMenu);
+
             gameObject.SetActive(false);
         }
 
@@ -82,11 +87,19 @@ namespace UI
         {
             if (_restartButton != null)
                 _restartButton.onClick.RemoveListener(OnRestart);
+
+            if (_mainMenuButton != null)
+                _mainMenuButton.onClick.RemoveListener(OnMenu);
         }
 
         private void OnRestart()
         {
             RestartClicked?.Invoke();
+        }
+
+        private void OnMenu()
+        {
+            MenuClicked?.Invoke();
         }
     }
 }

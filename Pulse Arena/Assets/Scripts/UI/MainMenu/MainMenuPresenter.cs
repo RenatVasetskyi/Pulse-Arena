@@ -11,17 +11,21 @@ namespace UI.MainMenu
         private readonly MainMenuView _view;
         private readonly IStateMachine _stateMachine;
         private readonly IAudioService _audioService;
+        private readonly ISettingsController _settingsController;
 
-        public MainMenuPresenter(MainMenuView view, IStateMachine stateMachine, IAudioService audioService)
+        public MainMenuPresenter(MainMenuView view, IStateMachine stateMachine, IAudioService audioService,
+            ISettingsController settingsController)
         {
             _view = view;
             _stateMachine = stateMachine;
             _audioService = audioService;
+            _settingsController = settingsController;
         }
 
         public void Initialize()
         {
             _view.PlayClicked += OnPlayClicked;
+            _view.SettingsClicked += OnSettingsClicked;
             _view.Show();
         }
 
@@ -31,6 +35,7 @@ namespace UI.MainMenu
                 return;
 
             _view.PlayClicked -= OnPlayClicked;
+            _view.SettingsClicked -= OnSettingsClicked;
             _view.Dispose();
         }
 
@@ -39,6 +44,12 @@ namespace UI.MainMenu
             _audioService?.PlaySfx(GameSfx.UiClick);
             _view.Hide();
             _stateMachine.Enter<StartGameState>();
+        }
+
+        private void OnSettingsClicked()
+        {
+            _audioService?.PlaySfx(GameSfx.UiClick);
+            _settingsController?.Open();
         }
     }
 }

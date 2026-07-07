@@ -31,6 +31,9 @@ MonoBehaviour:
     WorldHealthBarPrefab: {fileID: 27977392912223842, guid: 5073f9ab4c91b44168295ff06f211b21, type: 3}
     HookTargetMarkerPrefab: {fileID: 774086409651098171, guid: 7495b129fa00444d293236fd6c46c65a, type: 3}
     FloatingScoreTextPrefab: {fileID: 1857932802936733279, guid: 3cc0058405846407384e5e2c46eb4959, type: 3}
+    HealthOrbPrefab: {fileID: 2989478771963095101, guid: 1be74f43bab954a53a874df7e651f981, type: 3}
+    SettingsPanelPrefab: {fileID: 5679090128603803609, guid: 7b297561ddec54827a9d420704ac1296, type: 3}
+    PausePanelPrefab: {fileID: 6353425926950742748, guid: 14e8c462154dc4793b2808bd5c03471b, type: 3}
   _player: {fileID: 11400000, guid: 500ba64cda954b9d8fac688c11707894, type: 2}
   _enemy: {fileID: 11400000, guid: b8658dd11918436b945d2b78f68c582f, type: 2}
   _combat: {fileID: 11400000, guid: ac924186f4af4023af24e64fdb36a8e7, type: 2}

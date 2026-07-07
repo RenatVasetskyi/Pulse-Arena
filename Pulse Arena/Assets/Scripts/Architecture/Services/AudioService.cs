@@ -15,14 +15,16 @@ namespace Architecture.Services
         private const int SourceCount = 8;
 
         private AudioData _data;
+        private ISettingsService _settings;
         private Dictionary<GameSfx, SfxEntry> _map;
         private AudioSource[] _sources;
         private AudioSource _musicSource;
         private int _next;
 
-        public void Initialize(AudioData data)
+        public void Initialize(AudioData data, ISettingsService settings)
         {
             _data = data;
+            _settings = settings;
             _map = new Dictionary<GameSfx, SfxEntry>();
 
             if (_data?.Sfx != null)
@@ -46,6 +48,36 @@ namespace Architecture.Services
             _musicSource.playOnAwake = false;
             _musicSource.loop = true;
             _musicSource.spatialBlend = 0f;
+
+            if (_settings != null)
+                _settings.Changed += OnSettingsChanged;
+        }
+
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
+        }
+
+        // Live-update the music volume when the player drags a settings slider.
+        private void OnSettingsChanged()
+        {
+            if (_musicSource != null)
+                _musicSource.volume = MusicScale();
+        }
+
+        private float SfxScale()
+        {
+            return _settings == null
+                ? 1f
+                : Mathf.Clamp01(_settings.SfxVolume) * Mathf.Clamp01(_settings.MasterVolume);
+        }
+
+        private float MusicScale()
+        {
+            return _settings == null
+                ? 1f
+                : Mathf.Clamp01(_settings.MusicVolume) * Mathf.Clamp01(_settings.MasterVolume);
         }
 
         public void PlayMusic(AudioClip clip)
@@ -58,7 +90,7 @@ namespace Architecture.Services
                 return;
 
             _musicSource.clip = clip;
-            _musicSource.volume = Mathf.Clamp01(_data.MusicVolume) * Mathf.Clamp01(_data.MasterVolume);
+            _musicSource.volume = MusicScale();
             _musicSource.Play();
         }
 
@@ -80,8 +112,7 @@ namespace Architecture.Services
             _next = (_next + 1) % _sources.Length;
 
             source.pitch = ResolvePitch(entry);
-            float volume = entry.Volume * Mathf.Clamp01(_data.SfxVolume) * Mathf.Clamp01(_data.MasterVolume);
-            source.PlayOneShot(entry.Clip, volume);
+            source.PlayOneShot(entry.Clip, entry.Volume * SfxScale());
         }
 
         private static float ResolvePitch(SfxEntry entry)
