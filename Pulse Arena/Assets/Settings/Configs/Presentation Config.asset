@@ -45,10 +45,14 @@ MonoBehaviour:
     ShakeFrequency: 35
     RopeBreakShakeDuration: 0.12
     RopeBreakShakeStrength: 0.32
+    PlayerHitShakeDuration: 0.15
+    PlayerHitShakeStrength: 0.25
     LaunchKickOffset: {x: 0, y: 0.32, z: -0.65}
     LaunchKickDuration: 0.2
     LaunchShakeDuration: 0.12
     LaunchShakeStrength: 0.18
+    LaunchFovPunch: -3
+    LaunchFovDuration: 0.26
   Ui:
     HudPanelColor: {r: 0.06, g: 0.07, b: 0.1, a: 0.62}
     HealthAliveColor: {r: 1, g: 0.16, b: 0.12, a: 1}

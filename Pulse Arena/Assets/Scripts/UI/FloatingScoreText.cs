@@ -7,29 +7,35 @@ using UnityEngine.SceneManagement;
 namespace UI
 {
     /// <summary>
-    /// World-space "+N" score popup that rises and fades out. Pooled and recycled on expiry (the
-    /// pool is cleared on scene unload) so a kill no longer allocates a fresh canvas + text each time.
+    /// World-space "+N" score popup that rises and fades out. The canvas + text live on the prefab;
+    /// instances are pooled and recycled on expiry (the pool is cleared on scene unload) so a kill no
+    /// longer allocates a fresh canvas + text each time.
     /// </summary>
     public class FloatingScoreText : MonoBehaviour
     {
         private static readonly Queue<FloatingScoreText> Pool = new();
         private static bool _sceneHookRegistered;
 
-        private TextMeshProUGUI _text;
+        [SerializeField] private TextMeshProUGUI _text;
+
         private Camera _camera;
         private Color _baseColor = new(1f, 0.92f, 0.4f, 1f);
         private float _timer;
         private float _lifetime = 0.9f;
         private float _riseSpeed = 1.6f;
 
-        public static FloatingScoreText Create(Vector3 position, string value, VfxData vfx = null)
+        public static FloatingScoreText Create(GameObject prefab, Vector3 position, string value, VfxData vfx = null)
         {
-            FloatingScoreText instance = Rent();
+            FloatingScoreText instance = Rent(prefab);
+
+            if (instance == null)
+                return null;
+
             instance.Play(position, value, vfx);
             return instance;
         }
 
-        private static FloatingScoreText Rent()
+        private static FloatingScoreText Rent(GameObject prefab)
         {
             EnsureSceneHook();
 
@@ -44,37 +50,16 @@ namespace UI
                 }
             }
 
-            return Build();
+            return Build(prefab);
         }
 
-        private static FloatingScoreText Build()
+        private static FloatingScoreText Build(GameObject prefab)
         {
-            GameObject root = new("FloatingScoreText", typeof(RectTransform));
-            root.transform.localScale = Vector3.one * 0.02f;
+            if (prefab == null)
+                return null;
 
-            Canvas canvas = root.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.sortingOrder = 60;
-
-            RectTransform rootRect = root.GetComponent<RectTransform>();
-            rootRect.sizeDelta = new Vector2(160f, 60f);
-
-            GameObject textObject = new("Value", typeof(RectTransform));
-            RectTransform textRect = textObject.GetComponent<RectTransform>();
-            textRect.SetParent(rootRect, false);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-
-            TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
-            text.alignment = TextAlignmentOptions.Center;
-            text.fontStyle = FontStyles.Bold;
-            text.fontSize = 44f;
-
-            FloatingScoreText floating = root.AddComponent<FloatingScoreText>();
-            floating._text = text;
-            return floating;
+            GameObject root = Instantiate(prefab);
+            return root.GetComponent<FloatingScoreText>();
         }
 
         private void Play(Vector3 position, string value, VfxData vfx)

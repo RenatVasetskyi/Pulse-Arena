@@ -2,26 +2,22 @@ using UnityEngine;
 
 namespace Game.Combat
 {
+    /// <summary>
+    /// Ground ring shown under a lasso-able enemy. The visual (LineRenderer + material) lives on the
+    /// prefab; this component only drives the ring geometry, colour and pulse each frame.
+    /// </summary>
     public class HookTargetMarker : MonoBehaviour
     {
         private const int PointCount = 28;
 
-        private LineRenderer _ring;
-        private Material _material;
-
-        public static HookTargetMarker Create(Transform parent)
-        {
-            GameObject root = new("Hook Target Marker");
-            root.transform.SetParent(parent, false);
-
-            HookTargetMarker marker = root.AddComponent<HookTargetMarker>();
-            marker.Build();
-            return marker;
-        }
+        [SerializeField] private LineRenderer _ring;
 
         public void Show(Vector3 center, float radius, float width, Color color,
             float pulseSpeed, float pulseAmplitude)
         {
+            if (_ring == null)
+                return;
+
             _ring.enabled = true;
             _ring.widthMultiplier = width;
             _ring.startColor = color;
@@ -42,29 +38,6 @@ namespace Game.Combat
         {
             if (_ring != null)
                 _ring.enabled = false;
-        }
-
-        private void Build()
-        {
-            Shader shader = Shader.Find("Sprites/Default");
-            _material = new Material(shader)
-            {
-                name = "Hook Target Marker"
-            };
-
-            GameObject ringObject = new("Ring");
-            ringObject.transform.SetParent(transform, false);
-
-            _ring = ringObject.AddComponent<LineRenderer>();
-            _ring.useWorldSpace = true;
-            _ring.loop = true;
-            _ring.positionCount = PointCount;
-            _ring.numCapVertices = 2;
-            _ring.numCornerVertices = 2;
-            _ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _ring.receiveShadows = false;
-            _ring.material = _material;
-            _ring.enabled = false;
         }
     }
 }

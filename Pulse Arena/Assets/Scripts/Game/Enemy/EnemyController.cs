@@ -338,7 +338,13 @@ namespace Game.Enemy
             if (_healthBar != null)
                 return;
 
-            _healthBar = WorldHealthBar.Create(transform, _health.Max, _data.HealthBarHeight, _settings.Ui);
+            GameObject prefab = _settings.Prefabs.WorldHealthBarPrefab;
+
+            if (prefab == null)
+                return;
+
+            _healthBar = Instantiate(prefab, transform, false).GetComponent<WorldHealthBar>();
+            _healthBar.Initialize(_health.Max, _data.HealthBarHeight, _settings.Ui);
             _healthBar.SetHealth(_health.Current, _health.Max);
         }
 
@@ -584,7 +590,8 @@ namespace Game.Enemy
         private void SpawnRingoutFeedback()
         {
             Vector3 feedbackPosition = new(transform.position.x, _data.RingoutTextHeight, transform.position.z);
-            FloatingScoreText.Create(feedbackPosition, $"+{GetScoreReward()}", _settings.Vfx);
+            FloatingScoreText.Create(_settings.Prefabs.FloatingScoreTextPrefab, feedbackPosition,
+                $"+{GetScoreReward()}", _settings.Vfx);
             PlayRingoutBurst(feedbackPosition);
         }
 
@@ -917,3 +924,4 @@ namespace Game.Enemy
         }
     }
 }
+

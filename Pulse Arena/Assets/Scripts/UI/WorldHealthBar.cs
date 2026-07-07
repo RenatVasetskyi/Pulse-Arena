@@ -4,9 +4,18 @@ using UnityEngine.UI;
 
 namespace UI
 {
+    /// <summary>
+    /// World-space segmented HP bar that billboards to the camera. Canvas, background and one disabled
+    /// segment template live on the prefab; segments are cloned from that template at runtime because
+    /// pooled enemies respawn with different max HP (2 -&gt; 2 pips, 3 -&gt; 3, 4 -&gt; 4).
+    /// </summary>
     public class WorldHealthBar : MonoBehaviour
     {
         private const float SegmentSpacing = 0.04f;
+
+        [SerializeField] private RectTransform _segmentsParent;
+        [SerializeField] private Image _segmentTemplate;
+        [SerializeField] private Image _background;
 
         private Image[] _segments;
         private Camera _camera;
@@ -14,33 +23,29 @@ namespace UI
         private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
         private Color _backgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
 
-        public static WorldHealthBar Create(Transform target, int maxHealth, float height, UiData ui = null)
+        public void Initialize(int maxHealth, float height, UiData ui = null)
         {
-            GameObject root = new("WorldHealthBar", typeof(RectTransform));
-            root.transform.SetParent(target, false);
-            root.transform.localPosition = Vector3.up * height;
-            root.transform.localRotation = Quaternion.identity;
-            root.transform.localScale = Vector3.one;
-
-            WorldHealthBar view = root.AddComponent<WorldHealthBar>();
+            transform.localPosition = Vector3.up * height;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
 
             if (ui != null)
             {
-                view._aliveColor = ui.WorldHealthAliveColor;
-                view._emptyColor = ui.WorldHealthEmptyColor;
-                view._backgroundColor = ui.WorldHealthBackgroundColor;
+                _aliveColor = ui.WorldHealthAliveColor;
+                _emptyColor = ui.WorldHealthEmptyColor;
+                _backgroundColor = ui.WorldHealthBackgroundColor;
             }
 
-            view.Initialize(maxHealth);
-            return view;
+            if (_background != null)
+                _background.color = _backgroundColor;
+
+            SetHealth(maxHealth, maxHealth);
         }
 
         public void SetHealth(int health, int maxHealth)
         {
             int count = Mathf.Max(1, maxHealth);
 
-            // Pooled enemies respawn as different types with different max HP, so rebuild the
-            // segments whenever the count changes (2 HP -> 2 pips, 3 -> 3, 4 -> 4).
             if (_segments == null || _segments.Length != count)
                 RebuildSegments(count);
 
@@ -61,21 +66,6 @@ namespace UI
             transform.rotation = _camera.transform.rotation;
         }
 
-        private void Initialize(int maxHealth)
-        {
-            Canvas canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.sortingOrder = 20;
-
-            RectTransform root = GetComponent<RectTransform>();
-            root.sizeDelta = new Vector2(1.25f, 0.18f);
-
-            Image background = CreateImage("Background", root, _backgroundColor);
-            Stretch(background.rectTransform);
-
-            SetHealth(maxHealth, maxHealth);
-        }
-
         private void RebuildSegments(int count)
         {
             if (_segments != null)
@@ -85,8 +75,10 @@ namespace UI
                         Destroy(segment.gameObject);
             }
 
-            RectTransform parent = GetComponent<RectTransform>();
             _segments = new Image[count];
+
+            if (_segmentTemplate == null || _segmentsParent == null)
+                return;
 
             float totalWidth = 1.05f;
             float segmentWidth = (totalWidth - SegmentSpacing * (count - 1)) / count;
@@ -94,7 +86,11 @@ namespace UI
 
             for (int i = 0; i < count; i++)
             {
-                Image segment = CreateImage($"HP_{i + 1}", parent, _aliveColor);
+                Image segment = Instantiate(_segmentTemplate, _segmentsParent);
+                segment.gameObject.SetActive(true);
+                segment.gameObject.name = $"HP_{i + 1}";
+                segment.color = _aliveColor;
+
                 RectTransform rect = segment.rectTransform;
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -103,30 +99,6 @@ namespace UI
                 rect.sizeDelta = new Vector2(segmentWidth, 0.1f);
                 _segments[i] = segment;
             }
-        }
-
-        private static Image CreateImage(string name, RectTransform parent, Color color)
-        {
-            RectTransform rect = CreateRect(name, parent);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            return image;
-        }
-
-        private static RectTransform CreateRect(string name, RectTransform parent)
-        {
-            GameObject child = new(name, typeof(RectTransform));
-            RectTransform rect = child.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            return rect;
-        }
-
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
         }
     }
 }

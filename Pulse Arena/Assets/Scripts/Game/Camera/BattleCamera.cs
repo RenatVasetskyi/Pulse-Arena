@@ -41,10 +41,18 @@ namespace Game.Cameras
         [SerializeField] private float _launchKickDuration = 0.2f;
         [SerializeField] private float _launchShakeDuration = 0.12f;
         [SerializeField] private float _launchShakeStrength = 0.18f;
+        [SerializeField] private float _launchFovPunch = -3f;
+        [SerializeField] private float _launchFovDuration = 0.26f;
+
+        [Header("Player Hit FX")]
+        [SerializeField] private float _playerHitShakeDuration = 0.15f;
+        [SerializeField] private float _playerHitShakeStrength = 0.25f;
 
         private Coroutine _shakeRoutine;
         private Coroutine _offsetKickRoutine;
+        private Coroutine _fovKickRoutine;
         private Vector3 _currentKickOffset;
+        private float _currentFovKick;
         private float _zoom;
         private float _targetZoom;
         private float _zoomVelocity;
@@ -69,6 +77,10 @@ namespace Game.Cameras
             _launchKickDuration = cameraData.LaunchKickDuration;
             _launchShakeDuration = cameraData.LaunchShakeDuration;
             _launchShakeStrength = cameraData.LaunchShakeStrength;
+            _launchFovPunch = cameraData.LaunchFovPunch;
+            _launchFovDuration = cameraData.LaunchFovDuration;
+            _playerHitShakeDuration = cameraData.PlayerHitShakeDuration;
+            _playerHitShakeStrength = cameraData.PlayerHitShakeStrength;
         }
 
         private void Awake()
@@ -129,6 +141,12 @@ namespace Game.Cameras
 
             Shake(_launchShakeDuration, Mathf.Lerp(_launchShakeStrength * 0.65f, _launchShakeStrength, safeProgress));
             KickOffset(_launchKickOffset * Mathf.Lerp(0.65f, 1f, safeProgress), _launchKickDuration);
+            FovPunch(_launchFovPunch * Mathf.Lerp(0.6f, 1f, safeProgress), _launchFovDuration);
+        }
+
+        public void PlayPlayerHit()
+        {
+            Shake(_playerHitShakeDuration, _playerHitShakeStrength);
         }
 
         public void ZoomIn()
@@ -188,10 +206,48 @@ namespace Game.Cameras
             _offsetKickRoutine = null;
         }
 
+        private void FovPunch(float delta, float duration)
+        {
+            if (_fovKickRoutine != null)
+                StopCoroutine(_fovKickRoutine);
+
+            _fovKickRoutine = StartCoroutine(FovPunchRoutine(delta, duration));
+        }
+
+        private IEnumerator FovPunchRoutine(float delta, float duration)
+        {
+            float safeDuration = Mathf.Max(duration, 0.01f);
+            float attack = safeDuration * 0.3f;
+            float timer = 0f;
+
+            while (timer < safeDuration)
+            {
+                float kick;
+
+                if (timer < attack)
+                {
+                    float t = timer / attack;                     // fast zoom-in
+                    kick = delta * (1f - (1f - t) * (1f - t));    // ease-out
+                }
+                else
+                {
+                    float t = (timer - attack) / (safeDuration - attack);
+                    kick = delta * (1f - Mathf.SmoothStep(0f, 1f, t)); // spring back
+                }
+
+                _currentFovKick = kick;
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            _currentFovKick = 0f;
+            _fovKickRoutine = null;
+        }
+
         private void ApplyDynamicCameraSettings()
         {
             if (_camera != null)
-                _camera.Lens.FieldOfView = _fieldOfView;
+                _camera.Lens.FieldOfView = _fieldOfView + _currentFovKick;
 
             if (_follow != null)
                 _follow.FollowOffset = ZoomedFollowOffset + _currentKickOffset;

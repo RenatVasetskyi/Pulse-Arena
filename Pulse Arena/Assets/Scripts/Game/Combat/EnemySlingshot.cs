@@ -49,6 +49,7 @@ namespace Game.Combat
         private float _tension;
         private ParticleSystem _snapBurst;
         private HookTargetMarker _targetMarker;
+        private GameObject _targetMarkerPrefab;
         private bool _releaseRequested;
 
         [Inject]
@@ -57,6 +58,7 @@ namespace Game.Combat
             _inputService = inputService;
             _data = gameSettings.SlingshotData;
             _vfx = gameSettings.Vfx;
+            _targetMarkerPrefab = gameSettings.Prefabs.HookTargetMarkerPrefab;
             _rope.Initialize(transform, _data);
         }
 
@@ -316,8 +318,12 @@ namespace Game.Combat
                 return;
             }
 
+            if (_targetMarker == null && _targetMarkerPrefab != null)
+                _targetMarker = Instantiate(_targetMarkerPrefab, transform, false)
+                    .GetComponent<HookTargetMarker>();
+
             if (_targetMarker == null)
-                _targetMarker = HookTargetMarker.Create(transform);
+                return;
 
             float sqrDistance = (enemy.transform.position - transform.position).sqrMagnitude;
             bool isGrabbable = _cooldownTimer <= 0f &&

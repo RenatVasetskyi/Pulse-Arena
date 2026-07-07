@@ -221,11 +221,19 @@ namespace Data
         public float RopeBreakShakeDuration = 0.12f;
         public float RopeBreakShakeStrength = 0.32f;
 
+        [Header("Player Hit FX")]
+        public float PlayerHitShakeDuration = 0.15f;
+        public float PlayerHitShakeStrength = 0.25f;
+
         [Header("Lasso Launch FX")]
         public Vector3 LaunchKickOffset = new(0f, 0.32f, -0.65f);
         public float LaunchKickDuration = 0.2f;
         public float LaunchShakeDuration = 0.12f;
         public float LaunchShakeStrength = 0.18f;
+
+        [Tooltip("FOV delta punched on lasso launch (negative = quick zoom-in). Scaled by charge.")]
+        public float LaunchFovPunch = -3f;
+        public float LaunchFovDuration = 0.26f;
     }
 
     [Serializable]
@@ -369,5 +377,10 @@ namespace Data
         public GameObject GameHudPrefab;
         public GameObject GameOverPrefab;
         public GameObject ArenaPrefab;
+
+        [Header("World UI")]
+        public GameObject WorldHealthBarPrefab;
+        public GameObject HookTargetMarkerPrefab;
+        public GameObject FloatingScoreTextPrefab;
     }
 }

@@ -22,6 +22,7 @@ namespace UI.Hud
         [SerializeField] private HudDamageFlash _damageFlash;
 
         private PlayerController _player;
+        private IBattleCamera _camera;
         private int _lastHealth = -1;
 
         [Header("Touch controls (mobile)")]
@@ -44,6 +45,7 @@ namespace UI.Hud
             if (_zoom != null)
                 _zoom.Bind(camera);
 
+            _camera = camera;
             _player = player;
 
             if (_player != null)
@@ -55,8 +57,13 @@ namespace UI.Hud
 
         private void OnPlayerHealthChanged(int health, int maxHealth)
         {
-            if (_lastHealth >= 0 && health < _lastHealth && _damageFlash != null)
-                _damageFlash.Flash();
+            if (_lastHealth >= 0 && health < _lastHealth)
+            {
+                if (_damageFlash != null)
+                    _damageFlash.Flash();
+
+                _camera?.PlayPlayerHit();
+            }
 
             _lastHealth = health;
         }
