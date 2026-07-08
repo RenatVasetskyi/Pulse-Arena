@@ -20,7 +20,8 @@ namespace Game.Enemy
     /// FixedUpdate + collision callbacks into the state machine / collision handler. All per-frame logic
     /// lives in the seven state classes; the shared flags they flip live on the context (single source of
     /// truth) and the controller reads/writes them through it. The death-return coroutine stays here —
-    /// coroutines need the MonoBehaviour.
+    /// coroutines need the MonoBehaviour. Each lifecycle step (spawn reset / pool teardown / wiring) is a
+    /// small single-purpose method the coordinator calls in order.
     /// </summary>
     public class EnemyController : MonoBehaviour
     {
@@ -84,12 +85,28 @@ namespace Game.Enemy
             _audioService = audioService;
             _comboService = comboService;
             _scorePopups = scorePopups;
+
+            WireHealth();
+            _movement.ConfigureAgent();
+            InitializeRingout();
+            CreateHealthBar();
+        }
+
+        private void WireHealth()
+        {
             _health.Changed += OnHealthChanged;
             _health.Died += OnHealthDepleted;
             _health.Reset(_data.MaxHealth);
-            _movement.ConfigureAgent();
+        }
+
+        private void InitializeRingout()
+        {
             _ringout.Initialize(transform, _data, _settings.Vfx, _scoreService, _comboService,
                 _scorePopups, _audioService, () => _typeData);
+        }
+
+        private void CreateHealthBar()
+        {
             _healthBar.Create(transform, _settings.Prefabs.WorldHealthBarPrefab, _health.Max, _data.HealthBarHeight);
         }
 
@@ -112,32 +129,17 @@ namespace Game.Enemy
         public void PrepareForPool()
         {
             _hitFlash.Restore();
-
-            if (_deathRoutine != null)
-            {
-                StopCoroutine(_deathRoutine);
-                _deathRoutine = null;
-            }
-
+            StopDeathReturn();
             _stateMachine?.Clear();
             _movement.DisableAgent();
-            _target = null;
-            _playerTarget = null;
-            _context.IsGrabbed = false;
-            _context.IsImpactProjectile = false;
-            _context.NeedsGroundRecovery = false;
+            ClearTargets();
+            ClearContextFlags();
             _isRingout = false;
             _timers.Knockback.Clear();
             _timers.Stasis.Clear();
             _impact.Clear();
             transform.localScale = Vector3.one;
-
-            if (_rigidbody == null)
-                return;
-
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-            _rigidbody.isKinematic = false;
+            ParkRigidbody();
         }
 
         // --- public API ------------------------------------------------------------------------
@@ -147,10 +149,7 @@ namespace Game.Enemy
 
         public void Knockback(Vector3 force)
         {
-            _context.IsImpactProjectile = false;
-            _impact.ResetSweepOrigin();
-            _timers.Stasis.Clear();
-            _timers.PhysicsRecoveryElapsed = 0f;
+            ResetImpulseState();
             _timers.GroundContact.Clear();
             _timers.Knockback.Set(_data.KnockbackDuration);
             ChangeToKnockbackState();
@@ -163,10 +162,7 @@ namespace Game.Enemy
             if (_isDead)
                 return;
 
-            _context.IsImpactProjectile = false;
-            _impact.ResetSweepOrigin();
-            _timers.Stasis.Clear();
-            _timers.PhysicsRecoveryElapsed = 0f;
+            ResetImpulseState();
             _timers.Knockback.Clear();
             ChangeToGrabbedState();
             _rigidbody.linearVelocity = Vector3.zero;
@@ -196,6 +192,21 @@ namespace Game.Enemy
             _timers.Stasis.Clear();
             _timers.Knockback.Set(duration);
             ChangeToKnockbackState();
+            ApplyLaunchVelocity(velocity);
+        }
+
+        // The shared prelude of Knockback + Grab: leave impact-projectile mode, reset the sweep origin and
+        // clear the stasis / physics-recovery timers before a fresh melee impulse.
+        private void ResetImpulseState()
+        {
+            _context.IsImpactProjectile = false;
+            _impact.ResetSweepOrigin();
+            _timers.Stasis.Clear();
+            _timers.PhysicsRecoveryElapsed = 0f;
+        }
+
+        private void ApplyLaunchVelocity(Vector3 velocity)
+        {
             _rigidbody.useGravity = true;
             _rigidbody.isKinematic = false;
             _rigidbody.linearVelocity = Vector3.zero;
@@ -209,8 +220,7 @@ namespace Game.Enemy
             if (_isDead)
                 return false;
 
-            _visual?.PlayHit();
-            _audioService?.PlaySfx(GameSfx.Impact);
+            PlayHitFeedback();
             _health.TakeDamage(damage);   // fires Changed (bar/event); on 0 fires Died (score + dead state)
 
             if (_isDead)
@@ -218,6 +228,12 @@ namespace Game.Enemy
 
             _hitFlash.Play();
             return false;
+        }
+
+        private void PlayHitFeedback()
+        {
+            _visual?.PlayHit();
+            _audioService?.PlaySfx(GameSfx.Impact);
         }
 
         public bool Kill()
@@ -277,6 +293,14 @@ namespace Game.Enemy
 
         private void Awake()
         {
+            ResolveComponents();
+            InitializeCollaborators();
+            SetupVisualsAndFlash();
+            BuildContext();
+        }
+
+        private void ResolveComponents()
+        {
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>();
 
@@ -287,15 +311,26 @@ namespace Game.Enemy
                 _agent = gameObject.AddComponent<NavMeshAgent>();
 
             _agent.enabled = false;
+            _capsule = ActorPhysicsUtility.NormalizeCapsuleRoot(transform);
+        }
+
+        private void InitializeCollaborators()
+        {
             _movement.Initialize(transform, _rigidbody, _agent, _data, GetMoveSpeed);
             _impact.Initialize(this, transform, _rigidbody, _data, () => _typeData);
             _groundRecovery.Initialize(transform, _rigidbody, _data, _timers);
             _collisions.Initialize(this, transform, _rigidbody, _data, _impact, _timers, _groundRecovery);
+        }
 
-            _capsule = ActorPhysicsUtility.NormalizeCapsuleRoot(transform);
+        private void SetupVisualsAndFlash()
+        {
             EnsurePrimitiveVisual();
-            _hitFlash.Initialize(GetComponentsInChildren<Renderer>(), _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
+            _hitFlash.Initialize(GetComponentsInChildren<Renderer>(),
+                _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
+        }
 
+        private void BuildContext()
+        {
             _context = new EnemyContext(
                 _rigidbody, transform, _data, _movement, _visual, _timers, _groundRecovery, _impact, _collisions,
                 () => _target, () => _playerTarget, () => _isDead, () => _typeData,
@@ -346,33 +381,36 @@ namespace Game.Enemy
         private void ResetForSpawn()
         {
             EnsureStateMachine();
-
-            _hitFlash.Restore();
-
-            if (_deathRoutine != null)
-            {
-                StopCoroutine(_deathRoutine);
-                _deathRoutine = null;
-            }
-
-            _stateMachine.Clear();
-            _movement.DisableAgent();
-
-            _isInPool = false;
-            _isDead = false;
-            _context.IsGrabbed = false;
-            _context.IsImpactProjectile = false;
-            _context.NeedsGroundRecovery = false;
-            _ringout.ResetForSpawn();
-            _timers.ResetAll();
-            _isRingout = false;
-            _collisions.ResetForSpawn();
-            _impact.Clear();
+            StopDeathReturn();
+            ResetSpawnFlags();
+            ResetCollaboratorsForSpawn();
             transform.localScale = Vector3.one;
-
             _health.Reset(GetTypeAdjustedMaxHealth());   // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
+            ResetRigidbodyForSpawn();
+        }
 
+        private void ResetSpawnFlags()
+        {
+            _isInPool = false;
+            _isDead = false;
+            _isRingout = false;
+            ClearContextFlags();
+        }
+
+        private void ResetCollaboratorsForSpawn()
+        {
+            _hitFlash.Restore();
+            _stateMachine.Clear();
+            _movement.DisableAgent();
+            _ringout.ResetForSpawn();
+            _timers.ResetAll();
+            _collisions.ResetForSpawn();
+            _impact.Clear();
+        }
+
+        private void ResetRigidbodyForSpawn()
+        {
             if (_rigidbody == null)
                 return;
 
@@ -384,6 +422,30 @@ namespace Game.Enemy
             _rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
             transform.rotation = Quaternion.identity;
             _rigidbody.WakeUp();
+        }
+
+        // Zeroes velocity and lets the body fall again — the pool-teardown counterpart of the spawn reset.
+        private void ParkRigidbody()
+        {
+            if (_rigidbody == null)
+                return;
+
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = false;
+        }
+
+        private void ClearTargets()
+        {
+            _target = null;
+            _playerTarget = null;
+        }
+
+        private void ClearContextFlags()
+        {
+            _context.IsGrabbed = false;
+            _context.IsImpactProjectile = false;
+            _context.NeedsGroundRecovery = false;
         }
 
         private void ReturnToPool()
@@ -409,6 +471,15 @@ namespace Game.Enemy
         {
             if (_deathRoutine == null)
                 _deathRoutine = StartCoroutine(ReturnAfterDeath());
+        }
+
+        private void StopDeathReturn()
+        {
+            if (_deathRoutine == null)
+                return;
+
+            StopCoroutine(_deathRoutine);
+            _deathRoutine = null;
         }
 
         private IEnumerator ReturnAfterDeath()
@@ -499,9 +570,7 @@ namespace Game.Enemy
         private void StopForDeath()
         {
             _movement.DisableAgent();
-            _context.IsGrabbed = false;
-            _context.IsImpactProjectile = false;
-            _context.NeedsGroundRecovery = false;
+            ClearContextFlags();
             _timers.Knockback.Clear();
             _timers.Stasis.Clear();
 
