@@ -43,7 +43,7 @@ namespace UI.MainMenu
         {
             _audioService?.PlaySfx(GameSfx.UiClick);
             _view.Hide();
-            _stateMachine.Enter<StartGameState>();
+            _stateMachine.Enter<LoadGameState>();
         }
 
         private void OnSettingsClicked()

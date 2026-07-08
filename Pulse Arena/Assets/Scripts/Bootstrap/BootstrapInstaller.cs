@@ -40,7 +40,8 @@ namespace Bootstrap
         {
             Container.Bind<BootstrapState>().AsSingle();
             Container.Bind<LoadMainMenuState>().AsSingle();
-            Container.Bind<StartGameState>().AsSingle();
+            Container.Bind<LoadGameState>().AsSingle();
+            Container.Bind<GameLoopState>().AsSingle();
         }
 
         private void RegisterStates()
@@ -49,7 +50,8 @@ namespace Bootstrap
 
             stateMachine.AddState(Container.Resolve<BootstrapState>());
             stateMachine.AddState(Container.Resolve<LoadMainMenuState>());
-            stateMachine.AddState(Container.Resolve<StartGameState>());
+            stateMachine.AddState(Container.Resolve<LoadGameState>());
+            stateMachine.AddState(Container.Resolve<GameLoopState>());
         }
     }
 }

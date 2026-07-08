@@ -1,4 +1,3 @@
-using System;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Arena.Interfaces;
@@ -10,17 +9,18 @@ using Game.Player.Interfaces;
 using Game.Spawning;
 using UI.Hud;
 using UnityEngine;
-using Zenject;
 
 namespace Game.Scene
 {
     /// <summary>
-    /// Scene coordinator for the game. It builds the world (arena → player), then hands the world to focused
-    /// collaborators and starts the run — it delegates rather than doing the work itself:
-    /// <see cref="HudPresenter"/> (HUD), <see cref="GameplayFeedbackDirector"/> (SFX/camera/slow-mo/haptics)
-    /// and <see cref="GameFlowController"/> (win/lose, game over, pause, restart, quit).
+    /// Builds and tears down the whole game world. It is driven explicitly by the state machine
+    /// (LoadGameState calls <see cref="Build"/>, GameLoopState calls <see cref="Teardown"/> on exit) rather
+    /// than auto-running in a SceneContext — so the game's lifecycle is readable top-to-bottom in the states.
+    /// It coordinates: it creates the arena + player via factories, then hands the world to focused
+    /// collaborators (<see cref="HudPresenter"/>, <see cref="GameplayFeedbackDirector"/>,
+    /// <see cref="GameFlowController"/>) and starts spawning.
     /// </summary>
-    public class GameSceneStarter : IInitializable, IDisposable
+    public class GameWorldBuilder : IGameWorldBuilder
     {
         private readonly IArenaFactory _arenaFactory;
         private readonly IPlayerFactory _playerFactory;
@@ -42,7 +42,7 @@ namespace Game.Scene
         private GameObject _arena;
         private PlayerController _player;
 
-        public GameSceneStarter(
+        public GameWorldBuilder(
             IArenaFactory arenaFactory,
             IPlayerFactory playerFactory,
             IEnemyFactory enemyFactory,
@@ -76,7 +76,7 @@ namespace Game.Scene
             _gameSettings = gameSettings;
         }
 
-        public void Initialize()
+        public void Build()
         {
             ResetSession();
 
@@ -96,7 +96,7 @@ namespace Game.Scene
             StartSpawners();
         }
 
-        public void Dispose()
+        public void Teardown()
         {
             Time.timeScale = 1f;
 
@@ -111,7 +111,10 @@ namespace Game.Scene
             _enemyFactory.Clear();
 
             if (_arena != null)
-                UnityEngine.Object.Destroy(_arena);
+                Object.Destroy(_arena);
+
+            _arena = null;
+            _player = null;
         }
 
         private void ResetSession()
