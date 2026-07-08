@@ -4,6 +4,7 @@ using Data;
 using Game.Combat;
 using Game.Common;
 using Game.Common.StateMachine;
+using Game.Player.Interfaces;
 using Game.Player.States;
 using Game.Visuals;
 using UnityEngine;
@@ -11,6 +12,13 @@ using Zenject;
 
 namespace Game.Player
 {
+    /// <summary>
+    /// The player's thin orchestrator. It owns the state machine + Unity lifecycle + the public API + events,
+    /// and wires three focused collaborators: <see cref="IPlayerHealth"/> (HP + i-frames),
+    /// <see cref="IPlayerMovement"/> (Rigidbody locomotion + knockback) and <see cref="IPlayerDash"/> (the
+    /// dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
+    /// controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
+    /// </summary>
     public class PlayerController : MonoBehaviour
     {
         public event Action Died;
@@ -26,26 +34,22 @@ namespace Game.Player
         private GameSettings _settings;
         private PlayerData _data;
         private readonly HitFlash _hitFlash = new();
+        private readonly IPlayerHealth _health = new PlayerHealth();
+        private readonly IPlayerMovement _movement = new PlayerMovement();
+        private readonly IPlayerDash _dash = new PlayerDash();
         private ActorStateMachine _stateMachine;
         private PlayerMoveState _moveState;
         private PlayerHitState _hitState;
         private PlayerDashState _dashState;
         private PlayerDeadState _deadState;
-        private int _maxHealth;
-        private int _health;
-        private float _hitInvulnerabilityTimer;
-        private float _dashCooldownTimer;
-        private Vector3 _dashDirection;
         private bool _isDead;
 
-        public int Health => _health;
-        public int MaxHealth => _maxHealth;
+        public int Health => _health.Current;
+        public int MaxHealth => _health.Max;
         internal PlayerData Data => _data;
 
         /// <summary>Dash readiness for the HUD: 0 just after a dash, filling to 1 when the cooldown is up.</summary>
-        public float DashCharge01 => _data != null && _data.DashCooldown > 0f
-            ? 1f - Mathf.Clamp01(_dashCooldownTimer / _data.DashCooldown)
-            : 1f;
+        public float DashCharge01 => _dash.Charge01;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings)
@@ -53,8 +57,6 @@ namespace Game.Player
             _inputService = inputService;
             _settings = gameSettings;
             _data = gameSettings.PlayerData;
-            _maxHealth = Mathf.Max(1, _data.MaxHealth);
-            _health = _maxHealth;
         }
 
         private void Awake()
@@ -67,72 +69,31 @@ namespace Game.Player
             _renderers = GetComponentsInChildren<Renderer>();
 
             _hitFlash.Initialize(_renderers, _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
-            SetDashTrail(false);
+            _movement.Initialize(transform, _rigidbody, _data, _inputService);
+            _dash.Initialize(transform, _rigidbody, _data, _inputService, _dashTrail);
+            _health.Initialize(_data.MaxHealth, _data.HitInvulnerability);
+            _health.Changed += OnHealthChanged;
+        }
+
+        private void OnDestroy()
+        {
+            _health.Changed -= OnHealthChanged;
+        }
+
+        private void OnHealthChanged(int current, int max)
+        {
+            HealthChanged?.Invoke(current, max);
         }
 
         private void Update()
         {
             EnsureStateMachine();
-            TickHitInvulnerability();
-            TickDashCooldown();
+            _health.Tick(Time.deltaTime);
+            _dash.Tick(Time.deltaTime);
             TryDash();
             TickRingout();
             _hitFlash.Tick(Time.deltaTime);
             _stateMachine.Tick();
-        }
-
-        private void TickRingout()
-        {
-            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
-                Die();
-        }
-
-        public bool TakeDamage(int damage, Vector3 sourcePosition)
-        {
-            if (_isDead)
-                return false;
-
-            if (_hitInvulnerabilityTimer > 0f)
-                return false;
-
-            _health -= Mathf.Max(0, damage);
-            _hitInvulnerabilityTimer = _data.HitInvulnerability;
-
-            Vector3 knockbackDirection = transform.position - sourcePosition;
-            knockbackDirection.y = 0f;
-
-            if (knockbackDirection.sqrMagnitude <= 0.001f)
-                knockbackDirection = -transform.forward;
-
-            _rigidbody.AddForce(knockbackDirection.normalized * _data.HitKnockbackForce,
-                ForceMode.VelocityChange);
-
-            Debug.Log($"Player hit. Health: {Mathf.Max(0, _health)}");
-            HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
-            _hitFlash.Play();
-            _visual?.PlayHit();
-
-            if (_health <= 0)
-                Die();
-            else
-                ChangeToHitState();
-
-            return true;
-        }
-
-        public bool TryHeal(int amount)
-        {
-            if (_isDead || _health >= _maxHealth)
-                return false;
-
-            _health = Mathf.Min(_maxHealth, _health + Mathf.Max(0, amount));
-            HealthChanged?.Invoke(_health, _maxHealth);
-            return true;
-        }
-
-        public void Kill()
-        {
-            Die();
         }
 
         private void FixedUpdate()
@@ -143,51 +104,61 @@ namespace Game.Player
             // The Rigidbody leaves Y rotation free (so RotateToInput can turn the player via the
             // transform), so a collision can impart spin. Facing is fully code-driven, so kill any
             // physics-induced angular velocity every step to stop the player pinwheeling when idle.
-            if (!_isDead && _rigidbody != null)
-                _rigidbody.angularVelocity = Vector3.zero;
+            if (!_isDead)
+                _movement.KillAngularVelocity();
         }
 
-        internal void MoveByInput()
+        private void TickRingout()
         {
-            if (_isDead)
-                return;
-
-            Vector2 input = _inputService.MoveDirection;
-            Vector3 direction = new Vector3(input.x, 0f, input.y);
-            Vector3 horizontalVelocity = direction * _data.MoveSpeed;
-
-            _rigidbody.linearVelocity = new Vector3(
-                horizontalVelocity.x,
-                _rigidbody.linearVelocity.y,
-                horizontalVelocity.z);
+            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
+                Die();
         }
 
-        internal void ApplyExtraGravity()
+        public bool TakeDamage(int damage, Vector3 sourcePosition)
         {
-            ActorPhysicsUtility.ApplyExtraGravity(_rigidbody, _data.ExtraGravity);
+            if (!_health.TakeDamage(damage))
+                return false;
+
+            _movement.ApplyKnockback(sourcePosition, _data.HitKnockbackForce);
+            Debug.Log($"Player hit. Health: {_health.Current}");
+            _hitFlash.Play();
+            _visual?.PlayHit();
+
+            if (_health.IsDepleted)
+                Die();
+            else
+                ChangeToHitState();
+
+            return true;
         }
 
-        private void TickHitInvulnerability()
+        public bool TryHeal(int amount)
         {
-            if (_hitInvulnerabilityTimer > 0f)
-                _hitInvulnerabilityTimer -= Time.deltaTime;
+            return _health.TryHeal(amount);
         }
 
-        private void TickDashCooldown()
+        public void Kill()
         {
-            if (_dashCooldownTimer > 0f)
-                _dashCooldownTimer -= Time.deltaTime;
+            Die();
         }
+
+        // --- thin delegates the states drive --------------------------------------------------
+        internal void MoveByInput() => _movement.MoveByInput();
+        internal void RotateToInput() => _movement.RotateToInput();
+        internal void ApplyExtraGravity() => _movement.ApplyExtraGravity();
+        internal void ApplyDashVelocity() => _dash.ApplyDashVelocity();
+        internal void FaceDashDirection() => _dash.FaceDashDirection();
+        internal void SetDashTrail(bool active) => _dash.SetTrail(active);
 
         private void TryDash()
         {
-            if (_isDead || _dashCooldownTimer > 0f)
+            if (_isDead || !_dash.IsReady)
                 return;
 
             if (_stateMachine.ActiveState == _dashState)
                 return;
 
-            if (!_inputService.IsDashPressedThisFrame)
+            if (!_dash.WantsDash())
                 return;
 
             StartDash();
@@ -195,67 +166,13 @@ namespace Game.Player
 
         private void StartDash()
         {
-            Vector2 input = _inputService.MoveDirection;
-            Vector3 direction = new Vector3(input.x, 0f, input.y);
-
-            if (direction.sqrMagnitude < 0.01f)
-                direction = transform.forward;
-
-            _dashDirection = direction.normalized;
-            _dashCooldownTimer = _data.DashCooldown;
-            _hitInvulnerabilityTimer = Mathf.Max(_hitInvulnerabilityTimer, _data.DashInvulnerability);
-
+            _dash.Begin();
+            _health.GrantInvulnerability(_data.DashInvulnerability);
             ChangeToDashState();
             Dashed?.Invoke();
         }
 
-        internal void ApplyDashVelocity()
-        {
-            _rigidbody.linearVelocity = new Vector3(
-                _dashDirection.x * _data.DashSpeed,
-                _rigidbody.linearVelocity.y,
-                _dashDirection.z * _data.DashSpeed);
-        }
-
-        internal void FaceDashDirection()
-        {
-            if (_dashDirection.sqrMagnitude > 0.01f)
-                transform.rotation = Quaternion.LookRotation(_dashDirection);
-        }
-
-        internal void SetDashTrail(bool active)
-        {
-            if (_dashTrail == null)
-                return;
-
-            if (active)
-                _dashTrail.Clear();
-
-            _dashTrail.emitting = active;
-        }
-
-        private void ChangeToDashState()
-        {
-            EnsureStateMachine();
-
-            if (!_isDead)
-                _stateMachine.ChangeState(_dashState);
-        }
-
-        internal void RotateToInput()
-        {
-            Vector2 input = _inputService.MoveDirection;
-
-            if (input.sqrMagnitude <= 0.01f)
-                return;
-
-            Vector3 direction = new Vector3(input.x, 0f, input.y);
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-
-            transform.rotation = Quaternion.RotateTowards(transform.rotation,
-                targetRotation, _data.RotationSpeed * Time.deltaTime);
-        }
-
+        // --- state transitions ----------------------------------------------------------------
         internal void ChangeToMoveState()
         {
             EnsureStateMachine();
@@ -272,18 +189,24 @@ namespace Game.Player
                 _stateMachine.ChangeState(_hitState);
         }
 
+        private void ChangeToDashState()
+        {
+            EnsureStateMachine();
+
+            if (!_isDead)
+                _stateMachine.ChangeState(_dashState);
+        }
+
         private void Die()
         {
             if (_isDead)
                 return;
 
-            _health = 0;
             _isDead = true;
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
+            _health.Kill();
+            _movement.Stop();
             _hitFlash.Restore();
             Debug.Log("Player died.");
-            HealthChanged?.Invoke(_health, _maxHealth);
             _visual?.PlayDeath();
             EnsureStateMachine();
             _stateMachine.ChangeState(_deadState);
