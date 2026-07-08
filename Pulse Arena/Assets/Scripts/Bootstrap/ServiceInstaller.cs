@@ -9,8 +9,6 @@ using Game.Pickups;
 using Game.Pickups.Interfaces;
 using Game.Player;
 using Game.Player.Interfaces;
-using Game.Scene;
-using Game.Spawning;
 using UI;
 using UI.Loading;
 using UnityEngine;
@@ -38,7 +36,6 @@ namespace Bootstrap
             BindScoreService();
             BindSettingsService();
             BindAudioService();
-            BindGameWorld();
         }
 
         private void BindGameSettings()
@@ -182,49 +179,6 @@ namespace Bootstrap
                 .FromInstance(audioService)
                 .AsSingle()
                 .NonLazy();
-        }
-
-        // Game-world composition lives here (ProjectContext) rather than in the game scene, so the state
-        // machine can drive it: LoadGameState resolves IGameWorldBuilder and calls Build(). These are
-        // app-lifetime singletons — Build() re-initializes them each run, GameLoopState.Teardown() resets them.
-        private void BindGameWorld()
-        {
-            Container
-                .Bind<IEnemySpawner>()
-                .To<EnemySpawner>()
-                .AsSingle();
-
-            Container
-                .Bind<IPickupSpawner>()
-                .To<PickupSpawner>()
-                .AsSingle();
-
-            Container
-                .Bind<IPitFactory>()
-                .To<PitFactory>()
-                .AsSingle();
-
-            Container
-                .Bind<IPitSpawner>()
-                .To<PitSpawner>()
-                .AsSingle();
-
-            Container
-                .Bind<GameplayFeedbackDirector>()
-                .AsSingle();
-
-            Container
-                .Bind<HudPresenter>()
-                .AsSingle();
-
-            Container
-                .Bind<GameFlowController>()
-                .AsSingle();
-
-            Container
-                .Bind<IGameWorldBuilder>()
-                .To<GameWorldBuilder>()
-                .AsSingle();
         }
     }
 }

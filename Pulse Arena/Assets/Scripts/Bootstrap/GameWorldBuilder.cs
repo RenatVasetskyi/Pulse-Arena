@@ -9,18 +9,19 @@ using Game.Player.Interfaces;
 using Game.Spawning;
 using UI.Hud;
 using UnityEngine;
+using Zenject;
 
 namespace Game.Scene
 {
     /// <summary>
-    /// Builds and tears down the whole game world. It is driven explicitly by the state machine
-    /// (LoadGameState calls <see cref="Build"/>, GameLoopState calls <see cref="Teardown"/> on exit) rather
-    /// than auto-running in a SceneContext — so the game's lifecycle is readable top-to-bottom in the states.
-    /// It coordinates: it creates the arena + player via factories, then hands the world to focused
-    /// collaborators (<see cref="HudPresenter"/>, <see cref="GameplayFeedbackDirector"/>,
+    /// Builds and tears down the whole game world. It lives in the game scene's SceneContext and runs off that
+    /// context's kernel: <see cref="Initialize"/> (→ Build) fires when the scene loads, <see cref="Dispose"/>
+    /// (→ Teardown) fires automatically when the scene unloads — so no state has to manage the match lifecycle,
+    /// and cleanup can never be forgotten. It coordinates: creates the arena + player via factories, then hands
+    /// the world to focused collaborators (<see cref="HudPresenter"/>, <see cref="GameplayFeedbackDirector"/>,
     /// <see cref="GameFlowController"/>) and starts spawning.
     /// </summary>
-    public class GameWorldBuilder : IGameWorldBuilder
+    public class GameWorldBuilder : IInitializable, System.IDisposable
     {
         private readonly IArenaFactory _arenaFactory;
         private readonly IPlayerFactory _playerFactory;
@@ -115,6 +116,16 @@ namespace Game.Scene
 
             _arena = null;
             _player = null;
+        }
+        
+        public void Initialize()
+        {
+            Build();
+        }
+
+        public void Dispose()
+        {
+            Teardown();
         }
 
         private void ResetSession()

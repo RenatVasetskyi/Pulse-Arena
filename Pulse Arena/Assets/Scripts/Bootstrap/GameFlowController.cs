@@ -1,4 +1,3 @@
-using System.Collections;
 using Architecture.Services.Interfaces;
 using Architecture.States;
 using Architecture.States.Interfaces;
@@ -10,15 +9,16 @@ using UI;
 using UI.Hud;
 using UI.Pause;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Game.Scene
 {
     /// <summary>
     /// Owns the game's flow: win / lose (EndGame), the game-over screen, pause, restart and quit-to-menu.
     /// GameWorldBuilder builds the world then hands the player + HUD here via <see cref="Bind"/>; everything
-    /// about "how a run ends and what the buttons do" lives in this one class. Restart and quit go through the
-    /// state machine (LoadGameState / LoadMainMenuState) and are deferred one frame so the world is never torn
-    /// down from inside the button callback that triggered it.
+    /// about "how a run ends and what the buttons do" lives in this one class. Restart reloads the game scene
+    /// (Unity defers the load to end of frame, so it is safe to call from a button callback); quit hands back to
+    /// the state machine. Either way the scene unload lets the SceneContext tear the world down automatically.
     /// </summary>
     public class GameFlowController
     {
@@ -31,7 +31,6 @@ namespace Game.Scene
         private readonly IEnemySpawner _enemySpawner;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
-        private readonly ICoroutineRunner _coroutineRunner;
         private readonly GameSettings _gameSettings;
 
         private PlayerController _player;
@@ -44,7 +43,7 @@ namespace Game.Scene
         public GameFlowController(IInputService inputService, IScoreService scoreService,
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
-            IPitSpawner pitSpawner, ICoroutineRunner coroutineRunner, GameSettings gameSettings)
+            IPitSpawner pitSpawner, GameSettings gameSettings)
         {
             _inputService = inputService;
             _scoreService = scoreService;
@@ -55,7 +54,6 @@ namespace Game.Scene
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _pitSpawner = pitSpawner;
-            _coroutineRunner = coroutineRunner;
             _gameSettings = gameSettings;
         }
 
@@ -145,28 +143,15 @@ namespace Game.Scene
 
         private void QuitToMenu()
         {
-            ScheduleTransition(() => _stateMachine.Enter<LoadMainMenuState>());
+            Time.timeScale = 1f;
+            _stateMachine.Enter<LoadMainMenuState>();
         }
 
         private void RestartScene()
         {
             _audioService.PlaySfx(GameSfx.UiClick);
-            ScheduleTransition(() => _stateMachine.Enter<LoadGameState>());
-        }
-
-        // Restart / quit fire from a UI button callback (game-over or pause). Deferring the state change one
-        // frame lets that callback fully unwind before GameLoopState.Exit tears the world — and those very
-        // buttons — down. Coroutines still tick at timeScale 0, so this runs even while paused / game-over.
-        private void ScheduleTransition(System.Action transition)
-        {
             Time.timeScale = 1f;
-            _coroutineRunner.StartCoroutine(TransitionNextFrame(transition));
-        }
-
-        private static IEnumerator TransitionNextFrame(System.Action transition)
-        {
-            yield return null;
-            transition();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         private static T InstantiateHud<T>(GameObject prefab, string prefabName) where T : Component
