@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Game.Enemy
+namespace Game.Common
 {
     /// <summary>
     /// Swaps an actor's renderer materials to a flat flash colour for a short time on hit,

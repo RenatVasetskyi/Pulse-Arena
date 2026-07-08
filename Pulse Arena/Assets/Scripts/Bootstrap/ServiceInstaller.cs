@@ -1,14 +1,6 @@
 using Architecture.Services;
 using Architecture.Services.Interfaces;
 using Data;
-using Game.Arena;
-using Game.Arena.Interfaces;
-using Game.Enemy;
-using Game.Enemy.Interfaces;
-using Game.Pickups;
-using Game.Pickups.Interfaces;
-using Game.Player;
-using Game.Player.Interfaces;
 using UI;
 using UI.Loading;
 using UnityEngine;
@@ -31,7 +23,6 @@ namespace Bootstrap
             CreateUiEventSystem();
             BindLoadingScreen();
             BindSceneLoader();
-            BindFactories();
             BindInputService();
             BindScoreService();
             BindSettingsService();
@@ -90,29 +81,6 @@ namespace Bootstrap
             Container
                 .Bind<ISceneLoader>()
                 .To<SceneLoader>()
-                .AsSingle();
-        }
-
-        private void BindFactories()
-        {
-            Container
-                .Bind<IArenaFactory>()
-                .To<ArenaFactory>()
-                .AsSingle();
-
-            Container
-                .Bind<IPlayerFactory>()
-                .To<PlayerFactory>()
-                .AsSingle();
-
-            Container
-                .Bind<IEnemyFactory>()
-                .To<EnemyFactory>()
-                .AsSingle();
-
-            Container
-                .Bind<IPickupFactory>()
-                .To<PickupFactory>()
                 .AsSingle();
         }
 

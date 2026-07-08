@@ -37,8 +37,6 @@ namespace Game.Scene
             _view.Hide();
         }
 
-        public bool IsPaused => _paused;
-
         public void Toggle()
         {
             if (_paused)

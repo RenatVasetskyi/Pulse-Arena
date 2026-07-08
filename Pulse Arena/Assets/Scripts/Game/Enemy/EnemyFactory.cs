@@ -76,6 +76,13 @@ namespace Game.Enemy
 
         public void Clear()
         {
+            // Clear runs during scene unload (GameWorldBuilder.Teardown). The scene itself destroys the pooled
+            // enemies (children of the pool root), so we only explicitly destroy the root if it is still alive.
+            // We must NOT reparent/create GameObjects here: ReleaseAll -> GetPoolRoot would spawn a fresh
+            // "Enemy Pool" mid-OnDestroy and trip Unity's "objects not cleaned up when closing the scene" error.
+            if (_poolRoot != null)
+                UnityEngine.Object.Destroy(_poolRoot.gameObject);
+
             _enemyPool = null;
             _poolRoot = null;
         }

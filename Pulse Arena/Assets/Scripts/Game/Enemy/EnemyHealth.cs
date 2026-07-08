@@ -17,7 +17,6 @@ namespace Game.Enemy
 
         public int Current => _current;
         public int Max => _max;
-        public bool IsDead => _current <= 0;
 
         public void Reset(int maxHealth)
         {

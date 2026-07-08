@@ -36,6 +36,7 @@ namespace Data
         public SlowMoData SlowMoData => _combat.SlowMo;
         public PitData PitData => _combat.Pit;
         public SuperData SuperData => _combat.Super;
+        public FeelData Feel => _combat.Feel;
         public SpawnData SpawnData => _level.Spawn;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
@@ -77,9 +78,6 @@ namespace Data
         public float HitInvulnerability = 0.65f;
         public float HitKnockbackForce = 5f;
         public float HitKnockbackDuration = 0.18f;
-        public float HitFlashDuration = 0.12f;
-        public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
-        public float RingoutHeight = -2.5f;
 
         [Header("Dash / Dodge")]
         [Tooltip("Burst speed during a dash (vs MoveSpeed for normal movement).")]
@@ -109,8 +107,6 @@ namespace Data
         public int MaxHealth = 3;
         public float HealthBarHeight = 2.15f;
         public int ScoreReward = 1;
-        public float HitFlashDuration = 0.12f;
-        public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
         public float AttackRange = 1.35f;
         public float AttackCooldown = 0.9f;
         public int ContactDamage = 1;
@@ -132,7 +128,6 @@ namespace Data
         public float GroundRecoveryMaxVerticalOffset = 1.35f;
         public float GroundRecoveryMaxUpwardSpeed = 0.1f;
         public float GroundRecoveryForceAfter = 1.1f;
-        public float RingoutHeight = -2.5f;
         public float RingoutDuration = 1.1f;
         public float RingoutTextHeight = 1.2f;
         public float RingoutShrinkScale = 0.15f;

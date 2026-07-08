@@ -1,6 +1,11 @@
 using Game.Arena;
 using Game.Arena.Interfaces;
 using Game.Enemy;
+using Game.Enemy.Interfaces;
+using Game.Pickups;
+using Game.Pickups.Interfaces;
+using Game.Player;
+using Game.Player.Interfaces;
 using Game.Scene;
 using Game.Spawning;
 using Zenject;
@@ -13,13 +18,41 @@ namespace Bootstrap
     /// SceneContext's kernel runs its Build() on scene load and — the whole reason we use a SceneContext — calls
     /// its Dispose()/Teardown() automatically when the scene unloads. No manual lifecycle, no leak-prone teardown.
     /// The parent ProjectContext (global services) is never touched by this scope.
+    ///
+    /// The world factories (arena/player/enemy/pickup) are bound HERE, not in ProjectContext, so the DiContainer
+    /// each factory captures is the SceneContext one — InstantiatePrefabForComponent then resolves both project
+    /// AND scene bindings, which keeps future scene-scoped dependencies on the player/enemy resolvable.
     /// </summary>
     public class GameInstaller : MonoInstaller
     {
         public override void InstallBindings()
         {
+            BindFactories();
             BindSpawners();
             BindWorldComposition();
+        }
+
+        private void BindFactories()
+        {
+            Container
+                .Bind<IArenaFactory>()
+                .To<ArenaFactory>()
+                .AsSingle();
+
+            Container
+                .Bind<IPlayerFactory>()
+                .To<PlayerFactory>()
+                .AsSingle();
+
+            Container
+                .Bind<IEnemyFactory>()
+                .To<EnemyFactory>()
+                .AsSingle();
+
+            Container
+                .Bind<IPickupFactory>()
+                .To<PickupFactory>()
+                .AsSingle();
         }
 
         private void BindSpawners()

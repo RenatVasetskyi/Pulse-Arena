@@ -94,12 +94,6 @@ namespace Architecture.Services
             _musicSource.Play();
         }
 
-        public void StopMusic()
-        {
-            if (_musicSource != null)
-                _musicSource.Stop();
-        }
-
         public void PlaySfx(GameSfx sfx)
         {
             PlayInternal(sfx, null);

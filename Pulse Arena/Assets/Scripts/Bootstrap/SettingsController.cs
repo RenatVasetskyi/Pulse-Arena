@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// Owns the single shared settings panel instance (lazily created, kept across scenes) and
-    /// opens/closes it. Both the main menu and the in-game pause call into this.
+    /// Owns the single shared settings panel instance (lazily created, kept across scenes) and opens it. Both the
+    /// main menu and the in-game pause call into this; the panel hides itself via its own close button.
     /// </summary>
     public class SettingsController : ISettingsController
     {
@@ -22,23 +22,12 @@ namespace Architecture.Services
             _settings = settings;
         }
 
-        public bool IsOpen { get; private set; }
-
         public void Open()
         {
             if (!EnsureView())
                 return;
 
             _view.Show();
-            IsOpen = true;
-        }
-
-        public void Close()
-        {
-            if (_view != null)
-                _view.Hide();
-
-            IsOpen = false;
         }
 
         private bool EnsureView()
@@ -70,7 +59,6 @@ namespace Architecture.Services
             float max = camera != null ? camera.MaxZoom : 1.5f;
 
             _view.Bind(_settings, min, max);
-            _view.Closed += () => IsOpen = false;
             return true;
         }
     }

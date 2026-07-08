@@ -44,18 +44,6 @@ namespace Game.Pooling
             _inactive.Enqueue(item);
         }
 
-        public void ReleaseAll()
-        {
-            if (_active.Count == 0)
-                return;
-
-            T[] activeItems = new T[_active.Count];
-            _active.CopyTo(activeItems);
-
-            foreach (T item in activeItems)
-                Release(item);
-        }
-
         private void Preload(int preloadCount)
         {
             for (int i = 0; i < preloadCount; i++)

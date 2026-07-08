@@ -8,6 +8,5 @@ namespace Architecture.Services.Interfaces
         void PlaySfx(GameSfx sfx);
         void PlaySfx(GameSfx sfx, float pitch);
         void PlayMusic(AudioClip clip);
-        void StopMusic();
     }
 }

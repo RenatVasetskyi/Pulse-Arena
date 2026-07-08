@@ -16,7 +16,6 @@ namespace Game.Scene
         [SerializeField] private float _enemySpawnHeightOffset = 1f;
         [SerializeField] private float _pickupSpawnHeightOffset = 0.5f;
 
-        public BattleCamera BattleCamera => _battleCamera;
         public Transform PlayerSpawnPoint => _playerSpawnPoint;
         public Transform PlayerParent => _playerParent;
         public Transform EnemySpawnParent => _enemySpawnParent;

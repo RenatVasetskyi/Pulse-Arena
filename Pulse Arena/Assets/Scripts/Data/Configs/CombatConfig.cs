@@ -10,5 +10,6 @@ namespace Data
         public SlowMoData SlowMo = new();
         public PitData Pit = new();
         public SuperData Super = new();
+        public FeelData Feel = new();
     }
 }

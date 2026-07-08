@@ -1,8 +1,8 @@
 using System;
-using System.Collections;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Combat;
+using Game.Common;
 using Game.Common.StateMachine;
 using Game.Player.States;
 using Game.Visuals;
@@ -25,9 +25,7 @@ namespace Game.Player
         private IInputService _inputService;
         private GameSettings _settings;
         private PlayerData _data;
-        private Material[][] _originalMaterials;
-        private Material _hitFlashMaterial;
-        private Coroutine _flashRoutine;
+        private readonly HitFlash _hitFlash = new();
         private ActorStateMachine _stateMachine;
         private PlayerMoveState _moveState;
         private PlayerHitState _hitState;
@@ -57,7 +55,6 @@ namespace Game.Player
             _data = gameSettings.PlayerData;
             _maxHealth = Mathf.Max(1, _data.MaxHealth);
             _health = _maxHealth;
-            CreateHitFlashMaterial();
         }
 
         private void Awake()
@@ -65,24 +62,12 @@ namespace Game.Player
             if (_rigidbody == null)
                 _rigidbody = GetComponent<Rigidbody>();
 
-            NormalizeCapsuleRoot();
+            ActorPhysicsUtility.NormalizeCapsuleRoot(transform);
             EnsurePrimitiveVisual();
             _renderers = GetComponentsInChildren<Renderer>();
 
-            CacheMaterials();
+            _hitFlash.Initialize(_renderers, _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
             SetDashTrail(false);
-        }
-
-        private void NormalizeCapsuleRoot()
-        {
-            CapsuleCollider capsule = GetComponent<CapsuleCollider>();
-
-            if (capsule == null)
-                return;
-
-            Vector3 center = capsule.center;
-            center.y = capsule.height * 0.5f;
-            capsule.center = center;
         }
 
         private void Update()
@@ -92,12 +77,13 @@ namespace Game.Player
             TickDashCooldown();
             TryDash();
             TickRingout();
+            _hitFlash.Tick(Time.deltaTime);
             _stateMachine.Tick();
         }
 
         private void TickRingout()
         {
-            if (!_isDead && transform.position.y < _data.RingoutHeight)
+            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
                 Die();
         }
 
@@ -123,7 +109,7 @@ namespace Game.Player
 
             Debug.Log($"Player hit. Health: {Mathf.Max(0, _health)}");
             HealthChanged?.Invoke(Mathf.Max(0, _health), _maxHealth);
-            FlashHit();
+            _hitFlash.Play();
             _visual?.PlayHit();
 
             if (_health <= 0)
@@ -178,7 +164,7 @@ namespace Game.Player
 
         internal void ApplyExtraGravity()
         {
-            _rigidbody.AddForce(Vector3.down * _data.ExtraGravity, ForceMode.Acceleration);
+            ActorPhysicsUtility.ApplyExtraGravity(_rigidbody, _data.ExtraGravity);
         }
 
         private void TickHitInvulnerability()
@@ -295,6 +281,7 @@ namespace Game.Player
             _isDead = true;
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
+            _hitFlash.Restore();
             Debug.Log("Player died.");
             HealthChanged?.Invoke(_health, _maxHealth);
             _visual?.PlayDeath();
@@ -331,86 +318,6 @@ namespace Game.Player
 
             if (slingshot != null && _visual.LassoOrigin != null)
                 slingshot.SetLassoOrigin(_visual.LassoOrigin);
-        }
-
-        private void FlashHit()
-        {
-            if (_hitFlashMaterial == null || _renderers == null || _renderers.Length == 0)
-                return;
-
-            if (_flashRoutine != null)
-                StopCoroutine(_flashRoutine);
-
-            _flashRoutine = StartCoroutine(FlashRoutine());
-        }
-
-        private IEnumerator FlashRoutine()
-        {
-            ApplyFlashMaterials();
-
-            yield return new WaitForSeconds(_data.HitFlashDuration);
-
-            RestoreMaterials();
-            _flashRoutine = null;
-        }
-
-        private void CacheMaterials()
-        {
-            _originalMaterials = new Material[_renderers.Length][];
-
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] == null)
-                    continue;
-
-                _originalMaterials[i] = _renderers[i].sharedMaterials;
-            }
-        }
-
-        private void CreateHitFlashMaterial()
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            shader ??= Shader.Find("Sprites/Default");
-
-            _hitFlashMaterial = new Material(shader)
-            {
-                name = "Player Hit Flash"
-            };
-
-            if (_hitFlashMaterial.HasProperty("_BaseColor"))
-                _hitFlashMaterial.SetColor("_BaseColor", _data.HitFlashColor);
-
-            if (_hitFlashMaterial.HasProperty("_Color"))
-                _hitFlashMaterial.SetColor("_Color", _data.HitFlashColor);
-        }
-
-        private void ApplyFlashMaterials()
-        {
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                Renderer playerRenderer = _renderers[i];
-
-                if (playerRenderer == null)
-                    continue;
-
-                Material[] flashMaterials = new Material[playerRenderer.sharedMaterials.Length];
-
-                for (int j = 0; j < flashMaterials.Length; j++)
-                    flashMaterials[j] = _hitFlashMaterial;
-
-                playerRenderer.sharedMaterials = flashMaterials;
-            }
-        }
-
-        private void RestoreMaterials()
-        {
-            for (int i = 0; i < _renderers.Length; i++)
-            {
-                if (_renderers[i] == null || _originalMaterials[i] == null)
-                    continue;
-
-                _renderers[i].sharedMaterials = _originalMaterials[i];
-            }
         }
     }
 }

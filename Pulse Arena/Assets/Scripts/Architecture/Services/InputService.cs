@@ -73,9 +73,15 @@ namespace Architecture.Services
             IsEnabled && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
                           || (_touch != null && _touch.UltimatePressedThisFrame));
 
-        public void Enable() => IsEnabled = true;
+        public void Enable()
+        {
+            IsEnabled = true;   
+        }
 
-        public void Disable() => IsEnabled = false;
+        public void Disable()
+        {
+            IsEnabled = false;
+        }
 
         private static Vector2 KeyboardMove()
         {
@@ -99,23 +105,35 @@ namespace Architecture.Services
             return Vector2.ClampMagnitude(direction, 1f);
         }
 
-        private static bool KeyboardEPressed() =>
-            Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+        private static bool KeyboardEPressed()
+        {
+            return Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+        }
 
-        private static bool KeyboardEHeld() =>
-            Keyboard.current != null && Keyboard.current.eKey.isPressed;
+        private static bool KeyboardEHeld()
+        { 
+            return Keyboard.current != null && Keyboard.current.eKey.isPressed;
+        }
 
-        private static bool KeyboardEReleased() =>
-            Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
+        private static bool KeyboardEReleased()
+        { 
+            return Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
+        }
 
-        private bool MouseRightPressed() =>
-            !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+        private bool MouseRightPressed()
+        {
+            return !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;;
+        }
 
-        private static bool MouseRightHeld() =>
-            Mouse.current != null && Mouse.current.rightButton.isPressed;
+        private static bool MouseRightHeld()
+        {
+            return Mouse.current != null && Mouse.current.rightButton.isPressed;
+        }
 
-        private bool MouseRightReleased() =>
-            !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasReleasedThisFrame;
+        private bool MouseRightReleased()
+        {
+            return !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasReleasedThisFrame;
+        }
 
         private bool IsPointerOverUi()
         {
