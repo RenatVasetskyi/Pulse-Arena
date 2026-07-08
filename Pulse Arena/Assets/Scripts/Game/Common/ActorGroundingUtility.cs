@@ -35,26 +35,45 @@ namespace Game.Common
             float groundClearance, out Vector3 groundedPosition)
         {
             groundedPosition = default;
+            ResolveProbeParameters(ref probeDistance, ref groundClearance);
 
+            if (actor == null)
+                return false;
+
+            RaycastHit[] hits = CastGroundProbe(actor, probeDistance, groundClearance, out float bottomOffset);
+
+            if (hits.Length == 0)
+                return false;
+
+            if (!TryFindNearestGroundHit(actor, hits, out RaycastHit bestHit))
+                return false;
+
+            groundedPosition = BuildGroundedPosition(actor, bestHit, bottomOffset, groundClearance);
+            return true;
+        }
+
+        private static void ResolveProbeParameters(ref float probeDistance, ref float groundClearance)
+        {
             if (probeDistance < 0f)
                 probeDistance = _defaultProbeDistance;
 
             if (groundClearance < 0f)
                 groundClearance = _groundClearance;
+        }
 
-            if (actor == null)
-                return false;
-
-            float bottomOffset = GetBottomOffset(actor);
+        private static RaycastHit[] CastGroundProbe(Transform actor, float probeDistance, float groundClearance,
+            out float bottomOffset)
+        {
+            bottomOffset = GetBottomOffset(actor);
             Vector3 origin = actor.position + Vector3.up * (bottomOffset + probeDistance * 0.5f);
             float distance = probeDistance + bottomOffset + Mathf.Abs(groundClearance);
-            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, distance, GetGroundMask(),
+            return Physics.RaycastAll(origin, Vector3.down, distance, GetGroundMask(),
                 QueryTriggerInteraction.Ignore);
+        }
 
-            if (hits.Length == 0)
-                return false;
-
-            RaycastHit bestHit = default;
+        private static bool TryFindNearestGroundHit(Transform actor, RaycastHit[] hits, out RaycastHit bestHit)
+        {
+            bestHit = default;
             float bestDistance = float.MaxValue;
             bool foundGround = false;
 
@@ -71,13 +90,15 @@ namespace Game.Common
                 foundGround = true;
             }
 
-            if (!foundGround)
-                return false;
+            return foundGround;
+        }
 
+        private static Vector3 BuildGroundedPosition(Transform actor, RaycastHit hit, float bottomOffset,
+            float groundClearance)
+        {
             Vector3 position = actor.position;
-            position.y = bestHit.point.y + bottomOffset + groundClearance;
-            groundedPosition = position;
-            return true;
+            position.y = hit.point.y + bottomOffset + groundClearance;
+            return position;
         }
 
         public static float GetBottomOffset(Transform actor)

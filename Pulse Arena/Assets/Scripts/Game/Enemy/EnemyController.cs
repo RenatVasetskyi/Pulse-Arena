@@ -68,6 +68,13 @@ namespace Game.Enemy
 
         public bool IsGrabbed => _context != null && _context.IsGrabbed;
 
+        /// <summary>
+        /// Whether the lasso / hook-marker may target this enemy. Excludes dead, ringing-out and pooled
+        /// enemies. Crucial: a rung-out enemy keeps Health &gt; 0 (only <c>_isDead</c> is set), so a plain
+        /// Health check would still let the lasso fly at it while it tumbles off the arena edge.
+        /// </summary>
+        public bool IsTargetable => !_isDead && !_isInPool && !IsGrabbed && _health.Current > 0;
+
         public int Health => _health.Current;
         public int MaxHealth => _health.Max;
         public EnemyTypeData TypeData => _typeData;

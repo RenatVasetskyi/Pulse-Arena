@@ -25,6 +25,16 @@ namespace Game.Enemy.States
 
         public override void Enter()
         {
+            ResetFlungState();
+
+            // Controller-coupled slice, in original order: mark dead, zero the health bar, resolve the ringout.
+            _context.ResolveRingout();
+
+            TumbleOffEdge();
+        }
+
+        private void ResetFlungState()
+        {
             _context.IsGrabbed = false;
             _context.IsImpactProjectile = false;
             _context.NeedsGroundRecovery = false;
@@ -32,10 +42,10 @@ namespace Game.Enemy.States
             _context.Timers.Stasis.Clear();
             _context.Timers.RingoutElapsed = 0f;
             _context.Movement.DisableAgent();
+        }
 
-            // Controller-coupled slice, in original order: mark dead, zero the health bar, resolve the ringout.
-            _context.ResolveRingout();
-
+        private void TumbleOffEdge()
+        {
             if (_context.Rigidbody == null)
                 return;
 

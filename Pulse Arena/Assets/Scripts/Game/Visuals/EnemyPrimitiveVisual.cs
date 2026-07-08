@@ -8,6 +8,8 @@ namespace Game.Visuals
     /// Animates the enemy's baked primitive visual. The hierarchy (Body/Head/Belly/eyes/spikes)
     /// lives in the enemy prefab; this component caches those child transforms, instances the
     /// body/belly materials for per-enemy type tinting, and drives the wobble/hit/bounce/death.
+    /// Each animation overlay + reset step is a small single-purpose method the per-frame Animate
+    /// coordinator composes in order.
     /// </summary>
     public class EnemyPrimitiveVisual : MonoBehaviour
     {
@@ -53,6 +55,15 @@ namespace Game.Visuals
 
         public void ResetState()
         {
+            ResetRuntimeState();
+            ResetRootTransform();
+            ResetPartTransforms();
+            AlignBottomToCollider();
+            PlaySpawnPop();
+        }
+
+        private void ResetRuntimeState()
+        {
             _hitTimer = 0f;
             _bounceTimer = 0f;
             _deathTimer = 0f;
@@ -61,11 +72,17 @@ namespace Game.Visuals
             _isThrown = false;
             _isDead = false;
             _lastPosition = GetMovementReferencePosition();
+        }
 
+        private void ResetRootTransform()
+        {
             transform.localPosition = _baseLocalPosition;
             transform.localRotation = Quaternion.identity;
             transform.localScale = _baseScale * _typeScale;
+        }
 
+        private void ResetPartTransforms()
+        {
             if (_body != null)
                 _body.localRotation = Quaternion.identity;
 
@@ -88,9 +105,6 @@ namespace Game.Visuals
                 _spikeRoot.localRotation = Quaternion.identity;
                 _spikeRoot.localScale = Vector3.one;
             }
-
-            AlignBottomToCollider();
-            PlaySpawnPop();
         }
 
         private void PlaySpawnPop()
@@ -156,6 +170,13 @@ namespace Game.Visuals
 
         private void CacheParts()
         {
+            CacheChildTransforms();
+            InstanceTintMaterials();
+            LinkHeadMaterialToBody();
+        }
+
+        private void CacheChildTransforms()
+        {
             _body = transform.Find("Body");
             _head = transform.Find("Head");
             _belly = transform.Find("Belly");
@@ -163,19 +184,25 @@ namespace Game.Visuals
             _leftEye = _faceRoot != null ? _faceRoot.Find("LeftEye") : null;
             _rightEye = _faceRoot != null ? _faceRoot.Find("RightEye") : null;
             _spikeRoot = transform.Find("SpikeRoot");
+        }
 
+        private void InstanceTintMaterials()
+        {
             _bodyMaterial = GetInstancedMaterial(_body);
             _bellyMaterial = GetInstancedMaterial(_belly);
+        }
 
-            // Body and head share one material asset in the prefab; point the head at the body's
-            // material instance so an enemy-type tint recolours both together.
-            if (_head != null && _bodyMaterial != null)
-            {
-                Renderer headRenderer = _head.GetComponent<Renderer>();
+        // Body and head share one material asset in the prefab; point the head at the body's
+        // material instance so an enemy-type tint recolours both together.
+        private void LinkHeadMaterialToBody()
+        {
+            if (_head == null || _bodyMaterial == null)
+                return;
 
-                if (headRenderer != null)
-                    headRenderer.sharedMaterial = _bodyMaterial;
-            }
+            Renderer headRenderer = _head.GetComponent<Renderer>();
+
+            if (headRenderer != null)
+                headRenderer.sharedMaterial = _bodyMaterial;
         }
 
         private static Material GetInstancedMaterial(Transform part)
@@ -325,9 +352,17 @@ namespace Game.Visuals
                 return;
             }
 
+            ApplyIdleWobble(deltaTime);
+            ApplyHitSquash();
+            ApplyBounceSquash();
+            ApplySpawnAndSettle(deltaTime);
+            AnimateParts(deltaTime);
+        }
+
+        private void ApplyIdleWobble(float deltaTime)
+        {
             float moveProgress = Mathf.InverseLerp(0f, 3.8f, _moveSpeed);
-            float time = Time.time;
-            float wobble = Mathf.Sin(time * Mathf.Lerp(_visualData.WobbleFrequencyIdle,
+            float wobble = Mathf.Sin(Time.time * Mathf.Lerp(_visualData.WobbleFrequencyIdle,
                 _visualData.WobbleFrequencyRun, moveProgress));
             float squash = 1f + wobble * Mathf.Lerp(_visualData.SquashAmountIdle,
                 _visualData.SquashAmountRun, moveProgress);
@@ -335,22 +370,35 @@ namespace Game.Visuals
             transform.localScale = new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
             transform.localRotation = Quaternion.Lerp(transform.localRotation,
                 Quaternion.Euler(0f, 0f, -wobble * 8f * moveProgress), deltaTime * 12f);
+        }
 
-            if (_hitTimer > 0f)
-            {
-                float hit = Mathf.Sin((_hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration)) * Mathf.PI);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
-            }
+        private void ApplyHitSquash()
+        {
+            if (_hitTimer <= 0f)
+                return;
 
-            if (_bounceTimer > 0f)
-            {
-                float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
-            }
+            float hit = Mathf.Sin((_hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration)) * Mathf.PI);
+            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
+        }
 
+        private void ApplyBounceSquash()
+        {
+            if (_bounceTimer <= 0f)
+                return;
+
+            float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
+            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
+        }
+
+        private void ApplySpawnAndSettle(float deltaTime)
+        {
             transform.localScale *= _spawnScale;
-
             transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * 14f);
+        }
+
+        private void AnimateParts(float deltaTime)
+        {
+            float time = Time.time;
 
             if (_isThrown && !_isGrabbed)
                 _body.Rotate(Vector3.right, _visualData.ThrownSpinSpeed * deltaTime, Space.Self);

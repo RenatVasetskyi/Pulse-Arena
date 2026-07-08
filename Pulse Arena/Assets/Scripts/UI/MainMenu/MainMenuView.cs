@@ -58,31 +58,32 @@ namespace UI.MainMenu
 
         private void PlayIntro()
         {
-            if (_title != null)
-            {
-                _title.DOKill();
-                _title.localScale = Vector3.zero;
-                _title.DOScale(_titleBaseScale, 0.5f).SetEase(Ease.OutBack).SetLink(_title.gameObject);
-            }
+            AnimateTitleIn();
+            PulseButton(_playButton, _playButtonBaseScale, 1.06f, 0.8f);
+            // gentler than Play: smaller amplitude + slower, so it breathes without stealing focus
+            PulseButton(_settingsButton, _settingsButtonBaseScale, 1.03f, 1.1f);
+        }
 
-            if (_playButton != null)
-            {
-                Transform button = _playButton.transform;
-                button.DOKill();
-                button.localScale = _playButtonBaseScale;
-                button.DOScale(_playButtonBaseScale * 1.06f, 0.8f).SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo).SetLink(_playButton.gameObject);
-            }
+        private void AnimateTitleIn()
+        {
+            if (_title == null)
+                return;
 
-            if (_settingsButton != null)
-            {
-                Transform button = _settingsButton.transform;
-                button.DOKill();
-                button.localScale = _settingsButtonBaseScale;
-                // gentler than Play: smaller amplitude + slower, so it breathes without stealing focus
-                button.DOScale(_settingsButtonBaseScale * 1.03f, 1.1f).SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo).SetLink(_settingsButton.gameObject);
-            }
+            _title.DOKill();
+            _title.localScale = Vector3.zero;
+            _title.DOScale(_titleBaseScale, 0.5f).SetEase(Ease.OutBack).SetLink(_title.gameObject);
+        }
+
+        private static void PulseButton(Button button, Vector3 baseScale, float amplitude, float duration)
+        {
+            if (button == null)
+                return;
+
+            Transform buttonTransform = button.transform;
+            buttonTransform.DOKill();
+            buttonTransform.localScale = baseScale;
+            buttonTransform.DOScale(baseScale * amplitude, duration).SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo).SetLink(button.gameObject);
         }
 
         private void StopTweens()

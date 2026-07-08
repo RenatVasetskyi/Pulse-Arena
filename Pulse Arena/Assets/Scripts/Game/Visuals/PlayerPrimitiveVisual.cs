@@ -7,7 +7,8 @@ namespace Game.Visuals
     /// <summary>
     /// Animates the player's baked primitive visual. The hierarchy (Body/Head/arms/hat/LassoOrigin)
     /// lives in the player prefab; this component caches those child transforms and drives the
-    /// idle bob, arm swing, throw, hit-squash and death roll.
+    /// idle bob, arm swing, throw, hit-squash and death roll. Each animation layer is its own
+    /// single-purpose method the per-frame Animate coordinator composes in order.
     /// </summary>
     public class PlayerPrimitiveVisual : MonoBehaviour
     {
@@ -155,36 +156,57 @@ namespace Game.Visuals
 
         private void Animate(float deltaTime)
         {
-            float speed = GetPlanarSpeed();
-            float moveProgress = Mathf.InverseLerp(0f, 4.5f, speed);
-            float time = Time.time;
-            float bob = Mathf.Sin(time * Mathf.Lerp(_visualData.BobFrequencyIdle, _visualData.BobFrequencyRun,
+            float moveProgress = Mathf.InverseLerp(0f, 4.5f, GetPlanarSpeed());
+
+            ApplyIdleBob(moveProgress);
+            ApplyHitSquash();
+            ApplyBodyRotation(deltaTime);
+            AnimateArms(moveProgress);
+            AnimateHeadAndHat();
+        }
+
+        private void ApplyIdleBob(float moveProgress)
+        {
+            float bob = Mathf.Sin(Time.time * Mathf.Lerp(_visualData.BobFrequencyIdle, _visualData.BobFrequencyRun,
                 moveProgress)) * Mathf.Lerp(_visualData.BobAmplitudeIdle, _visualData.BobAmplitudeRun, moveProgress);
 
             transform.localPosition = _baseLocalPosition + Vector3.up * bob;
             transform.localScale = _baseScale;
+        }
 
-            if (_hitTimer > 0f)
-            {
-                float hitProgress = _hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration);
-                transform.localScale = new Vector3(1.12f, 0.9f, 1.12f) * Mathf.Sin(hitProgress * Mathf.PI) +
-                                       _baseScale * (1f - Mathf.Sin(hitProgress * Mathf.PI));
-            }
+        private void ApplyHitSquash()
+        {
+            if (_hitTimer <= 0f)
+                return;
 
+            float hitProgress = _hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration);
+            transform.localScale = new Vector3(1.12f, 0.9f, 1.12f) * Mathf.Sin(hitProgress * Mathf.PI) +
+                                   _baseScale * (1f - Mathf.Sin(hitProgress * Mathf.PI));
+        }
+
+        private void ApplyBodyRotation(float deltaTime)
+        {
             if (_isDead)
                 transform.localRotation = Quaternion.Lerp(transform.localRotation,
                     Quaternion.Euler(0f, 0f, _visualData.DeathRollAngle), deltaTime * 8f);
             else
                 transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * 10f);
+        }
 
-            float armSwing = Mathf.Sin(time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle * moveProgress;
+        private void AnimateArms(float moveProgress)
+        {
+            float armSwing = Mathf.Sin(Time.time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle * moveProgress;
             _leftArm.localRotation = Quaternion.Euler(armSwing, 0f, -22f);
 
             float throwProgress = _throwTimer > 0f
                 ? Mathf.Sin((_throwTimer / Mathf.Max(0.01f, _visualData.ThrowSwingDuration)) * Mathf.PI)
                 : 0f;
             _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * 95f, 0f, 22f + throwProgress * 18f);
-            _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.2f) * 3f, 0f, 0f);
+        }
+
+        private void AnimateHeadAndHat()
+        {
+            _head.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * 2.2f) * 3f, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
         }
 

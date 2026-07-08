@@ -138,12 +138,29 @@ namespace Game.Combat
                 return;
             }
 
-            if (_state != LassoState.Spinning)
+            if (_state == LassoState.Spinning)
+                TickSpin();
+        }
+
+        private void TickSpin()
+        {
+            AdvanceCharge();
+            UpdateSpinSpeed();
+
+            if (TickTensionAndCheckBreak())
                 return;
 
+            FollowHoldPosition();
+        }
+
+        private void AdvanceCharge()
+        {
             _chargeTimer = Mathf.Min(_chargeTimer + Time.fixedDeltaTime, _data.ChargeDuration);
             ChargeChanged?.Invoke(GetChargeProgress());
+        }
 
+        private void UpdateSpinSpeed()
+        {
             float spinProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float weightFactor = GetGrabbedWeightFactor();
             float targetSpinSpeed = Mathf.Lerp(_data.HoldAngularSpeed, _data.MaxHoldAngularSpeed, spinProgress) *
@@ -151,16 +168,25 @@ namespace Game.Combat
             _spinSpeed = Mathf.MoveTowards(_spinSpeed, targetSpinSpeed,
                 _data.SpinAcceleration * weightFactor * Time.fixedDeltaTime);
             _holdAngle += _spinSpeed * Time.fixedDeltaTime;
+        }
 
+        // Returns true if the rope broke this step (BreakRope already ran) so the spin tick stops.
+        private bool TickTensionAndCheckBreak()
+        {
             _tension.Tick(_grabbedEnemy.TypeData.Weight, _grabbedEnemy.TypeData.TensionRateMultiplier,
                 GetChargeProgress(), Time.fixedDeltaTime);
 
             if (_tension.IsBroken)
             {
                 BreakRope();
-                return;
+                return true;
             }
 
+            return false;
+        }
+
+        private void FollowHoldPosition()
+        {
             _grabbedEnemy.MoveGrabbed(GetHoldPosition(), _data.HoldFollowSpeed);
         }
 

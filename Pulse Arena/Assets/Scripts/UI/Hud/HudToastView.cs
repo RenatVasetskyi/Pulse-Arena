@@ -41,35 +41,45 @@ namespace UI.Hud
                 _label.text = message;
 
             _sequence?.Kill();
+            ResetForShow();
+            _sequence = BuildToastSequence(duration);
+        }
 
+        private void ResetForShow()
+        {
             _rect.anchoredPosition = _basePosition;
             _rect.localScale = _baseScale * 0.6f;
 
             if (_canvasGroup != null)
                 _canvasGroup.alpha = 0f;
+        }
 
-            _sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+        private Sequence BuildToastSequence(float duration)
+        {
+            Sequence sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
 
             // pop in (bounce + fade)
-            _sequence.Append(_rect.DOScale(_baseScale, PopDuration).SetEase(Ease.OutBack));
+            sequence.Append(_rect.DOScale(_baseScale, PopDuration).SetEase(Ease.OutBack));
 
             if (_canvasGroup != null)
-                _sequence.Join(_canvasGroup.DOFade(1f, PopDuration * 0.6f));
+                sequence.Join(_canvasGroup.DOFade(1f, PopDuration * 0.6f));
 
             // hold
-            _sequence.AppendInterval(Mathf.Max(0.1f, duration));
+            sequence.AppendInterval(Mathf.Max(0.1f, duration));
 
             // float up + fade out
-            _sequence.Append(_rect.DOAnchorPosY(_basePosition.y + RiseDistance, OutDuration).SetEase(Ease.InQuad));
+            sequence.Append(_rect.DOAnchorPosY(_basePosition.y + RiseDistance, OutDuration).SetEase(Ease.InQuad));
 
             if (_canvasGroup != null)
-                _sequence.Join(_canvasGroup.DOFade(0f, OutDuration));
+                sequence.Join(_canvasGroup.DOFade(0f, OutDuration));
 
-            _sequence.OnComplete(() =>
+            sequence.OnComplete(() =>
             {
                 _rect.anchoredPosition = _basePosition;
                 _rect.localScale = _baseScale;
             });
+
+            return sequence;
         }
     }
 }

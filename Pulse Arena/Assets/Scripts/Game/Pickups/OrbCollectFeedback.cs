@@ -7,7 +7,8 @@ namespace Game.Pickups
 {
     /// <summary>
     /// The collect payoff: pickup SFX, a bright light flash that snaps to dark, a small "sucked-in" hop, and a
-    /// pop / collapse / spin-away of the visual — then the orb destroys itself. Fired once when collected.
+    /// pop / collapse / spin-away of the visual — then the orb destroys itself. Each beat is its own method the
+    /// <see cref="Play"/> coordinator fires in order.
     /// </summary>
     public class OrbCollectFeedback
     {
@@ -31,28 +32,46 @@ namespace Game.Pickups
 
         public void Play()
         {
+            PlayPickupSfxAndDisableCollider();
+            AnimateLightFlash();
+            AnimateSuckHop();
+            AnimateVisualPop();
+        }
+
+        private void PlayPickupSfxAndDisableCollider()
+        {
             _audio?.PlaySfx(GameSfx.HealthPickup);
 
             if (_collider != null)
                 _collider.enabled = false;
+        }
+
+        // bright flash then snap to dark
+        private void AnimateLightFlash()
+        {
+            if (_light == null)
+                return;
 
             GameObject self = _self.gameObject;
+            _light.DOKill();
+            _light.DOIntensity(_baseLightIntensity * 3.2f, 0.05f)
+                .SetLink(self)
+                .OnComplete(() =>
+                {
+                    if (_light != null)
+                        _light.DOIntensity(0f, 0.14f).SetLink(self);
+                });
+        }
 
-            // bright flash then snap to dark
-            if (_light != null)
-            {
-                _light.DOKill();
-                _light.DOIntensity(_baseLightIntensity * 3.2f, 0.05f)
-                    .SetLink(self)
-                    .OnComplete(() =>
-                    {
-                        if (_light != null)
-                            _light.DOIntensity(0f, 0.14f).SetLink(self);
-                    });
-            }
+        // small hop as it's "sucked in"
+        private void AnimateSuckHop()
+        {
+            _self.DOMoveY(_self.position.y + 0.5f, 0.2f).SetEase(Ease.OutQuad).SetLink(_self.gameObject);
+        }
 
-            // small hop as it's "sucked in"
-            _self.DOMoveY(_self.position.y + 0.5f, 0.2f).SetEase(Ease.OutQuad).SetLink(self);
+        private void AnimateVisualPop()
+        {
+            GameObject self = _self.gameObject;
 
             if (_visualRoot == null)
             {

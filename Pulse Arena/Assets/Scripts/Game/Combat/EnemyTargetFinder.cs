@@ -36,7 +36,7 @@ namespace Game.Combat
                 if (hitBody == null || !hitBody.TryGetComponent(out EnemyController enemy))
                     continue;
 
-                if (enemy.IsGrabbed || enemy.Health <= 0)
+                if (!enemy.IsTargetable)
                     continue;
 
                 if (!HasLineOfSight(enemy))

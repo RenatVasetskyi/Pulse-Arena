@@ -76,35 +76,62 @@ namespace Game.Enemy
         /// <summary>Sweep along the current velocity. Returns true if it damaged any enemy this tick.</summary>
         public bool DamageDuringSweep()
         {
+            if (!TryBuildSweepSegment(out Vector3 sweepStart, out Vector3 sweepEnd, out Vector3 currentPosition))
+                return false;
+
+            bool damagedBySweep = DamageAlongSweepCast(sweepStart, sweepEnd);
+            bool damagedByOverlap = DamageAtSweepEndOverlap(sweepEnd);
+
+            _lastPosition = currentPosition;
+            return damagedBySweep || damagedByOverlap;
+        }
+
+        // The velocity gate + trajectory geometry: false (and parks _lastPosition) when too slow to damage.
+        private bool TryBuildSweepSegment(out Vector3 sweepStart, out Vector3 sweepEnd, out Vector3 currentPosition)
+        {
+            currentPosition = _transform.position;
+
             if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
             {
-                _lastPosition = _transform.position;
+                _lastPosition = currentPosition;
+                sweepStart = default;
+                sweepEnd = default;
                 return false;
             }
 
             Vector3 velocity = _rigidbody.linearVelocity;
-            Vector3 currentPosition = _transform.position;
-            Vector3 sweepStart = _lastPosition;
-            Vector3 sweepEnd = currentPosition;
+            sweepStart = _lastPosition;
+            sweepEnd = currentPosition;
 
             if (velocity.sqrMagnitude > 0.001f)
                 sweepEnd += velocity.normalized * _data.ImpactDamageForwardOffset;
 
+            return true;
+        }
+
+        private bool DamageAlongSweepCast(Vector3 sweepStart, Vector3 sweepEnd)
+        {
             Vector3 sweep = sweepEnd - sweepStart;
+
+            if (sweep.sqrMagnitude <= 0.001f)
+                return false;
+
             bool damaged = false;
+            int sweepHitCount = Physics.SphereCastNonAlloc(sweepStart, _data.ImpactDamageRadius,
+                sweep.normalized, SweepBuffer, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
 
-            if (sweep.sqrMagnitude > 0.001f)
+            for (int i = 0; i < sweepHitCount; i++)
             {
-                int sweepHitCount = Physics.SphereCastNonAlloc(sweepStart, _data.ImpactDamageRadius,
-                    sweep.normalized, SweepBuffer, sweep.magnitude, ~0, QueryTriggerInteraction.Ignore);
-
-                for (int i = 0; i < sweepHitCount; i++)
-                {
-                    if (TryHit(ResolveEnemy(SweepBuffer[i].collider)))
-                        damaged = true;
-                }
+                if (TryHit(ResolveEnemy(SweepBuffer[i].collider)))
+                    damaged = true;
             }
 
+            return damaged;
+        }
+
+        private bool DamageAtSweepEndOverlap(Vector3 sweepEnd)
+        {
+            bool damaged = false;
             int overlapCount = Physics.OverlapSphereNonAlloc(sweepEnd, _data.ImpactDamageRadius, OverlapBuffer,
                 ~0, QueryTriggerInteraction.Ignore);
 
@@ -114,7 +141,6 @@ namespace Game.Enemy
                     damaged = true;
             }
 
-            _lastPosition = currentPosition;
             return damaged;
         }
 

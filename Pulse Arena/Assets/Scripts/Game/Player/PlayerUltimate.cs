@@ -40,29 +40,41 @@ namespace Game.Player
         private void Unleash()
         {
             SuperData data = _settings.SuperData;
-            Collider[] hits = Physics.OverlapSphere(transform.position, data.Radius, _settings.SlingshotData.EnemyLayer);
 
-            foreach (Collider hit in hits)
+            foreach (Collider hit in FindEnemiesInRadius(data.Radius))
             {
-                EnemyController enemy = hit.attachedRigidbody != null
-                    ? hit.attachedRigidbody.GetComponent<EnemyController>()
-                    : hit.GetComponent<EnemyController>();
+                EnemyController enemy = ResolveEnemy(hit);
 
-                if (enemy == null)
-                    continue;
-
-                Vector3 direction = enemy.transform.position - transform.position;
-                direction.y = 0f;
-
-                if (direction.sqrMagnitude < 0.01f)
-                    direction = transform.forward;
-
-                direction.Normalize();
-                Vector3 velocity = direction * data.LaunchSpeed + Vector3.up * (data.LaunchSpeed * data.UpwardRatio);
-                enemy.Launch(velocity, data.LaunchDuration);
+                if (enemy != null)
+                    LaunchEnemy(enemy, data);
             }
 
             Activated?.Invoke();
+        }
+
+        private Collider[] FindEnemiesInRadius(float radius)
+        {
+            return Physics.OverlapSphere(transform.position, radius, _settings.SlingshotData.EnemyLayer);
+        }
+
+        private static EnemyController ResolveEnemy(Collider hit)
+        {
+            return hit.attachedRigidbody != null
+                ? hit.attachedRigidbody.GetComponent<EnemyController>()
+                : hit.GetComponent<EnemyController>();
+        }
+
+        private void LaunchEnemy(EnemyController enemy, SuperData data)
+        {
+            Vector3 direction = enemy.transform.position - transform.position;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude < 0.01f)
+                direction = transform.forward;
+
+            direction.Normalize();
+            Vector3 velocity = direction * data.LaunchSpeed + Vector3.up * (data.LaunchSpeed * data.UpwardRatio);
+            enemy.Launch(velocity, data.LaunchDuration);
         }
     }
 }

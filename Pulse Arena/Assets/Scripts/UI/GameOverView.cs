@@ -8,8 +8,8 @@ namespace UI
 {
     /// <summary>
     /// Prefab-based end-of-game screen (used for both defeat and victory — only the title differs).
-    /// The window bounces in, the score counts up and the restart button pulses — all relative to
-    /// each element's designed scale and on unscaled time (the game is paused at timeScale 0).
+    /// The window bounces in, the score counts up and the buttons pulse — all relative to each
+    /// element's designed scale and on unscaled time (the game is paused at timeScale 0).
     /// </summary>
     public class GameOverView : MonoBehaviour
     {
@@ -37,44 +37,49 @@ namespace UI
 
         private void Animate(int score)
         {
-            if (_window != null)
-            {
-                _window.DOKill();
-                _window.localScale = Vector3.zero;
-                _window.DOScale(_windowBaseScale, 0.5f).SetEase(Ease.OutBack).SetUpdate(true)
-                    .SetLink(_window.gameObject);
-            }
+            AnimateWindowIn();
+            AnimateScoreCountUp(score);
+            PulseButton(_restartButton, _restartBaseScale, 1.05f, 0.7f);
+            // gentler than Restart so it stays secondary
+            PulseButton(_mainMenuButton, _menuBaseScale, 1.025f, 0.95f);
+        }
 
-            if (_scoreText != null)
-            {
-                _scoreText.text = "Score: 0";
-                int shown = 0;
-                DOTween.To(() => shown, value =>
-                    {
-                        shown = value;
-                        _scoreText.text = $"Score: {shown}";
-                    }, score, 0.6f)
-                    .SetEase(Ease.OutCubic).SetDelay(0.25f).SetUpdate(true).SetLink(gameObject);
-            }
+        private void AnimateWindowIn()
+        {
+            if (_window == null)
+                return;
 
-            if (_restartButton != null)
-            {
-                Transform button = _restartButton.transform;
-                button.DOKill();
-                button.localScale = _restartBaseScale;
-                button.DOScale(_restartBaseScale * 1.05f, 0.7f).SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(_restartButton.gameObject);
-            }
+            _window.DOKill();
+            _window.localScale = Vector3.zero;
+            _window.DOScale(_windowBaseScale, 0.5f).SetEase(Ease.OutBack).SetUpdate(true)
+                .SetLink(_window.gameObject);
+        }
 
-            if (_mainMenuButton != null)
-            {
-                Transform button = _mainMenuButton.transform;
-                button.DOKill();
-                button.localScale = _menuBaseScale;
-                // gentler than Restart so it stays secondary
-                button.DOScale(_menuBaseScale * 1.025f, 0.95f).SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(_mainMenuButton.gameObject);
-            }
+        private void AnimateScoreCountUp(int score)
+        {
+            if (_scoreText == null)
+                return;
+
+            _scoreText.text = "Score: 0";
+            int shown = 0;
+            DOTween.To(() => shown, value =>
+                {
+                    shown = value;
+                    _scoreText.text = $"Score: {shown}";
+                }, score, 0.6f)
+                .SetEase(Ease.OutCubic).SetDelay(0.25f).SetUpdate(true).SetLink(gameObject);
+        }
+
+        private static void PulseButton(Button button, Vector3 baseScale, float amplitude, float duration)
+        {
+            if (button == null)
+                return;
+
+            Transform buttonTransform = button.transform;
+            buttonTransform.DOKill();
+            buttonTransform.localScale = baseScale;
+            buttonTransform.DOScale(baseScale * amplitude, duration).SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(button.gameObject);
         }
 
         private void Awake()
