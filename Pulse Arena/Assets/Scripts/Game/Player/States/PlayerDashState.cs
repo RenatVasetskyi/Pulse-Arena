@@ -4,9 +4,9 @@ using UnityEngine;
 namespace Game.Player.States
 {
     /// <summary>
-    /// A short burst dash in a fixed direction. Movement is locked to the dash vector for its duration
-    /// (no steering), and the player is invulnerable for the dash — so it doubles as a dodge. Returns to
-    /// the move state when the timer runs out.
+    ///     A short burst dash in a fixed direction. Movement is locked to the dash vector for its duration
+    ///     (no steering), and the player is invulnerable for the dash — so it doubles as a dodge. Returns to
+    ///     the move state when the timer runs out.
     /// </summary>
     public class PlayerDashState : ActorState
     {

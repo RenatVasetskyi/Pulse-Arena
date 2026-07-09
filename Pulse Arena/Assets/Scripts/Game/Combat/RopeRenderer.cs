@@ -5,57 +5,29 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// Draws the lasso: the rope line and the wrap ring, via procedural LineRenderers.
-    /// The slingshot decides WHAT to draw (game state); this class knows HOW (geometry).
-    /// It's fed a RopeFrame each Update and reaches back into nothing.
+    ///     Draws the lasso: the rope line and the wrap ring, via procedural LineRenderers.
+    ///     The slingshot decides WHAT to draw (game state); this class knows HOW (geometry).
+    ///     It's fed a RopeFrame each Update and reaches back into nothing.
     /// </summary>
     public class RopeRenderer
     {
         private static Material _sharedMaterial;
-
-        private Transform _owner;
         private SlingshotData _data;
         private LineRenderer _line;
+
+        private Transform _owner;
         private LineRenderer _wrapRing;
 
-        public readonly struct RopeFrame
-        {
-            public readonly bool RopeVisible;
-            public readonly bool Throwing;
-            public readonly bool RingVisible;
-            public readonly bool Wrapping;
-            public readonly Vector3 LassoStart;
-            public readonly Vector3 LassoEnd;
-            public readonly float ThrowTimer;
-            public readonly Vector3 WrappedOrigin;
-            public readonly Vector3 EnemyRopeCenter;
-            public readonly EnemyController GrabbedEnemy;
-            public readonly float WrapTimer;
-            public readonly float ChargeProgress;
-            public readonly float TensionWarning;
-
-            public RopeFrame(bool ropeVisible, bool throwing, bool ringVisible, bool wrapping,
-                Vector3 lassoStart, Vector3 lassoEnd, float throwTimer, Vector3 wrappedOrigin,
-                Vector3 enemyRopeCenter, EnemyController grabbedEnemy, float wrapTimer,
-                float chargeProgress, float tensionWarning)
-            {
-                RopeVisible = ropeVisible;
-                Throwing = throwing;
-                RingVisible = ringVisible;
-                Wrapping = wrapping;
-                LassoStart = lassoStart;
-                LassoEnd = lassoEnd;
-                ThrowTimer = throwTimer;
-                WrappedOrigin = wrappedOrigin;
-                EnemyRopeCenter = enemyRopeCenter;
-                GrabbedEnemy = grabbedEnemy;
-                WrapTimer = wrapTimer;
-                ChargeProgress = chargeProgress;
-                TensionWarning = tensionWarning;
-            }
-        }
-
         public Material Material => GetLineMaterial();
+
+        public void Hide()
+        {
+            if (_line != null)
+                _line.enabled = false;
+
+            if (_wrapRing != null)
+                _wrapRing.enabled = false;
+        }
 
         public void Initialize(Transform owner, SlingshotData data)
         {
@@ -69,15 +41,6 @@ namespace Game.Combat
             UpdateLine(frame);
             EnsureWrapRing();
             UpdateWrapRing(frame);
-        }
-
-        public void Hide()
-        {
-            if (_line != null)
-                _line.enabled = false;
-
-            if (_wrapRing != null)
-                _wrapRing.enabled = false;
         }
 
         private void UpdateLine(RopeFrame frame)
@@ -129,7 +92,7 @@ namespace Game.Combat
             {
                 float t = i / (float)(_line.positionCount - 1);
                 float wave = Mathf.Sin(t * Mathf.PI * _data.RopeWaveCount + Time.time * _data.RopeWaveSpeed) *
-                    waveAmplitude;
+                             waveAmplitude;
                 _line.SetPosition(i, Vector3.Lerp(start, end, t) + side * wave);
             }
         }
@@ -172,9 +135,9 @@ namespace Game.Combat
                 float angle = t * totalAngle;
                 float height = Mathf.Lerp(-verticalRange * 0.5f, verticalRange * 0.5f, t);
                 Vector3 point = center +
-                    metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
-                    metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
-                    Vector3.up * height;
+                                metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
+                                metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
+                                Vector3.up * height;
                 _wrapRing.SetPosition(i, point);
             }
         }
@@ -193,9 +156,9 @@ namespace Game.Combat
             {
                 float angle = (i / (float)_wrapRing.positionCount) * Mathf.PI * 2f + twist;
                 Vector3 point = center +
-                    metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
-                    metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
-                    Vector3.up * (Mathf.Sin(angle * 2f) * verticalWave);
+                                metrics.SideAxis * (Mathf.Cos(angle) * metrics.Radius) +
+                                metrics.DepthAxis * (Mathf.Sin(angle) * metrics.Radius) +
+                                Vector3.up * (Mathf.Sin(angle * 2f) * verticalWave);
                 _wrapRing.SetPosition(i, point);
             }
         }
@@ -331,6 +294,43 @@ namespace Game.Combat
 
             texture.Apply();
             return texture;
+        }
+
+        public readonly struct RopeFrame
+        {
+            public readonly bool RopeVisible;
+            public readonly bool Throwing;
+            public readonly bool RingVisible;
+            public readonly bool Wrapping;
+            public readonly Vector3 LassoStart;
+            public readonly Vector3 LassoEnd;
+            public readonly float ThrowTimer;
+            public readonly Vector3 WrappedOrigin;
+            public readonly Vector3 EnemyRopeCenter;
+            public readonly EnemyController GrabbedEnemy;
+            public readonly float WrapTimer;
+            public readonly float ChargeProgress;
+            public readonly float TensionWarning;
+
+            public RopeFrame(bool ropeVisible, bool throwing, bool ringVisible, bool wrapping,
+                Vector3 lassoStart, Vector3 lassoEnd, float throwTimer, Vector3 wrappedOrigin,
+                Vector3 enemyRopeCenter, EnemyController grabbedEnemy, float wrapTimer,
+                float chargeProgress, float tensionWarning)
+            {
+                RopeVisible = ropeVisible;
+                Throwing = throwing;
+                RingVisible = ringVisible;
+                Wrapping = wrapping;
+                LassoStart = lassoStart;
+                LassoEnd = lassoEnd;
+                ThrowTimer = throwTimer;
+                WrappedOrigin = wrappedOrigin;
+                EnemyRopeCenter = enemyRopeCenter;
+                GrabbedEnemy = grabbedEnemy;
+                WrapTimer = wrapTimer;
+                ChargeProgress = chargeProgress;
+                TensionWarning = tensionWarning;
+            }
         }
 
         private readonly struct EnemyWrapMetrics

@@ -11,15 +11,15 @@ namespace Game.Player.States
             _player = player;
         }
 
-        public override void Tick()
-        {
-            _player.RotateToInput();
-        }
-
         public override void FixedTick()
         {
             _player.MoveByInput();
             _player.ApplyExtraGravity();
+        }
+
+        public override void Tick()
+        {
+            _player.RotateToInput();
         }
     }
 }

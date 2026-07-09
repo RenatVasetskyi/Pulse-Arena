@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Game.Cameras
 {
     /// <summary>
-    /// Perlin-noise camera shake: on <see cref="Shake"/> it ramps the noise amplitude from full down to zero
-    /// over the duration, then mutes. Driven by <see cref="Tick"/> from the camera's Update (no coroutine).
+    ///     Perlin-noise camera shake: on <see cref="Shake" /> it ramps the noise amplitude from full down to zero
+    ///     over the duration, then mutes. Driven by <see cref="Tick" /> from the camera's Update (no coroutine).
     /// </summary>
     public class CameraShaker
     {
-        private CinemachineBasicMultiChannelPerlin _noise;
-        private float _frequency;
         private float _duration;
+        private float _frequency;
+        private CinemachineBasicMultiChannelPerlin _noise;
         private float _strength;
         private float _timer;
 
@@ -20,6 +20,12 @@ namespace Game.Cameras
             _noise = noise;
             _frequency = frequency;
             Mute();
+        }
+
+        public void Mute()
+        {
+            if (_noise != null)
+                _noise.AmplitudeGain = 0f;
         }
 
         public void Shake(float duration, float strength)
@@ -43,12 +49,6 @@ namespace Game.Cameras
 
             if (_timer <= 0f)
                 Mute();
-        }
-
-        public void Mute()
-        {
-            if (_noise != null)
-                _noise.AmplitudeGain = 0f;
         }
     }
 }

@@ -7,15 +7,31 @@ using UnityEngine;
 namespace Game.Player
 {
     /// <summary>
-    /// The player's Rigidbody locomotion: input-driven horizontal velocity, rotate-to-input facing, the shared
-    /// extra-gravity pull, and the hit knockback impulse. Mirrors <see cref="Game.Enemy.EnemyMovement"/>.
+    ///     The player's Rigidbody locomotion: input-driven horizontal velocity, rotate-to-input facing, the shared
+    ///     extra-gravity pull, and the hit knockback impulse. Mirrors <see cref="Game.Enemy.EnemyMovement" />.
     /// </summary>
     public class PlayerMovement : IPlayerMovement
     {
-        private Transform _transform;
-        private Rigidbody _rigidbody;
         private PlayerData _data;
         private IInputService _input;
+        private Rigidbody _rigidbody;
+        private Transform _transform;
+
+        public void ApplyExtraGravity()
+        {
+            ActorPhysicsUtility.ApplyExtraGravity(_rigidbody, _data.ExtraGravity);
+        }
+
+        public void ApplyKnockback(Vector3 sourcePosition, float force)
+        {
+            Vector3 direction = _transform.position - sourcePosition;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude <= 0.001f)
+                direction = -_transform.forward;
+
+            _rigidbody.AddForce(direction.normalized * force, ForceMode.VelocityChange);
+        }
 
         public void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data, IInputService input)
         {
@@ -23,6 +39,12 @@ namespace Game.Player
             _rigidbody = rigidbody;
             _data = data;
             _input = input;
+        }
+
+        public void KillAngularVelocity()
+        {
+            if (_rigidbody != null)
+                _rigidbody.angularVelocity = Vector3.zero;
         }
 
         public void MoveByInput()
@@ -49,28 +71,6 @@ namespace Game.Player
 
             _transform.rotation = Quaternion.RotateTowards(_transform.rotation,
                 targetRotation, _data.RotationSpeed * Time.deltaTime);
-        }
-
-        public void ApplyExtraGravity()
-        {
-            ActorPhysicsUtility.ApplyExtraGravity(_rigidbody, _data.ExtraGravity);
-        }
-
-        public void ApplyKnockback(Vector3 sourcePosition, float force)
-        {
-            Vector3 direction = _transform.position - sourcePosition;
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= 0.001f)
-                direction = -_transform.forward;
-
-            _rigidbody.AddForce(direction.normalized * force, ForceMode.VelocityChange);
-        }
-
-        public void KillAngularVelocity()
-        {
-            if (_rigidbody != null)
-                _rigidbody.angularVelocity = Vector3.zero;
         }
 
         public void Stop()

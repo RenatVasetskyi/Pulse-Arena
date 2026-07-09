@@ -1,8 +1,8 @@
 namespace Game.Enemy.Interfaces
 {
     /// <summary>
-    /// Contract the enemy drives its floating HP bar through. Implemented by the UI-layer WorldHealthBar,
-    /// so gameplay (EnemyController) never has to reference the UI namespace.
+    ///     Contract the enemy drives its floating HP bar through. Implemented by the UI-layer WorldHealthBar,
+    ///     so gameplay (EnemyController) never has to reference the UI namespace.
     /// </summary>
     public interface IWorldHealthBar
     {

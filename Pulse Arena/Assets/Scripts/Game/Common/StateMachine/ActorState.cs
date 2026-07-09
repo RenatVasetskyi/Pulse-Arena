@@ -10,11 +10,11 @@ namespace Game.Common.StateMachine
         {
         }
 
-        public virtual void Tick()
+        public virtual void FixedTick()
         {
         }
 
-        public virtual void FixedTick()
+        public virtual void Tick()
         {
         }
     }

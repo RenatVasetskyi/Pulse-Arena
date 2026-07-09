@@ -15,65 +15,64 @@ using Zenject;
 namespace Game.Enemy
 {
     /// <summary>
-    /// The enemy's thin state router. It wires the collaborators (movement, impact, timers, ground
-    /// recovery, collisions, ringout, health-bar presenter) together behind a lean <see cref="EnemyContext"/>,
-    /// owns the pool lifecycle + the public API (Knockback / Grab / Launch / …), and forwards Unity's
-    /// FixedUpdate + collision callbacks into the state machine / collision handler. All per-frame logic
-    /// lives in the seven state classes; the shared flags they flip live on the context (single source of
-    /// truth) and the controller reads/writes them through it. The death-return coroutine stays here —
-    /// coroutines need the MonoBehaviour. Each lifecycle step (spawn reset / pool teardown / wiring) is a
-    /// small single-purpose method the coordinator calls in order.
+    ///     The enemy's thin state router. It wires the collaborators (movement, impact, timers, ground
+    ///     recovery, collisions, ringout, health-bar presenter) together behind a lean <see cref="EnemyContext" />,
+    ///     owns the pool lifecycle + the public API (Knockback / Grab / Launch / …), and forwards Unity's
+    ///     FixedUpdate + collision callbacks into the state machine / collision handler. All per-frame logic
+    ///     lives in the seven state classes; the shared flags they flip live on the context (single source of
+    ///     truth) and the controller reads/writes them through it. The death-return coroutine stays here —
+    ///     coroutines need the MonoBehaviour. Each lifecycle step (spawn reset / pool teardown / wiring) is a
+    ///     small single-purpose method the coordinator calls in order.
     /// </summary>
     public class EnemyController : MonoBehaviour
     {
-        public event Action<EnemyController> Destroyed;
-        public event Action<int, int> HealthChanged;
-
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
-
-        private GameSettings _settings;
-        private EnemyData _data;
-        private IScoreService _scoreService;
-        private IAudioService _audioService;
-        private IComboService _comboService;
-        private IEnemyRegistry _registry;
-        private Transform _target;
-        private PlayerController _playerTarget;
-        private readonly HitFlash _hitFlash = new();
-        private readonly EnemyMovement _movement = new();
-        private CapsuleCollider _capsule;
-        private readonly EnemyHealthBarPresenter _healthBar = new();
-        private IScorePopupService _scorePopups;
-        private EnemyPrimitiveVisual _visual;
-        private readonly EnemyImpact _impact = new();
-        private readonly EnemyTimers _timers = new();
-        private readonly GroundRecoveryController _groundRecovery = new();
         private readonly EnemyCollisionHandler _collisions = new();
-        private readonly RingoutHandler _ringout = new();
-        private Action<EnemyController> _releaseToPool;
-        private EnemyTypeData _typeData = EnemyTypeData.Default;
-        private ActorStateMachine _stateMachine;
-        private EnemyContext _context;
-        private EnemyChaseState _chaseState;
-        private EnemyGrabbedState _grabbedState;
-        private EnemyStasisState _stasisState;
-        private EnemyKnockbackState _knockbackState;
-        private EnemyGroundRecoveryState _groundRecoveryState;
-        private EnemyDeadState _deadState;
-        private EnemyRingoutState _ringoutState;
-        private Coroutine _deathRoutine;
-        private bool _isRingout;
+        private readonly GroundRecoveryController _groundRecovery = new();
         private readonly ActorHealth _health = new();
+        private readonly EnemyHealthBarPresenter _healthBar = new();
+        private readonly HitFlash _hitFlash = new();
+        private readonly EnemyImpact _impact = new();
+        private readonly EnemyMovement _movement = new();
+        private readonly RingoutHandler _ringout = new();
+        private readonly EnemyTimers _timers = new();
+        private IAudioService _audioService;
+        private CapsuleCollider _capsule;
+        private EnemyChaseState _chaseState;
+        private IComboService _comboService;
+        private EnemyContext _context;
+        private EnemyData _data;
+        private EnemyDeadState _deadState;
+        private Coroutine _deathRoutine;
+        private EnemyGrabbedState _grabbedState;
+        private EnemyGroundRecoveryState _groundRecoveryState;
         private bool _isDead;
         private bool _isInPool;
+        private bool _isRingout;
+        private EnemyKnockbackState _knockbackState;
+        private PlayerController _playerTarget;
+        private IEnemyRegistry _registry;
+        private Action<EnemyController> _releaseToPool;
+        private EnemyRingoutState _ringoutState;
+        private IScorePopupService _scorePopups;
+        private IScoreService _scoreService;
+
+        private GameSettings _settings;
+        private EnemyStasisState _stasisState;
+        private ActorStateMachine _stateMachine;
+        private Transform _target;
+        private EnemyTypeData _typeData = EnemyTypeData.Default;
+        private EnemyPrimitiveVisual _visual;
+        public event Action<EnemyController> Destroyed;
+        public event Action<int, int> HealthChanged;
 
         public bool IsGrabbed => _context != null && _context.IsGrabbed;
 
         /// <summary>
-        /// Whether the lasso / hook-marker may target this enemy. Excludes dead, ringing-out and pooled
-        /// enemies. Crucial: a rung-out enemy keeps Health &gt; 0 (only <c>_isDead</c> is set), so a plain
-        /// Health check would still let the lasso fly at it while it tumbles off the arena edge.
+        ///     Whether the lasso / hook-marker may target this enemy. Excludes dead, ringing-out and pooled
+        ///     enemies. Crucial: a rung-out enemy keeps Health &gt; 0 (only <c>_isDead</c> is set), so a plain
+        ///     Health check would still let the lasso fly at it while it tumbles off the arena edge.
         /// </summary>
         public bool IsTargetable => !_isDead && !_isInPool && !IsGrabbed && _health.Current > 0;
 
@@ -83,6 +82,58 @@ namespace Game.Enemy
 
         /// <summary>The primitive visual, exposed so the collision handler can play the ground-bounce squash.</summary>
         public EnemyPrimitiveVisual Visual => _visual;
+
+        // --- Unity lifecycle -------------------------------------------------------------------
+
+        private void Awake()
+        {
+            ResolveComponents();
+            InitializeCollaborators();
+            SetupVisualsAndFlash();
+            BuildContext();
+        }
+
+        private void Update()
+        {
+            _hitFlash.Tick(Time.deltaTime);
+        }
+
+        private void FixedUpdate()
+        {
+            EnsureStateMachine();
+
+            if (!_isDead && !_isInPool && transform.position.y < _settings.Feel.RingoutHeight)
+                StartRingout();
+
+            if (_isDead)
+            {
+                _stateMachine.FixedTick();
+                return;
+            }
+
+            TickTimers();
+            _stateMachine.FixedTick();
+        }
+
+        private void OnDestroy()
+        {
+            // Covers the non-pooled Destroy path (ReturnToPool with no release action) + scene teardown,
+            // neither of which runs PrepareForPool, so the registry never keeps a dangling entry.
+            _registry?.Unregister(_rigidbody);
+
+            if (!_isInPool)
+                Destroyed?.Invoke(this);
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            _collisions.OnCollisionEnter(collision, _context.IsImpactProjectile, _isDead);
+        }
+
+        private void OnCollisionStay(Collision collision)
+        {
+            _collisions.OnCollisionStay(collision);
+        }
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
@@ -102,27 +153,21 @@ namespace Game.Enemy
             CreateHealthBar();
         }
 
-        private void WireHealth()
+        /// <summary>Rings the enemy out on the spot — used by arena pits it gets flung into.</summary>
+        public void FallIntoPit()
         {
-            _health.Changed += OnHealthChanged;
-            _health.Died += OnHealthDepleted;
-            _health.Initialize(_data.MaxHealth);
+            StartRingout();
         }
 
-        private void InitializeRingout()
+        public void Grab()
         {
-            _ringout.Initialize(transform, _data, _settings.Vfx, _scoreService, _comboService,
-                _scorePopups, _audioService, () => _typeData);
-        }
+            if (_isDead)
+                return;
 
-        private void CreateHealthBar()
-        {
-            _healthBar.Create(transform, _settings.Prefabs.WorldHealthBarPrefab, _health.Max, _data.HealthBarHeight);
-        }
-
-        public void SetPoolReturnAction(Action<EnemyController> releaseToPool)
-        {
-            _releaseToPool = releaseToPool;
+            ResetImpulseState();
+            _timers.Knockback.Clear();
+            ChangeToGrabbedState();
+            _rigidbody.linearVelocity = Vector3.zero;
         }
 
         public void Initialize(Transform target, EnemyTypeData typeData = null)
@@ -134,6 +179,53 @@ namespace Game.Enemy
             _movement.ConfigureAgent();
             _visual?.ApplyTypeStyle(_typeData);
             ChangeToChaseState();
+        }
+
+        public bool Kill()
+        {
+            return Die();
+        }
+
+        // --- public API ------------------------------------------------------------------------
+        // Each only arms the trigger (timers + flags + force) then transitions to the owning state; the
+        // rigidbody setup lives in the state Enter. Order preserved: the AddForce / velocity assignment
+        // runs AFTER ChangeToXState so the state Enter has already woken the body first.
+
+        public void Knockback(Vector3 force)
+        {
+            ResetImpulseState();
+            _timers.GroundContact.Clear();
+            _timers.Knockback.Set(_data.KnockbackDuration);
+            ChangeToKnockbackState();
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.AddForce(force, ForceMode.VelocityChange);
+        }
+
+        public void Launch(Vector3 velocity, float duration)
+        {
+            if (_isDead)
+                return;
+
+            _context.IsImpactProjectile = true;
+            _impact.ResetSweepOrigin();
+            _impact.Clear();
+            _collisions.ResetGroundBounce();
+            _timers.GroundBounceCooldown.Clear();
+            _timers.GroundContact.Clear();
+            _timers.PhysicsRecoveryElapsed = 0f;
+            _timers.Stasis.Clear();
+            _timers.Knockback.Set(duration);
+            ChangeToKnockbackState();
+            ApplyLaunchVelocity(velocity);
+        }
+
+        public void MoveGrabbed(Vector3 targetPosition, float followSpeed)
+        {
+            if (_isDead || !_context.IsGrabbed)
+                return;
+
+            Vector3 velocity = (targetPosition - transform.position) * followSpeed;
+            _rigidbody.linearVelocity = velocity;
         }
 
         public void PrepareForPool()
@@ -153,57 +245,57 @@ namespace Game.Enemy
             ParkRigidbody();
         }
 
-        // --- public API ------------------------------------------------------------------------
-        // Each only arms the trigger (timers + flags + force) then transitions to the owning state; the
-        // rigidbody setup lives in the state Enter. Order preserved: the AddForce / velocity assignment
-        // runs AFTER ChangeToXState so the state Enter has already woken the body first.
-
-        public void Knockback(Vector3 force)
+        public void SetPoolReturnAction(Action<EnemyController> releaseToPool)
         {
-            ResetImpulseState();
-            _timers.GroundContact.Clear();
-            _timers.Knockback.Set(_data.KnockbackDuration);
-            ChangeToKnockbackState();
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.AddForce(force, ForceMode.VelocityChange);
+            _releaseToPool = releaseToPool;
         }
 
-        public void Grab()
+        public bool TakeDamage(int damage)
         {
             if (_isDead)
-                return;
+                return false;
 
-            ResetImpulseState();
-            _timers.Knockback.Clear();
-            ChangeToGrabbedState();
-            _rigidbody.linearVelocity = Vector3.zero;
-        }
+            PlayHitFeedback();
+            _health.TakeDamage(damage); // fires Changed (bar/event); on 0 fires Died (score + dead state)
 
-        public void MoveGrabbed(Vector3 targetPosition, float followSpeed)
-        {
-            if (_isDead || !_context.IsGrabbed)
-                return;
-
-            Vector3 velocity = (targetPosition - transform.position) * followSpeed;
-            _rigidbody.linearVelocity = velocity;
-        }
-
-        public void Launch(Vector3 velocity, float duration)
-        {
             if (_isDead)
-                return;
+                return true;
 
-            _context.IsImpactProjectile = true;
-            _impact.ResetSweepOrigin();
-            _impact.Clear();
-            _collisions.ResetGroundBounce();
-            _timers.GroundBounceCooldown.Clear();
-            _timers.GroundContact.Clear();
-            _timers.PhysicsRecoveryElapsed = 0f;
-            _timers.Stasis.Clear();
-            _timers.Knockback.Set(duration);
-            ChangeToKnockbackState();
-            ApplyLaunchVelocity(velocity);
+            _hitFlash.Play();
+            return false;
+        }
+
+        public bool TryGetRopeBounds(out Bounds bounds)
+        {
+            if (_visual != null && _visual.TryGetRopeBounds(out bounds))
+                return true;
+
+            if (_capsule != null)
+            {
+                bounds = _capsule.bounds;
+                return true;
+            }
+
+            bounds = default;
+            return false;
+        }
+
+        private void WireHealth()
+        {
+            _health.Changed += OnHealthChanged;
+            _health.Died += OnHealthDepleted;
+            _health.Initialize(_data.MaxHealth);
+        }
+
+        private void InitializeRingout()
+        {
+            _ringout.Initialize(transform, _data, _settings.Vfx, _scoreService, _comboService,
+                _scorePopups, _audioService, () => _typeData);
+        }
+
+        private void CreateHealthBar()
+        {
+            _healthBar.Create(transform, _settings.Prefabs.WorldHealthBarPrefab, _health.Max, _data.HealthBarHeight);
         }
 
         // The shared prelude of Knockback + Grab: leave impact-projectile mode, reset the sweep origin and
@@ -226,51 +318,10 @@ namespace Game.Enemy
             _rigidbody.WakeUp();
         }
 
-        public bool TakeDamage(int damage)
-        {
-            if (_isDead)
-                return false;
-
-            PlayHitFeedback();
-            _health.TakeDamage(damage);   // fires Changed (bar/event); on 0 fires Died (score + dead state)
-
-            if (_isDead)
-                return true;
-
-            _hitFlash.Play();
-            return false;
-        }
-
         private void PlayHitFeedback()
         {
             _visual?.PlayHit();
             _audioService?.PlaySfx(GameSfx.Impact);
-        }
-
-        public bool Kill()
-        {
-            return Die();
-        }
-
-        /// <summary>Rings the enemy out on the spot — used by arena pits it gets flung into.</summary>
-        public void FallIntoPit()
-        {
-            StartRingout();
-        }
-
-        public bool TryGetRopeBounds(out Bounds bounds)
-        {
-            if (_visual != null && _visual.TryGetRopeBounds(out bounds))
-                return true;
-
-            if (_capsule != null)
-            {
-                bounds = _capsule.bounds;
-                return true;
-            }
-
-            bounds = default;
-            return false;
         }
 
         private bool Die()
@@ -278,7 +329,7 @@ namespace Game.Enemy
             if (_isDead)
                 return false;
 
-            _health.Kill();   // fires Changed(0) + Died → OnHealthDepleted
+            _health.Kill(); // fires Changed(0) + Died → OnHealthDepleted
             return true;
         }
 
@@ -298,16 +349,6 @@ namespace Game.Enemy
             _isDead = true;
             _ringout.AwardKill(out _);
             ChangeToDeadState();
-        }
-
-        // --- Unity lifecycle -------------------------------------------------------------------
-
-        private void Awake()
-        {
-            ResolveComponents();
-            InitializeCollaborators();
-            SetupVisualsAndFlash();
-            BuildContext();
         }
 
         private void ResolveComponents()
@@ -349,48 +390,6 @@ namespace Game.Enemy
                 StopForDeath, ResolveRingout);
         }
 
-        private void Update()
-        {
-            _hitFlash.Tick(Time.deltaTime);
-        }
-
-        private void FixedUpdate()
-        {
-            EnsureStateMachine();
-
-            if (!_isDead && !_isInPool && transform.position.y < _settings.Feel.RingoutHeight)
-                StartRingout();
-
-            if (_isDead)
-            {
-                _stateMachine.FixedTick();
-                return;
-            }
-
-            TickTimers();
-            _stateMachine.FixedTick();
-        }
-
-        private void OnCollisionEnter(Collision collision)
-        {
-            _collisions.OnCollisionEnter(collision, _context.IsImpactProjectile, _isDead);
-        }
-
-        private void OnCollisionStay(Collision collision)
-        {
-            _collisions.OnCollisionStay(collision);
-        }
-
-        private void OnDestroy()
-        {
-            // Covers the non-pooled Destroy path (ReturnToPool with no release action) + scene teardown,
-            // neither of which runs PrepareForPool, so the registry never keeps a dangling entry.
-            _registry?.Unregister(_rigidbody);
-
-            if (!_isInPool)
-                Destroyed?.Invoke(this);
-        }
-
         // --- pool lifecycle --------------------------------------------------------------------
 
         private void ResetForSpawn()
@@ -401,7 +400,7 @@ namespace Game.Enemy
             _registry.Register(_rigidbody, this);   // live for the span it is out of the pool
             ResetCollaboratorsForSpawn();
             transform.localScale = Vector3.one;
-            _health.Initialize(GetTypeAdjustedMaxHealth());   // fires Changed → HealthChanged + health bar
+            _health.Initialize(GetTypeAdjustedMaxHealth()); // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
             ResetRigidbodyForSpawn();
         }

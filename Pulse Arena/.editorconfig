@@ -1,0 +1,19 @@
+# EditorConfig — https://editorconfig.org
+# Rider / dotnet format honour this; it complements the Rider layout profile in
+# "Pulse Arena.sln.DotSettings" (which owns member ordering + formatting).
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# --- Explicit access modifiers everywhere they are LEGAL ---------------------
+# Require an access modifier on every member that can take one. This value keeps
+# interface member declarations bare (they are implicitly public — writing
+# `public` there is redundant and not idiomatic) and it never flags EXPLICIT
+# INTERFACE IMPLEMENTATIONS, because C# forbids a modifier on those (CS0106):
+#     Coroutine ICoroutineRunner.StartCoroutine(IEnumerator routine) { ... }
+#     Vector2   ITouchInput.Move => ...;
+# Those are the only "modifier-less" members left in the project by design.
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_diagnostic.IDE0040.severity = warning

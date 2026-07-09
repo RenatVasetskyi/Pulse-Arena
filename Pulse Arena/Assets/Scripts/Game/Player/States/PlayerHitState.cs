@@ -18,11 +18,6 @@ namespace Game.Player.States
             _knockbackTimer = _player.Data.HitKnockbackDuration;
         }
 
-        public override void Tick()
-        {
-            _player.RotateToInput();
-        }
-
         public override void FixedTick()
         {
             _player.ApplyExtraGravity();
@@ -31,6 +26,11 @@ namespace Game.Player.States
 
             if (_knockbackTimer <= 0f)
                 _player.ChangeToMoveState();
+        }
+
+        public override void Tick()
+        {
+            _player.RotateToInput();
         }
     }
 }

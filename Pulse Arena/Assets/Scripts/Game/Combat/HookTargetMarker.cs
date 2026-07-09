@@ -3,14 +3,20 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// Ground ring shown under a lasso-able enemy. The visual (LineRenderer + material) lives on the
-    /// prefab; this component only drives the ring geometry, colour and pulse each frame.
+    ///     Ground ring shown under a lasso-able enemy. The visual (LineRenderer + material) lives on the
+    ///     prefab; this component only drives the ring geometry, colour and pulse each frame.
     /// </summary>
     public class HookTargetMarker : MonoBehaviour
     {
         private const int PointCount = 28;
 
         [SerializeField] private LineRenderer _ring;
+
+        public void Hide()
+        {
+            if (_ring != null)
+                _ring.enabled = false;
+        }
 
         public void Show(Vector3 center, float radius, float width, Color color,
             float pulseSpeed, float pulseAmplitude)
@@ -32,12 +38,6 @@ namespace Game.Combat
                 _ring.SetPosition(i,
                     center + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * pulsedRadius);
             }
-        }
-
-        public void Hide()
-        {
-            if (_ring != null)
-                _ring.enabled = false;
         }
     }
 }
