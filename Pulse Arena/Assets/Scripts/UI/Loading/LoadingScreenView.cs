@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace UI.Loading
 {
     /// <summary>
-    /// Prefab-based loading screen. Layout lives in the prefab; this script only
-    /// drives the fill bar, percentage label and fade. Assign the three refs in the prefab.
+    ///     Prefab-based loading screen. Layout lives in the prefab; this script only
+    ///     drives the fill bar, percentage label and fade. Assign the three refs in the prefab.
     /// </summary>
     public class LoadingScreenView : MonoBehaviour
     {
@@ -18,16 +18,56 @@ namespace UI.Loading
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Slider _progressBar;
         [SerializeField] private TextMeshProUGUI _progressLabel;
+        private Vector3 _labelBaseScale = Vector3.one;
+        private int _lastPercent = -1;
 
         private float _targetProgress;
         private float _visibleProgress;
-        private int _lastPercent = -1;
-        private Vector3 _labelBaseScale = Vector3.one;
 
         private void Awake()
         {
             if (_progressLabel != null)
                 _labelBaseScale = _progressLabel.transform.localScale;
+        }
+
+        private void Update()
+        {
+            _visibleProgress = Mathf.MoveTowards(
+                _visibleProgress,
+                _targetProgress,
+                ProgressSpeed * Time.unscaledDeltaTime);
+
+            ApplyProgress(_visibleProgress);
+        }
+
+        public IEnumerator FadeTo(float targetAlpha)
+        {
+            float startAlpha = _canvasGroup.alpha;
+            float time = 0f;
+
+            while (time < FadeDuration)
+            {
+                time += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(time / FadeDuration);
+                _canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
+                yield return null;
+            }
+
+            _canvasGroup.alpha = targetAlpha;
+        }
+
+        public void HideImmediate()
+        {
+            StopPulse();
+            _canvasGroup.alpha = 0f;
+            _canvasGroup.blocksRaycasts = false;
+            _canvasGroup.interactable = false;
+            gameObject.SetActive(false);
+        }
+
+        public void SetProgress(float progress)
+        {
+            _targetProgress = Mathf.Clamp01(progress);
         }
 
         public void Show()
@@ -45,15 +85,6 @@ namespace UI.Loading
             _canvasGroup.blocksRaycasts = true;
             _canvasGroup.interactable = true;
             StartPulse();
-        }
-
-        public void HideImmediate()
-        {
-            StopPulse();
-            _canvasGroup.alpha = 0f;
-            _canvasGroup.blocksRaycasts = false;
-            _canvasGroup.interactable = false;
-            gameObject.SetActive(false);
         }
 
         private void StartPulse()
@@ -75,37 +106,6 @@ namespace UI.Loading
 
             _progressLabel.transform.DOKill();
             _progressLabel.transform.localScale = _labelBaseScale;
-        }
-
-        public void SetProgress(float progress)
-        {
-            _targetProgress = Mathf.Clamp01(progress);
-        }
-
-        public IEnumerator FadeTo(float targetAlpha)
-        {
-            float startAlpha = _canvasGroup.alpha;
-            float time = 0f;
-
-            while (time < FadeDuration)
-            {
-                time += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(time / FadeDuration);
-                _canvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-                yield return null;
-            }
-
-            _canvasGroup.alpha = targetAlpha;
-        }
-
-        private void Update()
-        {
-            _visibleProgress = Mathf.MoveTowards(
-                _visibleProgress,
-                _targetProgress,
-                ProgressSpeed * Time.unscaledDeltaTime);
-
-            ApplyProgress(_visibleProgress);
         }
 
         private void ApplyProgress(float progress)

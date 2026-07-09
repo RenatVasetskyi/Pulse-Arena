@@ -8,11 +8,11 @@ namespace Architecture.States
 {
     public class LoadMainMenuState : IState
     {
-        private readonly ISceneLoader _sceneLoader;
-        private readonly IStateMachine _stateMachine;
-        private readonly GameSettings _gameSettings;
         private readonly IAudioService _audioService;
+        private readonly GameSettings _gameSettings;
+        private readonly ISceneLoader _sceneLoader;
         private readonly ISettingsController _settingsController;
+        private readonly IStateMachine _stateMachine;
 
         private MainMenuPresenter _presenter;
 

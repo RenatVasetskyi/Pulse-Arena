@@ -10,9 +10,9 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    /// One HUD canvas for the game scene. Holds the sub-views (health/score/wave/zoom) and
-    /// the touch controls (joystick + lasso button), and wires each to its source. All refs
-    /// are optional (null-safe) so a partial HUD works. Assign the components on the prefab root.
+    ///     One HUD canvas for the game scene. Holds the sub-views (health/score/wave/zoom) and
+    ///     the touch controls (joystick + lasso button), and wires each to its source. All refs
+    ///     are optional (null-safe) so a partial HUD works. Assign the components on the prefab root.
     /// </summary>
     public class GameHud : MonoBehaviour, ITouchInput
     {
@@ -26,18 +26,19 @@ namespace UI.Hud
         [SerializeField] private HudSuperMeterView _superMeter;
         [SerializeField] private HudDamageFlash _damageFlash;
 
-        private PlayerController _player;
-        private IBattleCamera _camera;
-        private int _lastHealth = -1;
+        [Header("Touch controls (mobile)")] [SerializeField]
+        private VirtualJoystick _joystick;
 
-        [Header("Touch controls (mobile)")]
-        [SerializeField] private VirtualJoystick _joystick;
         [SerializeField] private LassoButton _lassoButton;
         [SerializeField] private AbilityButton _dashButton;
         [SerializeField] private AbilityButton _ultimateButton;
 
-        [Header("Pause")]
-        [SerializeField] private Button _pauseButton;
+        [Header("Pause")] [SerializeField] private Button _pauseButton;
+
+        private IBattleCamera _camera;
+        private int _lastHealth = -1;
+
+        private PlayerController _player;
 
         public event Action PauseRequested;
 
@@ -65,6 +66,12 @@ namespace UI.Hud
                 _dashButton.SetCharge(_player.DashCharge01);
         }
 
+        private void OnDestroy()
+        {
+            if (_player != null)
+                _player.HealthChanged -= OnPlayerHealthChanged;
+        }
+
         public void Bind(PlayerController player, IScoreService score, IBattleCamera camera)
         {
             if (_health != null)
@@ -84,37 +91,6 @@ namespace UI.Hud
                 _lastHealth = _player.Health;
                 _player.HealthChanged += OnPlayerHealthChanged;
             }
-        }
-
-        private void OnPlayerHealthChanged(int health, int maxHealth)
-        {
-            if (_lastHealth >= 0 && health < _lastHealth)
-            {
-                if (_damageFlash != null)
-                    _damageFlash.Flash();
-
-                _camera?.PlayPlayerHit();
-            }
-
-            _lastHealth = health;
-        }
-
-        private void OnDestroy()
-        {
-            if (_player != null)
-                _player.HealthChanged -= OnPlayerHealthChanged;
-        }
-
-        public void SetWave(int current, int total)
-        {
-            if (_wave != null)
-                _wave.SetWave(current, total);
-        }
-
-        public void ShowToast(string message, float duration)
-        {
-            if (_toast != null)
-                _toast.Show(message, duration);
         }
 
         public void BindTension(EnemySlingshot slingshot)
@@ -147,6 +123,31 @@ namespace UI.Hud
         {
             if (_superMeter != null)
                 _superMeter.SetReady(ready);
+        }
+
+        public void SetWave(int current, int total)
+        {
+            if (_wave != null)
+                _wave.SetWave(current, total);
+        }
+
+        public void ShowToast(string message, float duration)
+        {
+            if (_toast != null)
+                _toast.Show(message, duration);
+        }
+
+        private void OnPlayerHealthChanged(int health, int maxHealth)
+        {
+            if (_lastHealth >= 0 && health < _lastHealth)
+            {
+                if (_damageFlash != null)
+                    _damageFlash.Flash();
+
+                _camera?.PlayPlayerHit();
+            }
+
+            _lastHealth = health;
         }
     }
 }

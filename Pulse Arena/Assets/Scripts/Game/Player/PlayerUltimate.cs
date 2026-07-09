@@ -8,25 +8,17 @@ using Zenject;
 namespace Game.Player
 {
     /// <summary>
-    /// The player's ultimate. When the super meter is full and the ultimate key is pressed, a shockwave
-    /// flings every enemy in range violently outward (and up) — most sail off the edge and ring out. Fires
-    /// <see cref="Activated"/> so the scene can add camera shake / slow-mo / sound on top.
+    ///     The player's ultimate. When the super meter is full and the ultimate key is pressed, a shockwave
+    ///     flings every enemy in range violently outward (and up) — most sail off the edge and ring out. Fires
+    ///     <see cref="Activated" /> so the scene can add camera shake / slow-mo / sound on top.
     /// </summary>
     public class PlayerUltimate : MonoBehaviour
     {
-        public event Action Activated;
-
-        private ISuperMeterService _superMeter;
         private IInputService _input;
         private GameSettings _settings;
 
-        [Inject]
-        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings)
-        {
-            _superMeter = superMeter;
-            _input = input;
-            _settings = settings;
-        }
+        private ISuperMeterService _superMeter;
+        public event Action Activated;
 
         private void Update()
         {
@@ -35,6 +27,14 @@ namespace Game.Player
 
             if (_superMeter.TryConsume())
                 Unleash();
+        }
+
+        [Inject]
+        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings)
+        {
+            _superMeter = superMeter;
+            _input = input;
+            _settings = settings;
         }
 
         private void Unleash()

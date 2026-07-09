@@ -3,37 +3,37 @@ using UnityEngine;
 namespace Game.Cameras
 {
     /// <summary>
-    /// The transient additive "lens juice": a sine-pulse position offset kick and an attack/spring FOV punch.
-    /// Both decay back to zero on their own. The camera composites <see cref="CurrentOffset"/> and
-    /// <see cref="CurrentFovKick"/> on top of the base framing each frame. Driven by <see cref="Tick"/>.
+    ///     The transient additive "lens juice": a sine-pulse position offset kick and an attack/spring FOV punch.
+    ///     Both decay back to zero on their own. The camera composites <see cref="CurrentOffset" /> and
+    ///     <see cref="CurrentFovKick" /> on top of the base framing each frame. Driven by <see cref="Tick" />.
     /// </summary>
     public class CameraKickFx
     {
-        private Vector3 _kickOffset;
-        private float _offsetDuration;
-        private float _offsetTimer;
+        private float _currentFovKick;
         private Vector3 _currentOffset;
 
         private float _fovDelta;
         private float _fovDuration;
         private float _fovTimer;
-        private float _currentFovKick;
-
-        public Vector3 CurrentOffset => _currentOffset;
+        private Vector3 _kickOffset;
+        private float _offsetDuration;
+        private float _offsetTimer;
         public float CurrentFovKick => _currentFovKick;
 
-        public void KickOffset(Vector3 offset, float duration)
-        {
-            _kickOffset = offset;
-            _offsetDuration = Mathf.Max(duration, 0.01f);
-            _offsetTimer = 0f;
-        }
+        public Vector3 CurrentOffset => _currentOffset;
 
         public void FovPunch(float delta, float duration)
         {
             _fovDelta = delta;
             _fovDuration = Mathf.Max(duration, 0.01f);
             _fovTimer = 0f;
+        }
+
+        public void KickOffset(Vector3 offset, float duration)
+        {
+            _kickOffset = offset;
+            _offsetDuration = Mathf.Max(duration, 0.01f);
+            _offsetTimer = 0f;
         }
 
         public void Tick(float deltaTime)
@@ -69,7 +69,7 @@ namespace Game.Cameras
             if (_fovTimer < attack)
             {
                 float t = attack > 0f ? _fovTimer / attack : 1f; // fast zoom-in
-                kick = _fovDelta * (1f - (1f - t) * (1f - t));    // ease-out
+                kick = _fovDelta * (1f - (1f - t) * (1f - t)); // ease-out
             }
             else
             {

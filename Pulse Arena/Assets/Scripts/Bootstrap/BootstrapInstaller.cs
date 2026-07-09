@@ -6,17 +6,17 @@ namespace Bootstrap
 {
     public class BootstrapInstaller : MonoInstaller, IInitializable
     {
+        public void Initialize()
+        {
+            RegisterStates();
+            Container.Resolve<IStateMachine>().Enter<BootstrapState>();
+        }
+
         public override void InstallBindings()
         {
             BindMyself();
             BindStateMachine();
             BindStates();
-        }
-
-        public void Initialize()
-        {
-            RegisterStates();
-            Container.Resolve<IStateMachine>().Enter<BootstrapState>();
         }
 
         private void BindMyself()

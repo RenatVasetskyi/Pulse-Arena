@@ -5,42 +5,70 @@ using UnityEngine;
 namespace Game.Visuals
 {
     /// <summary>
-    /// Animates the enemy's baked primitive visual. The hierarchy (Body/Head/Belly/eyes/spikes)
-    /// lives in the enemy prefab; this component caches those child transforms, instances the
-    /// body/belly materials for per-enemy type tinting, and drives the wobble/hit/bounce/death.
-    /// Each animation overlay + reset step is a small single-purpose method the per-frame Animate
-    /// coordinator composes in order.
+    ///     Animates the enemy's baked primitive visual. The hierarchy (Body/Head/Belly/eyes/spikes)
+    ///     lives in the enemy prefab; this component caches those child transforms, instances the
+    ///     body/belly materials for per-enemy type tinting, and drives the wobble/hit/bounce/death.
+    ///     Each animation overlay + reset step is a small single-purpose method the per-frame Animate
+    ///     coordinator composes in order.
     /// </summary>
     public class EnemyPrimitiveVisual : MonoBehaviour
     {
         private const float GroundClearance = 0.02f;
-
-        private EnemyVisualData _visualData = new();
-        private Rigidbody _rigidbody;
-        private Transform _body;
-        private Transform _head;
-        private Transform _belly;
-        private Transform _leftEye;
-        private Transform _rightEye;
-        private Transform _faceRoot;
-        private Transform _spikeRoot;
-        private Renderer[] _bottomRenderers;
-        private Material _bodyMaterial;
-        private Material _bellyMaterial;
-        private float _typeScale = 1f;
-        private float _spawnScale = 1f;
-        private Tween _spawnTween;
-        private Vector3 _lastPosition;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
-        private Vector3 _headBaseScale;
-        private float _hitTimer;
+        private Transform _belly;
+        private Material _bellyMaterial;
+        private Transform _body;
+        private Material _bodyMaterial;
+        private Renderer[] _bottomRenderers;
         private float _bounceTimer;
         private float _deathTimer;
-        private float _moveSpeed;
+        private Transform _faceRoot;
+        private Transform _head;
+        private Vector3 _headBaseScale;
+        private float _hitTimer;
+        private bool _isDead;
         private bool _isGrabbed;
         private bool _isThrown;
-        private bool _isDead;
+        private Vector3 _lastPosition;
+        private Transform _leftEye;
+        private float _moveSpeed;
+        private Transform _rightEye;
+        private Rigidbody _rigidbody;
+        private float _spawnScale = 1f;
+        private Tween _spawnTween;
+        private Transform _spikeRoot;
+        private float _typeScale = 1f;
+
+        private EnemyVisualData _visualData = new();
+
+        private void Update()
+        {
+            float deltaTime = Time.deltaTime;
+            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
+            _bounceTimer = Mathf.Max(0f, _bounceTimer - deltaTime);
+            _deathTimer += _isDead ? deltaTime : 0f;
+            TickMoveSpeed(deltaTime);
+            Animate(deltaTime);
+        }
+
+        public void ApplyTypeStyle(EnemyTypeData type)
+        {
+            if (type == null)
+                return;
+
+            _typeScale = Mathf.Max(0.1f, type.VisualScale);
+            transform.localScale = _baseScale * _typeScale;
+
+            if (_spikeRoot != null)
+                _spikeRoot.gameObject.SetActive(type.ShowSpikes);
+
+            if (type.OverrideBodyColor)
+            {
+                ApplyMaterialColor(_bodyMaterial, type.BodyColor);
+                ApplyMaterialColor(_bellyMaterial, Color.Lerp(type.BodyColor, Color.white, 0.35f));
+            }
+        }
 
         public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData = null)
         {
@@ -53,6 +81,30 @@ namespace Game.Visuals
             EnsureParts();
         }
 
+        public void PlayDeath()
+        {
+            _isDead = true;
+            _isGrabbed = false;
+            _isThrown = false;
+            _deathTimer = 0f;
+        }
+
+        public void PlayGroundBounce()
+        {
+            if (_isDead)
+                return;
+
+            _bounceTimer = _visualData.BounceSquashDuration;
+        }
+
+        public void PlayHit()
+        {
+            if (_isDead)
+                return;
+
+            _hitTimer = _visualData.HitSquashDuration;
+        }
+
         public void ResetState()
         {
             ResetRuntimeState();
@@ -60,6 +112,28 @@ namespace Game.Visuals
             ResetPartTransforms();
             AlignBottomToCollider();
             PlaySpawnPop();
+        }
+
+        public void SetGrabbed(bool isGrabbed)
+        {
+            _isGrabbed = isGrabbed;
+        }
+
+        public void SetThrown(bool isThrown)
+        {
+            _isThrown = isThrown;
+        }
+
+        public bool TryGetRopeBounds(out Bounds bounds)
+        {
+            bounds = default;
+            bool hasBounds = false;
+
+            IncludeRendererBounds(_body, ref bounds, ref hasBounds);
+            IncludeRendererBounds(_head, ref bounds, ref hasBounds);
+            IncludeRendererBounds(_belly, ref bounds, ref hasBounds);
+
+            return hasBounds;
         }
 
         private void ResetRuntimeState()
@@ -113,50 +187,6 @@ namespace Game.Visuals
             _spawnScale = 0f;
             _spawnTween = DOTween.To(() => _spawnScale, value => _spawnScale = value, 1f, 0.35f)
                 .SetEase(Ease.OutBack).SetLink(gameObject);
-        }
-
-        public void PlayHit()
-        {
-            if (_isDead)
-                return;
-
-            _hitTimer = _visualData.HitSquashDuration;
-        }
-
-        public void PlayDeath()
-        {
-            _isDead = true;
-            _isGrabbed = false;
-            _isThrown = false;
-            _deathTimer = 0f;
-        }
-
-        public void PlayGroundBounce()
-        {
-            if (_isDead)
-                return;
-
-            _bounceTimer = _visualData.BounceSquashDuration;
-        }
-
-        public void SetGrabbed(bool isGrabbed)
-        {
-            _isGrabbed = isGrabbed;
-        }
-
-        public void SetThrown(bool isThrown)
-        {
-            _isThrown = isThrown;
-        }
-
-        private void Update()
-        {
-            float deltaTime = Time.deltaTime;
-            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
-            _bounceTimer = Mathf.Max(0f, _bounceTimer - deltaTime);
-            _deathTimer += _isDead ? deltaTime : 0f;
-            TickMoveSpeed(deltaTime);
-            Animate(deltaTime);
         }
 
         private void EnsureParts()
@@ -223,24 +253,6 @@ namespace Game.Visuals
             _headBaseScale = _head != null ? _head.localScale : Vector3.one;
         }
 
-        public void ApplyTypeStyle(EnemyTypeData type)
-        {
-            if (type == null)
-                return;
-
-            _typeScale = Mathf.Max(0.1f, type.VisualScale);
-            transform.localScale = _baseScale * _typeScale;
-
-            if (_spikeRoot != null)
-                _spikeRoot.gameObject.SetActive(type.ShowSpikes);
-
-            if (type.OverrideBodyColor)
-            {
-                ApplyMaterialColor(_bodyMaterial, type.BodyColor);
-                ApplyMaterialColor(_bellyMaterial, Color.Lerp(type.BodyColor, Color.white, 0.35f));
-            }
-        }
-
         private static void ApplyMaterialColor(Material material, Color color)
         {
             if (material == null)
@@ -251,18 +263,6 @@ namespace Game.Visuals
 
             if (material.HasProperty("_Color"))
                 material.SetColor("_Color", color);
-        }
-
-        public bool TryGetRopeBounds(out Bounds bounds)
-        {
-            bounds = default;
-            bool hasBounds = false;
-
-            IncludeRendererBounds(_body, ref bounds, ref hasBounds);
-            IncludeRendererBounds(_head, ref bounds, ref hasBounds);
-            IncludeRendererBounds(_belly, ref bounds, ref hasBounds);
-
-            return hasBounds;
         }
 
         private static void IncludeRendererBounds(Transform part, ref Bounds bounds, ref bool hasBounds)
@@ -367,7 +367,8 @@ namespace Game.Visuals
             float squash = 1f + wobble * Mathf.Lerp(_visualData.SquashAmountIdle,
                 _visualData.SquashAmountRun, moveProgress);
 
-            transform.localScale = new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
+            transform.localScale =
+                new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
             transform.localRotation = Quaternion.Lerp(transform.localRotation,
                 Quaternion.Euler(0f, 0f, -wobble * 8f * moveProgress), deltaTime * 12f);
         }
@@ -378,7 +379,8 @@ namespace Game.Visuals
                 return;
 
             float hit = Mathf.Sin((_hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration)) * Mathf.PI);
-            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
+            transform.localScale =
+                Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
         }
 
         private void ApplyBounceSquash()
@@ -387,7 +389,8 @@ namespace Game.Visuals
                 return;
 
             float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
-            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
+            transform.localScale =
+                Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
         }
 
         private void ApplySpawnAndSettle(float deltaTime)

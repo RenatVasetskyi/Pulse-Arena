@@ -5,11 +5,11 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    /// The enemy is held by the slingshot. The rigidbody is driven directly (see MoveGrabbed on the
-    /// controller); this state handles entry (stop the agent, set the held flags + held-damage grace,
-    /// grabbed visual, wake the rigidbody) and the "damages the player while held" behaviour for the
-    /// enemy types that have it, throttled by a grace + interval. Carries the old EnterGrabbedState /
-    /// FixedTickGrabbedState logic (the entry body was the controller's ContextOnEnterGrabbed).
+    ///     The enemy is held by the slingshot. The rigidbody is driven directly (see MoveGrabbed on the
+    ///     controller); this state handles entry (stop the agent, set the held flags + held-damage grace,
+    ///     grabbed visual, wake the rigidbody) and the "damages the player while held" behaviour for the
+    ///     enemy types that have it, throttled by a grace + interval. Carries the old EnterGrabbedState /
+    ///     FixedTickGrabbedState logic (the entry body was the controller's ContextOnEnterGrabbed).
     /// </summary>
     public class EnemyGrabbedState : ActorState
     {

@@ -5,32 +5,47 @@ using UnityEngine;
 namespace Game.Visuals
 {
     /// <summary>
-    /// Animates the player's baked primitive visual. The hierarchy (Body/Head/arms/hat/LassoOrigin)
-    /// lives in the player prefab; this component caches those child transforms and drives the
-    /// idle bob, arm swing, throw, hit-squash and death roll. Each animation layer is its own
-    /// single-purpose method the per-frame Animate coordinator composes in order.
+    ///     Animates the player's baked primitive visual. The hierarchy (Body/Head/arms/hat/LassoOrigin)
+    ///     lives in the player prefab; this component caches those child transforms and drives the
+    ///     idle bob, arm swing, throw, hit-squash and death roll. Each animation layer is its own
+    ///     single-purpose method the per-frame Animate coordinator composes in order.
     /// </summary>
     public class PlayerPrimitiveVisual : MonoBehaviour
     {
         private const float GroundClearance = 0.02f;
-
-        private PlayerVisualData _visualData = new();
-        private Rigidbody _rigidbody;
-        private EnemySlingshot _slingshot;
-        private Transform _body;
-        private Transform _head;
-        private Transform _leftArm;
-        private Transform _rightArm;
-        private Transform _hatRoot;
-        private Transform _lassoOrigin;
-        private Renderer[] _bottomRenderers;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
-        private float _throwTimer;
+        private Transform _body;
+        private Renderer[] _bottomRenderers;
+        private Transform _hatRoot;
+        private Transform _head;
         private float _hitTimer;
         private bool _isDead;
+        private Transform _lassoOrigin;
+        private Transform _leftArm;
+        private Transform _rightArm;
+        private Rigidbody _rigidbody;
+        private EnemySlingshot _slingshot;
+        private float _throwTimer;
+
+        private PlayerVisualData _visualData = new();
 
         public Transform LassoOrigin => _lassoOrigin;
+
+        private void Update()
+        {
+            float deltaTime = Time.deltaTime;
+            _throwTimer = Mathf.Max(0f, _throwTimer - deltaTime);
+            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
+
+            Animate(deltaTime);
+        }
+
+        private void OnDestroy()
+        {
+            if (_slingshot != null)
+                _slingshot.LassoThrown -= PlayThrow;
+        }
 
         public void Initialize(Rigidbody rigidbody, EnemySlingshot slingshot, PlayerVisualData visualData = null)
         {
@@ -50,29 +65,14 @@ namespace Game.Visuals
             EnsureParts();
         }
 
-        public void PlayHit()
-        {
-            _hitTimer = _visualData.HitSquashDuration;
-        }
-
         public void PlayDeath()
         {
             _isDead = true;
         }
 
-        private void OnDestroy()
+        public void PlayHit()
         {
-            if (_slingshot != null)
-                _slingshot.LassoThrown -= PlayThrow;
-        }
-
-        private void Update()
-        {
-            float deltaTime = Time.deltaTime;
-            _throwTimer = Mathf.Max(0f, _throwTimer - deltaTime);
-            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
-
-            Animate(deltaTime);
+            _hitTimer = _visualData.HitSquashDuration;
         }
 
         private void PlayThrow()
@@ -190,12 +190,14 @@ namespace Game.Visuals
                 transform.localRotation = Quaternion.Lerp(transform.localRotation,
                     Quaternion.Euler(0f, 0f, _visualData.DeathRollAngle), deltaTime * 8f);
             else
-                transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * 10f);
+                transform.localRotation =
+                    Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * 10f);
         }
 
         private void AnimateArms(float moveProgress)
         {
-            float armSwing = Mathf.Sin(Time.time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle * moveProgress;
+            float armSwing = Mathf.Sin(Time.time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle *
+                             moveProgress;
             _leftArm.localRotation = Quaternion.Euler(armSwing, 0f, -22f);
 
             float throwProgress = _throwTimer > 0f

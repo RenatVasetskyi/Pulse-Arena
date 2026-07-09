@@ -5,8 +5,8 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    /// Full-screen red flash shown briefly when the player takes damage. Assign a stretched red
-    /// Image (raycast target off). Starts transparent.
+    ///     Full-screen red flash shown briefly when the player takes damage. Assign a stretched red
+    ///     Image (raycast target off). Starts transparent.
     /// </summary>
     public class HudDamageFlash : MonoBehaviour
     {

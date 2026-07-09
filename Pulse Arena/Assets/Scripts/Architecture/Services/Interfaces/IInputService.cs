@@ -4,17 +4,17 @@ namespace Architecture.Services.Interfaces
 {
     public interface IInputService
     {
-        Vector2 MoveDirection { get; }
-        bool IsSlingshotPressedThisFrame { get; }
-        bool IsSlingshotHeld { get; }
-        bool IsSlingshotReleasedThisFrame { get; }
-        bool IsOrbitBurstPressedThisFrame { get; }
         bool IsDashPressedThisFrame { get; }
-        bool IsUltimatePressedThisFrame { get; }
         bool IsEnabled { get; }
+        bool IsOrbitBurstPressedThisFrame { get; }
+        bool IsSlingshotHeld { get; }
+        bool IsSlingshotPressedThisFrame { get; }
+        bool IsSlingshotReleasedThisFrame { get; }
+        bool IsUltimatePressedThisFrame { get; }
+        Vector2 MoveDirection { get; }
+        void Disable();
 
         void Enable();
-        void Disable();
         void SetTouchInput(ITouchInput touchInput);
     }
 }

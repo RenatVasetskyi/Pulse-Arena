@@ -10,17 +10,42 @@ namespace Architecture.Services
         private readonly EventSystem _eventSystem;
         private ITouchInput _touch;
 
+        public bool IsDashPressedThisFrame =>
+            IsEnabled && ((Keyboard.current != null && Keyboard.current.leftShiftKey.wasPressedThisFrame)
+                          || (_touch != null && _touch.DashPressedThisFrame));
+
         public bool IsEnabled { get; private set; } = true;
 
-        public InputService(EventSystem eventSystem)
+        public bool IsOrbitBurstPressedThisFrame
         {
-            _eventSystem = eventSystem;
+            get
+            {
+                if (!IsEnabled)
+                    return false;
+
+                bool spacePressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+                bool mousePressed = !IsPointerOverUi() && Mouse.current != null &&
+                                    Mouse.current.leftButton.wasPressedThisFrame;
+
+                return spacePressed || mousePressed;
+            }
         }
 
-        public void SetTouchInput(ITouchInput touchInput)
-        {
-            _touch = touchInput;
-        }
+        public bool IsSlingshotHeld =>
+            IsEnabled && (KeyboardEHeld() || MouseRightHeld() ||
+                          (_touch != null && _touch.LassoHeld));
+
+        public bool IsSlingshotPressedThisFrame =>
+            IsEnabled && (KeyboardEPressed() || MouseRightPressed() ||
+                          (_touch != null && _touch.LassoPressedThisFrame));
+
+        public bool IsSlingshotReleasedThisFrame =>
+            IsEnabled && (KeyboardEReleased() || MouseRightReleased() ||
+                          (_touch != null && _touch.LassoReleasedThisFrame));
+
+        public bool IsUltimatePressedThisFrame =>
+            IsEnabled && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
+                          || (_touch != null && _touch.UltimatePressedThisFrame));
 
         public Vector2 MoveDirection
         {
@@ -38,49 +63,24 @@ namespace Architecture.Services
             }
         }
 
-        public bool IsSlingshotPressedThisFrame =>
-            IsEnabled && (KeyboardEPressed() || MouseRightPressed() ||
-                          (_touch != null && _touch.LassoPressedThisFrame));
-
-        public bool IsSlingshotHeld =>
-            IsEnabled && (KeyboardEHeld() || MouseRightHeld() ||
-                          (_touch != null && _touch.LassoHeld));
-
-        public bool IsSlingshotReleasedThisFrame =>
-            IsEnabled && (KeyboardEReleased() || MouseRightReleased() ||
-                          (_touch != null && _touch.LassoReleasedThisFrame));
-
-        public bool IsOrbitBurstPressedThisFrame
+        public InputService(EventSystem eventSystem)
         {
-            get
-            {
-                if (!IsEnabled)
-                    return false;
-
-                bool spacePressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
-                bool mousePressed = !IsPointerOverUi() && Mouse.current != null &&
-                                    Mouse.current.leftButton.wasPressedThisFrame;
-
-                return spacePressed || mousePressed;
-            }
-        }
-
-        public bool IsDashPressedThisFrame =>
-            IsEnabled && ((Keyboard.current != null && Keyboard.current.leftShiftKey.wasPressedThisFrame)
-                          || (_touch != null && _touch.DashPressedThisFrame));
-
-        public bool IsUltimatePressedThisFrame =>
-            IsEnabled && ((Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame)
-                          || (_touch != null && _touch.UltimatePressedThisFrame));
-
-        public void Enable()
-        {
-            IsEnabled = true;   
+            _eventSystem = eventSystem;
         }
 
         public void Disable()
         {
             IsEnabled = false;
+        }
+
+        public void Enable()
+        {
+            IsEnabled = true;
+        }
+
+        public void SetTouchInput(ITouchInput touchInput)
+        {
+            _touch = touchInput;
         }
 
         private static Vector2 KeyboardMove()
@@ -111,18 +111,19 @@ namespace Architecture.Services
         }
 
         private static bool KeyboardEHeld()
-        { 
+        {
             return Keyboard.current != null && Keyboard.current.eKey.isPressed;
         }
 
         private static bool KeyboardEReleased()
-        { 
+        {
             return Keyboard.current != null && Keyboard.current.eKey.wasReleasedThisFrame;
         }
 
         private bool MouseRightPressed()
         {
-            return !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;;
+            return !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
+            ;
         }
 
         private static bool MouseRightHeld()

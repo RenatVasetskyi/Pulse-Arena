@@ -6,16 +6,16 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// The rope-snap particle burst. Lazily builds a procedural one-shot <see cref="ParticleSystem"/> from
-    /// <see cref="VfxData"/> (sharing the rope material) on first use, then emits a burst at the break point.
+    ///     The rope-snap particle burst. Lazily builds a procedural one-shot <see cref="ParticleSystem" /> from
+    ///     <see cref="VfxData" /> (sharing the rope material) on first use, then emits a burst at the break point.
     /// </summary>
     public class SnapBurstEffect : ISnapBurstEffect
     {
-        private Transform _parent;
-        private VfxData _vfx;
+        private ParticleSystem _burst;
         private SlingshotData _data;
         private Func<Material> _materialProvider;
-        private ParticleSystem _burst;
+        private Transform _parent;
+        private VfxData _vfx;
 
         public void Initialize(Transform parent, VfxData vfx, SlingshotData data, Func<Material> materialProvider)
         {

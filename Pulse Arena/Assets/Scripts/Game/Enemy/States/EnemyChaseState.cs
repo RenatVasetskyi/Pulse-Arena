@@ -5,9 +5,9 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    /// The default hunting state: drive toward the target (NavMeshAgent when it can be placed on the
-    /// mesh, physics fallback otherwise) and melee the player when in range. Carries the old
-    /// EnterChaseState / FixedTickChaseState / TryAttackTarget logic that used to live on the controller.
+    ///     The default hunting state: drive toward the target (NavMeshAgent when it can be placed on the
+    ///     mesh, physics fallback otherwise) and melee the player when in range. Carries the old
+    ///     EnterChaseState / FixedTickChaseState / TryAttackTarget logic that used to live on the controller.
     /// </summary>
     public class EnemyChaseState : ActorState
     {

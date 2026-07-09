@@ -4,21 +4,21 @@ using UnityEngine;
 namespace Game.Pickups
 {
     /// <summary>
-    /// The health orb's idle presentation: a vertical bob, the visual-root / inner-ring / outer-ring spins and
-    /// the breathing glow pulse (halo scale + point-light intensity). Driven by <see cref="Tick"/> each frame.
+    ///     The health orb's idle presentation: a vertical bob, the visual-root / inner-ring / outer-ring spins and
+    ///     the breathing glow pulse (halo scale + point-light intensity). Driven by <see cref="Tick" /> each frame.
     /// </summary>
     public class OrbIdleAnimator
     {
-        private Transform _self;
-        private Transform _visualRoot;
-        private Transform _innerGlow;
-        private Transform _innerRing;
-        private Transform _outerRing;
-        private Light _light;
-        private PickupData _data;
-        private Vector3 _startPosition;
         private Vector3 _baseGlowScale = Vector3.one;
         private float _baseLightIntensity;
+        private PickupData _data;
+        private Transform _innerGlow;
+        private Transform _innerRing;
+        private Light _light;
+        private Transform _outerRing;
+        private Transform _self;
+        private Vector3 _startPosition;
+        private Transform _visualRoot;
 
         public void Initialize(Transform self, Transform visualRoot, Transform innerGlow,
             Transform innerRing, Transform outerRing, Light light, PickupData data)

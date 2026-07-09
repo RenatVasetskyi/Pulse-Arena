@@ -13,9 +13,10 @@ namespace Game.Common.StateMachine
             _activeState?.Enter();
         }
 
-        public void Tick()
+        public void Clear()
         {
-            _activeState?.Tick();
+            _activeState?.Exit();
+            _activeState = null;
         }
 
         public void FixedTick()
@@ -23,10 +24,9 @@ namespace Game.Common.StateMachine
             _activeState?.FixedTick();
         }
 
-        public void Clear()
+        public void Tick()
         {
-            _activeState?.Exit();
-            _activeState = null;
+            _activeState?.Tick();
         }
     }
 }

@@ -9,26 +9,26 @@ using UnityEngine;
 namespace Game.Scene
 {
     /// <summary>
-    /// Turns gameplay events into sensory feedback — SFX, camera shake/punch, bullet-time and haptics.
-    /// One responsibility: "what does the player hear / see / feel when X happens". GameSceneStarter builds
-    /// the world and hands the event sources here via <see cref="Bind"/>, so none of this wiring clutters
-    /// the scene orchestrator. It owns the audio/slow-mo/vibration services; the camera is created with the
-    /// arena at runtime, so it arrives through Bind rather than the constructor.
+    ///     Turns gameplay events into sensory feedback — SFX, camera shake/punch, bullet-time and haptics.
+    ///     One responsibility: "what does the player hear / see / feel when X happens". GameSceneStarter builds
+    ///     the world and hands the event sources here via <see cref="Bind" />, so none of this wiring clutters
+    ///     the scene orchestrator. It owns the audio/slow-mo/vibration services; the camera is created with the
+    ///     arena at runtime, so it arrives through Bind rather than the constructor.
     /// </summary>
     public class GameplayFeedbackDirector
     {
         private readonly IAudioService _audioService;
-        private readonly ISlowMoService _slowMoService;
-        private readonly ISettingsService _settingsService;
         private readonly IEnemySpawner _enemySpawner;
         private readonly GameSettings _gameSettings;
+        private readonly ISettingsService _settingsService;
+        private readonly ISlowMoService _slowMoService;
 
         private IBattleCamera _camera;
+        private int _lastPlayerHealth = -1;
+        private float _lastSlowMoTime = -99f;
         private PlayerController _player;
         private PlayerUltimate _playerUltimate;
         private EnemySlingshot _slingshot;
-        private float _lastSlowMoTime = -99f;
-        private int _lastPlayerHealth = -1;
 
         public GameplayFeedbackDirector(IAudioService audioService, ISlowMoService slowMoService,
             ISettingsService settingsService, IEnemySpawner enemySpawner, GameSettings gameSettings)

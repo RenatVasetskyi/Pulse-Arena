@@ -5,8 +5,8 @@ namespace Game.Enemy
 
     public interface IEnemySpawner
     {
-        event Action<int, int> WaveChanged;
         event Action AllWavesCleared;
+        event Action<int, int> WaveChanged;
 
         void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset);
         void StartSpawn();

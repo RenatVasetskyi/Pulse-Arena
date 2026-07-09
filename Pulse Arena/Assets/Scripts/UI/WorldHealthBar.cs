@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace UI
 {
     /// <summary>
-    /// World-space segmented HP bar that billboards to the camera. Canvas, background and one disabled
-    /// segment template live on the prefab; segments are cloned from that template at runtime because
-    /// pooled enemies respawn with different max HP (2 -&gt; 2 pips, 3 -&gt; 3, 4 -&gt; 4).
+    ///     World-space segmented HP bar that billboards to the camera. Canvas, background and one disabled
+    ///     segment template live on the prefab; segments are cloned from that template at runtime because
+    ///     pooled enemies respawn with different max HP (2 -&gt; 2 pips, 3 -&gt; 3, 4 -&gt; 4).
     /// </summary>
     public class WorldHealthBar : MonoBehaviour, IWorldHealthBar
     {
@@ -16,12 +16,25 @@ namespace UI
         [SerializeField] private RectTransform _segmentsParent;
         [SerializeField] private Image _segmentTemplate;
         [SerializeField] private Image _background;
-
-        private Image[] _segments;
-        private Camera _camera;
         [SerializeField] private Color _aliveColor = new(1f, 0.2f, 0.12f, 1f);
         [SerializeField] private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
         [SerializeField] private Color _backgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
+        private Camera _camera;
+
+        private Image[] _segments;
+
+        private void LateUpdate()
+        {
+            if (_camera == null)
+            {
+                _camera = Camera.main;
+
+                if (_camera == null)
+                    return;
+            }
+
+            transform.rotation = _camera.transform.rotation;
+        }
 
         public void Initialize(int maxHealth, float height)
         {
@@ -44,19 +57,6 @@ namespace UI
 
             for (int i = 0; i < _segments.Length; i++)
                 _segments[i].color = i < health ? _aliveColor : _emptyColor;
-        }
-
-        private void LateUpdate()
-        {
-            if (_camera == null)
-            {
-                _camera = Camera.main;
-
-                if (_camera == null)
-                    return;
-            }
-
-            transform.rotation = _camera.transform.rotation;
         }
 
         private void RebuildSegments(int count)

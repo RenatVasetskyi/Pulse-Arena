@@ -5,8 +5,8 @@ using UnityEngine;
 namespace UI.Hud
 {
     /// <summary>
-    /// Text-only HUD toast (e.g. "Rare Health Orb spawned!"). Pops in with a bounce, holds, then
-    /// floats up and fades out. Assign the CanvasGroup (fade) and the TMP label. Starts hidden.
+    ///     Text-only HUD toast (e.g. "Rare Health Orb spawned!"). Pops in with a bounce, holds, then
+    ///     floats up and fades out. Assign the CanvasGroup (fade) and the TMP label. Starts hidden.
     /// </summary>
     public class HudToastView : MonoBehaviour
     {
@@ -16,10 +16,10 @@ namespace UI.Hud
 
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private TextMeshProUGUI _label;
-
-        private RectTransform _rect;
         private Vector2 _basePosition;
         private Vector3 _baseScale;
+
+        private RectTransform _rect;
         private Sequence _sequence;
 
         private void Awake()

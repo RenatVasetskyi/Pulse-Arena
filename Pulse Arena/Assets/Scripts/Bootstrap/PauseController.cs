@@ -6,17 +6,17 @@ using UnityEngine;
 namespace Game.Scene
 {
     /// <summary>
-    /// Drives the in-game pause: freezes time, mutes gameplay input, shows the pause panel. Buttons are
-    /// wired to resume, open settings, restart and quit-to-menu (the last two supplied as callbacks).
+    ///     Drives the in-game pause: freezes time, mutes gameplay input, shows the pause panel. Buttons are
+    ///     wired to resume, open settings, restart and quit-to-menu (the last two supplied as callbacks).
     /// </summary>
     public class PauseController
     {
-        private readonly PausePanelView _view;
         private readonly IInputService _inputService;
+        private readonly Action _quitToMenu;
+        private readonly Action _restart;
         private readonly ISettingsController _settingsController;
         private readonly ISlowMoService _slowMoService;
-        private readonly Action _restart;
-        private readonly Action _quitToMenu;
+        private readonly PausePanelView _view;
 
         private bool _paused;
 
@@ -37,12 +37,15 @@ namespace Game.Scene
             _view.Hide();
         }
 
-        public void Toggle()
+        public void Dispose()
         {
-            if (_paused)
-                Resume();
-            else
-                Pause();
+            if (_view == null)
+                return;
+
+            _view.ResumeClicked -= Resume;
+            _view.SettingsClicked -= OnSettings;
+            _view.RestartClicked -= OnRestart;
+            _view.MenuClicked -= OnMenu;
         }
 
         public void Pause()
@@ -68,15 +71,12 @@ namespace Game.Scene
             _view.Hide();
         }
 
-        public void Dispose()
+        public void Toggle()
         {
-            if (_view == null)
-                return;
-
-            _view.ResumeClicked -= Resume;
-            _view.SettingsClicked -= OnSettings;
-            _view.RestartClicked -= OnRestart;
-            _view.MenuClicked -= OnMenu;
+            if (_paused)
+                Resume();
+            else
+                Pause();
         }
 
         private void OnSettings()

@@ -6,17 +6,17 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// Drives the on-ground hook-target marker. While the lasso is idle it highlights the nearest enemy found by
-    /// the <see cref="IEnemyTargetFinder"/> — green when grabbable, grey when out of range or on cooldown — and
-    /// hides it otherwise. Lazily instantiates the marker prefab and drives the <see cref="HookTargetMarker"/> view.
+    ///     Drives the on-ground hook-target marker. While the lasso is idle it highlights the nearest enemy found by
+    ///     the <see cref="IEnemyTargetFinder" /> — green when grabbable, grey when out of range or on cooldown — and
+    ///     hides it otherwise. Lazily instantiates the marker prefab and drives the <see cref="HookTargetMarker" /> view.
     /// </summary>
     public class HookTargetMarkerPresenter : IHookTargetMarkerPresenter
     {
-        private Transform _parent;
         private SlingshotData _data;
-        private GameObject _prefab;
         private IEnemyTargetFinder _finder;
         private HookTargetMarker _marker;
+        private Transform _parent;
+        private GameObject _prefab;
 
         public void Initialize(Transform parent, SlingshotData data, GameObject prefab, IEnemyTargetFinder finder)
         {

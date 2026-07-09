@@ -7,8 +7,8 @@ namespace Architecture.States
 {
     public class BootstrapState : IState
     {
-        private readonly IStateMachine _stateMachine;
         private readonly GameSettings _gameSettings;
+        private readonly IStateMachine _stateMachine;
 
         public BootstrapState(IStateMachine stateMachine, GameSettings gameSettings)
         {

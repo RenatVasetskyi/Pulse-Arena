@@ -4,7 +4,7 @@ namespace Game.Common.StateMachine
     {
         void Enter();
         void Exit();
-        void Tick();
         void FixedTick();
+        void Tick();
     }
 }

@@ -5,19 +5,19 @@ using UnityEngine;
 namespace Game.Cameras
 {
     /// <summary>
-    /// The zoom axis: clamps + smooth-damps the current zoom toward a target, and is the ONLY piece coupled to
-    /// <see cref="ISettingsService"/> so the +/- buttons and the settings slider share one persisted value.
-    /// Reads its tuning straight from <see cref="CameraData"/> and exposes <see cref="ZoomedFollowOffset"/> —
-    /// the base follow offset scaled by the live zoom — which the camera composites each frame.
+    ///     The zoom axis: clamps + smooth-damps the current zoom toward a target, and is the ONLY piece coupled to
+    ///     <see cref="ISettingsService" /> so the +/- buttons and the settings slider share one persisted value.
+    ///     Reads its tuning straight from <see cref="CameraData" /> and exposes <see cref="ZoomedFollowOffset" /> —
+    ///     the base follow offset scaled by the live zoom — which the camera composites each frame.
     /// </summary>
     public class CameraZoomController
     {
-        private ISettingsService _settings;
-        private CameraData _data;
         private Vector3 _baseFollowOffset;
+        private CameraData _data;
+        private ISettingsService _settings;
+        private float _targetZoom;
 
         private float _zoom;
-        private float _targetZoom;
         private float _zoomVelocity;
 
         public Vector3 ZoomedFollowOffset
@@ -52,6 +52,15 @@ namespace Game.Cameras
                 SetTargetZoom(_settings.CameraZoom);
         }
 
+        public void Tick()
+        {
+            if (Mathf.Approximately(_zoom, _targetZoom))
+                return;
+
+            _zoom = Mathf.SmoothDamp(_zoom, _targetZoom, ref _zoomVelocity,
+                Mathf.Max(0.01f, _data.ZoomSmoothTime), Mathf.Infinity, Time.unscaledDeltaTime);
+        }
+
         public void ZoomIn() => ApplyZoom(_targetZoom - _data.ZoomStep);
         public void ZoomOut() => ApplyZoom(_targetZoom + _data.ZoomStep);
 
@@ -62,15 +71,6 @@ namespace Game.Cameras
                 _settings.SetCameraZoom(value);
             else
                 SetTargetZoom(value);
-        }
-
-        public void Tick()
-        {
-            if (Mathf.Approximately(_zoom, _targetZoom))
-                return;
-
-            _zoom = Mathf.SmoothDamp(_zoom, _targetZoom, ref _zoomVelocity,
-                Mathf.Max(0.01f, _data.ZoomSmoothTime), Mathf.Infinity, Time.unscaledDeltaTime);
         }
     }
 }

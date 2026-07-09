@@ -6,20 +6,26 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// Persistent (ProjectContext) 2D one-shot SFX player. Clips + volume/pitch come from
-    /// <see cref="AudioData"/>; a small round-robin pool of AudioSources lets sounds overlap and
-    /// carry independent pitch. Missing/unassigned clips are silently ignored so partial audio works.
+    ///     Persistent (ProjectContext) 2D one-shot SFX player. Clips + volume/pitch come from
+    ///     <see cref="AudioData" />; a small round-robin pool of AudioSources lets sounds overlap and
+    ///     carry independent pitch. Missing/unassigned clips are silently ignored so partial audio works.
     /// </summary>
     public class AudioService : MonoBehaviour, IAudioService
     {
         private const int SourceCount = 8;
 
         private AudioData _data;
-        private ISettingsService _settings;
         private Dictionary<GameSfx, SfxEntry> _map;
-        private AudioSource[] _sources;
         private AudioSource _musicSource;
         private int _next;
+        private ISettingsService _settings;
+        private AudioSource[] _sources;
+
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
+        }
 
         public void Initialize(AudioData data, ISettingsService settings)
         {
@@ -53,33 +59,6 @@ namespace Architecture.Services
                 _settings.Changed += OnSettingsChanged;
         }
 
-        private void OnDestroy()
-        {
-            if (_settings != null)
-                _settings.Changed -= OnSettingsChanged;
-        }
-
-        // Live-update the music volume when the player drags a settings slider.
-        private void OnSettingsChanged()
-        {
-            if (_musicSource != null)
-                _musicSource.volume = MusicScale();
-        }
-
-        private float SfxScale()
-        {
-            return _settings == null
-                ? 1f
-                : Mathf.Clamp01(_settings.SfxVolume) * Mathf.Clamp01(_settings.MasterVolume);
-        }
-
-        private float MusicScale()
-        {
-            return _settings == null
-                ? 1f
-                : Mathf.Clamp01(_settings.MusicVolume) * Mathf.Clamp01(_settings.MasterVolume);
-        }
-
         public void PlayMusic(AudioClip clip)
         {
             if (_data == null || _musicSource == null || clip == null)
@@ -102,6 +81,27 @@ namespace Architecture.Services
         public void PlaySfx(GameSfx sfx, float pitch)
         {
             PlayInternal(sfx, Mathf.Clamp(pitch, 0.1f, 3f));
+        }
+
+        // Live-update the music volume when the player drags a settings slider.
+        private void OnSettingsChanged()
+        {
+            if (_musicSource != null)
+                _musicSource.volume = MusicScale();
+        }
+
+        private float SfxScale()
+        {
+            return _settings == null
+                ? 1f
+                : Mathf.Clamp01(_settings.SfxVolume) * Mathf.Clamp01(_settings.MasterVolume);
+        }
+
+        private float MusicScale()
+        {
+            return _settings == null
+                ? 1f
+                : Mathf.Clamp01(_settings.MusicVolume) * Mathf.Clamp01(_settings.MasterVolume);
         }
 
         private void PlayInternal(GameSfx sfx, float? pitch)

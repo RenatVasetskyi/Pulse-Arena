@@ -13,15 +13,14 @@ using Zenject;
 namespace Bootstrap
 {
     /// <summary>
-    /// Installer on the game scene's SceneContext. It composes the whole match: the spawners + the three
-    /// collaborators + the <see cref="GameWorldBuilder"/>. The builder is bound NonLazy as IInitializable, so the
-    /// SceneContext's kernel runs its Build() on scene load and — the whole reason we use a SceneContext — calls
-    /// its Dispose()/Teardown() automatically when the scene unloads. No manual lifecycle, no leak-prone teardown.
-    /// The parent ProjectContext (global services) is never touched by this scope.
-    ///
-    /// The world factories (arena/player/enemy/pickup) are bound HERE, not in ProjectContext, so the DiContainer
-    /// each factory captures is the SceneContext one — InstantiatePrefabForComponent then resolves both project
-    /// AND scene bindings, which keeps future scene-scoped dependencies on the player/enemy resolvable.
+    ///     Installer on the game scene's SceneContext. It composes the whole match: the spawners + the three
+    ///     collaborators + the <see cref="GameWorldBuilder" />. The builder is bound NonLazy as IInitializable, so the
+    ///     SceneContext's kernel runs its Build() on scene load and — the whole reason we use a SceneContext — calls
+    ///     its Dispose()/Teardown() automatically when the scene unloads. No manual lifecycle, no leak-prone teardown.
+    ///     The parent ProjectContext (global services) is never touched by this scope.
+    ///     The world factories (arena/player/enemy/pickup) are bound HERE, not in ProjectContext, so the DiContainer
+    ///     each factory captures is the SceneContext one — InstantiatePrefabForComponent then resolves both project
+    ///     AND scene bindings, which keeps future scene-scoped dependencies on the player/enemy resolvable.
     /// </summary>
     public class GameInstaller : MonoInstaller
     {

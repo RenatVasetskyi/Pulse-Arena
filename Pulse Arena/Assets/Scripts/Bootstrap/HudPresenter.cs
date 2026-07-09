@@ -11,20 +11,20 @@ using UnityEngine;
 namespace Game.Scene
 {
     /// <summary>
-    /// Owns the in-game HUD: spawns it, binds it to the player / score / camera, and turns model events
-    /// (combo, super meter, waves, rare pickups) into HUD updates. One place for "service state → HUD", so
-    /// the scene orchestrator no longer carries any of that wiring. The caller still hooks the HUD's pause
-    /// button — that's game-flow, extracted in the next step.
+    ///     Owns the in-game HUD: spawns it, binds it to the player / score / camera, and turns model events
+    ///     (combo, super meter, waves, rare pickups) into HUD updates. One place for "service state → HUD", so
+    ///     the scene orchestrator no longer carries any of that wiring. The caller still hooks the HUD's pause
+    ///     button — that's game-flow, extracted in the next step.
     /// </summary>
     public class HudPresenter
     {
         private readonly IComboService _comboService;
-        private readonly ISuperMeterService _superMeterService;
-        private readonly IScoreService _scoreService;
         private readonly IEnemySpawner _enemySpawner;
-        private readonly IPickupSpawner _pickupSpawner;
-        private readonly IInputService _inputService;
         private readonly GameSettings _gameSettings;
+        private readonly IInputService _inputService;
+        private readonly IPickupSpawner _pickupSpawner;
+        private readonly IScoreService _scoreService;
+        private readonly ISuperMeterService _superMeterService;
 
         private GameHud _hud;
 
@@ -41,8 +41,10 @@ namespace Game.Scene
             _gameSettings = gameSettings;
         }
 
-        /// <summary>Spawns + binds the HUD and wires model → HUD. Returns the HUD (caller hooks its pause
-        /// button); null if the prefab is missing.</summary>
+        /// <summary>
+        ///     Spawns + binds the HUD and wires model → HUD. Returns the HUD (caller hooks its pause
+        ///     button); null if the prefab is missing.
+        /// </summary>
         public GameHud Bind(PlayerController player, IBattleCamera camera)
         {
             GameObject prefab = _gameSettings.Prefabs.GameHudPrefab;

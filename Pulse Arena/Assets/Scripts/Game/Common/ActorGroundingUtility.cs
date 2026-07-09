@@ -6,9 +6,9 @@ namespace Game.Common
     public static class ActorGroundingUtility
     {
         private const string GroundLayerName = "Ground";
+        private static float _defaultProbeDistance = 8f;
 
         private static float _groundClearance = 0.02f;
-        private static float _defaultProbeDistance = 8f;
         private static float _groundNormalThreshold = 0.55f;
 
         public static void Configure(GroundingData data)
@@ -19,6 +19,35 @@ namespace Game.Common
             _groundClearance = data.GroundClearance;
             _defaultProbeDistance = data.DefaultProbeDistance;
             _groundNormalThreshold = data.GroundNormalThreshold;
+        }
+
+        public static float GetBottomOffset(Transform actor)
+        {
+            if (actor == null)
+                return 0f;
+
+            CapsuleCollider capsule = actor.GetComponent<CapsuleCollider>();
+
+            if (capsule == null)
+                return 0f;
+
+            float scaledHeight = capsule.height * Mathf.Abs(actor.lossyScale.y);
+            float scaledCenterY = capsule.center.y * actor.lossyScale.y;
+
+            return Mathf.Max(0f, scaledHeight * 0.5f - scaledCenterY);
+        }
+
+        public static bool IsGroundCollider(Collider collider)
+        {
+            if (collider == null)
+                return false;
+
+            int groundMask = LayerMask.GetMask(GroundLayerName);
+
+            if (groundMask == 0)
+                return true;
+
+            return (groundMask & (1 << collider.gameObject.layer)) != 0;
         }
 
         public static bool SnapToGround(Transform actor, float probeDistance = -1f,
@@ -99,35 +128,6 @@ namespace Game.Common
             Vector3 position = actor.position;
             position.y = hit.point.y + bottomOffset + groundClearance;
             return position;
-        }
-
-        public static float GetBottomOffset(Transform actor)
-        {
-            if (actor == null)
-                return 0f;
-
-            CapsuleCollider capsule = actor.GetComponent<CapsuleCollider>();
-
-            if (capsule == null)
-                return 0f;
-
-            float scaledHeight = capsule.height * Mathf.Abs(actor.lossyScale.y);
-            float scaledCenterY = capsule.center.y * actor.lossyScale.y;
-
-            return Mathf.Max(0f, scaledHeight * 0.5f - scaledCenterY);
-        }
-
-        public static bool IsGroundCollider(Collider collider)
-        {
-            if (collider == null)
-                return false;
-
-            int groundMask = LayerMask.GetMask(GroundLayerName);
-
-            if (groundMask == 0)
-                return true;
-
-            return (groundMask & (1 << collider.gameObject.layer)) != 0;
         }
 
         private static bool IsValidGroundHit(Transform actor, RaycastHit hit)

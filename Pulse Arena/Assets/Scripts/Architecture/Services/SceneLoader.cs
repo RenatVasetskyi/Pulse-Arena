@@ -10,8 +10,8 @@ namespace Architecture.Services
     public class SceneLoader : ISceneLoader
     {
         private readonly ICoroutineRunner _coroutineRunner;
-        private readonly ILoadingScreen _loadingScreen;
         private readonly GameSettings _gameSettings;
+        private readonly ILoadingScreen _loadingScreen;
 
         public SceneLoader(ICoroutineRunner coroutineRunner, ILoadingScreen loadingScreen,
             GameSettings gameSettings)

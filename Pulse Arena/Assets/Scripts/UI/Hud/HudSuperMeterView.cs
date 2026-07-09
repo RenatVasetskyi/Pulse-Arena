@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    /// The ultimate super-meter bar — a display-only Slider (0..1) that fills as enemies die. When full it
-    /// switches the Fill to the "ready" colour, reveals the ultimate prompt, and pulses until spent. Assign
-    /// the Slider, its Fill Image and the (optional) ready-prompt CanvasGroup.
+    ///     The ultimate super-meter bar — a display-only Slider (0..1) that fills as enemies die. When full it
+    ///     switches the Fill to the "ready" colour, reveals the ultimate prompt, and pulses until spent. Assign
+    ///     the Slider, its Fill Image and the (optional) ready-prompt CanvasGroup.
     /// </summary>
     public class HudSuperMeterView : MonoBehaviour
     {
@@ -27,6 +27,15 @@ namespace UI.Hud
 
             SetCharge(0f);
             ApplyReady(false, false);
+        }
+
+        private void Update()
+        {
+            if (!_isReady || _slider == null)
+                return;
+
+            float pulse = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.03f;
+            _slider.transform.localScale = _baseScale * pulse;
         }
 
         public void SetCharge(float charge01)
@@ -59,15 +68,6 @@ namespace UI.Hud
                 _slider.transform.localScale = _baseScale;
                 _slider.transform.DOPunchScale(_baseScale * 0.14f, 0.35f, 8, 0.8f).SetUpdate(true).SetLink(gameObject);
             }
-        }
-
-        private void Update()
-        {
-            if (!_isReady || _slider == null)
-                return;
-
-            float pulse = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.03f;
-            _slider.transform.localScale = _baseScale * pulse;
         }
     }
 }

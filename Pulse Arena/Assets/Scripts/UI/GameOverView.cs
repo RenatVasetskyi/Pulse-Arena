@@ -7,9 +7,9 @@ using UnityEngine.UI;
 namespace UI
 {
     /// <summary>
-    /// Prefab-based end-of-game screen (used for both defeat and victory — only the title differs).
-    /// The window bounces in, the score counts up and the buttons pulse — all relative to each
-    /// element's designed scale and on unscaled time (the game is paused at timeScale 0).
+    ///     Prefab-based end-of-game screen (used for both defeat and victory — only the title differs).
+    ///     The window bounces in, the score counts up and the buttons pulse — all relative to each
+    ///     element's designed scale and on unscaled time (the game is paused at timeScale 0).
     /// </summary>
     public class GameOverView : MonoBehaviour
     {
@@ -18,13 +18,42 @@ namespace UI
         [SerializeField] private Button _restartButton;
         [SerializeField] private Button _mainMenuButton;
         [SerializeField] private RectTransform _window;
+        private Vector3 _menuBaseScale = Vector3.one;
+        private Vector3 _restartBaseScale = Vector3.one;
 
         private Vector3 _windowBaseScale = Vector3.one;
-        private Vector3 _restartBaseScale = Vector3.one;
-        private Vector3 _menuBaseScale = Vector3.one;
+        public event Action MenuClicked;
 
         public event Action RestartClicked;
-        public event Action MenuClicked;
+
+        private void Awake()
+        {
+            if (_window != null)
+                _windowBaseScale = _window.localScale;
+
+            if (_restartButton != null)
+            {
+                _restartBaseScale = _restartButton.transform.localScale;
+                _restartButton.onClick.AddListener(OnRestart);
+            }
+
+            if (_mainMenuButton != null)
+            {
+                _menuBaseScale = _mainMenuButton.transform.localScale;
+                _mainMenuButton.onClick.AddListener(OnMenu);
+            }
+
+            gameObject.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            if (_restartButton != null)
+                _restartButton.onClick.RemoveListener(OnRestart);
+
+            if (_mainMenuButton != null)
+                _mainMenuButton.onClick.RemoveListener(OnMenu);
+        }
 
         public void Show(int score, string title)
         {
@@ -80,35 +109,6 @@ namespace UI
             buttonTransform.localScale = baseScale;
             buttonTransform.DOScale(baseScale * amplitude, duration).SetEase(Ease.InOutSine)
                 .SetLoops(-1, LoopType.Yoyo).SetUpdate(true).SetLink(button.gameObject);
-        }
-
-        private void Awake()
-        {
-            if (_window != null)
-                _windowBaseScale = _window.localScale;
-
-            if (_restartButton != null)
-            {
-                _restartBaseScale = _restartButton.transform.localScale;
-                _restartButton.onClick.AddListener(OnRestart);
-            }
-
-            if (_mainMenuButton != null)
-            {
-                _menuBaseScale = _mainMenuButton.transform.localScale;
-                _mainMenuButton.onClick.AddListener(OnMenu);
-            }
-
-            gameObject.SetActive(false);
-        }
-
-        private void OnDestroy()
-        {
-            if (_restartButton != null)
-                _restartButton.onClick.RemoveListener(OnRestart);
-
-            if (_mainMenuButton != null)
-                _mainMenuButton.onClick.RemoveListener(OnMenu);
         }
 
         private void OnRestart()

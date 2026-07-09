@@ -5,27 +5,27 @@ using UnityEngine;
 namespace UI.Hud
 {
     /// <summary>
-    /// HUD score label. Large values are abbreviated (K/M) so a bug can never blow the
-    /// panel up to full-screen width. Assign the TMP label in the prefab.
+    ///     HUD score label. Large values are abbreviated (K/M) so a bug can never blow the
+    ///     panel up to full-screen width. Assign the TMP label in the prefab.
     /// </summary>
     public class HudScoreView : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _label;
+        private int _lastValue = int.MinValue;
 
         private IScoreService _score;
-        private int _lastValue = int.MinValue;
+
+        private void OnDestroy()
+        {
+            if (_score != null)
+                _score.ScoreChanged -= OnScoreChanged;
+        }
 
         public void Bind(IScoreService score)
         {
             _score = score;
             _score.ScoreChanged += OnScoreChanged;
             OnScoreChanged(score.Score);
-        }
-
-        private void OnDestroy()
-        {
-            if (_score != null)
-                _score.ScoreChanged -= OnScoreChanged;
         }
 
         private void OnScoreChanged(int value)

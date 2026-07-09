@@ -24,6 +24,7 @@ namespace Game.Scene
         public Transform[] PickupSpawnPoints => _pickupSpawnPoints;
         public float EnemySpawnHeightOffset => ResolveOffset(_enemySpawnHeightOffset, 1f);
         public float PickupSpawnHeightOffset => ResolveOffset(_pickupSpawnHeightOffset, 0.5f);
+
         public Vector3 PlayerSpawnPosition => AddHeightOffset(_playerSpawnPoint.position,
             ResolveOffset(_playerSpawnHeightOffset, 1f));
 

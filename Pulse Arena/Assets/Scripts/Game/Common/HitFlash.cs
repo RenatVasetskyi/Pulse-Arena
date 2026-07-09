@@ -3,19 +3,19 @@ using UnityEngine;
 namespace Game.Common
 {
     /// <summary>
-    /// Swaps an actor's renderer materials to a flat flash colour for a short time on hit,
-    /// then restores them. Timer-driven (Tick) so no coroutine / MonoBehaviour is needed.
-    /// Reusable for any actor with renderers.
+    ///     Swaps an actor's renderer materials to a flat flash colour for a short time on hit,
+    ///     then restores them. Timer-driven (Tick) so no coroutine / MonoBehaviour is needed.
+    ///     Reusable for any actor with renderers.
     /// </summary>
     public class HitFlash
     {
-        private Renderer[] _renderers;
-        private Material[][] _original;
+        private bool _active;
+        private float _duration;
         private Material[][] _flash;
         private Material _flashMaterial;
-        private float _duration;
+        private Material[][] _original;
+        private Renderer[] _renderers;
         private float _timer;
-        private bool _active;
 
         public void Initialize(Renderer[] renderers, Color color, float duration)
         {
@@ -30,24 +30,13 @@ namespace Game.Common
             if (_renderers == null || _renderers.Length == 0)
                 return;
 
-            _timer = _duration;   // repeated hits extend the flash (same as the old coroutine)
+            _timer = _duration; // repeated hits extend the flash (same as the old coroutine)
 
             if (_active)
                 return;
 
             Apply();
             _active = true;
-        }
-
-        public void Tick(float deltaTime)
-        {
-            if (!_active)
-                return;
-
-            _timer -= deltaTime;
-
-            if (_timer <= 0f)
-                Restore();
         }
 
         public void Restore()
@@ -64,6 +53,17 @@ namespace Game.Common
 
                 _renderers[i].sharedMaterials = _original[i];
             }
+        }
+
+        public void Tick(float deltaTime)
+        {
+            if (!_active)
+                return;
+
+            _timer -= deltaTime;
+
+            if (_timer <= 0f)
+                Restore();
         }
 
         private void Apply()

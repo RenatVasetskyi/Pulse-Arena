@@ -4,9 +4,9 @@ using UnityEngine;
 namespace Game.Spawning
 {
     /// <summary>
-    /// The pit placement geometry: a few tries to land a spot inside the play ring that is clear of the player
-    /// AND every enemy (an <see cref="Physics.CheckSphere"/> on the enemy layer). Kept separate from the spawn
-    /// cadence so the placement rules are one focused, independently-tunable unit.
+    ///     The pit placement geometry: a few tries to land a spot inside the play ring that is clear of the player
+    ///     AND every enemy (an <see cref="Physics.CheckSphere" /> on the enemy layer). Kept separate from the spawn
+    ///     cadence so the placement rules are one focused, independently-tunable unit.
     /// </summary>
     public class PitPlacementFinder : IPitPlacementFinder
     {
@@ -17,9 +17,9 @@ namespace Game.Spawning
         private const float PitTriggerRadius = 2.5f;
 
         private Vector3 _center;
-        private Transform _player;
         private PitData _data;
         private LayerMask _enemyLayer;
+        private Transform _player;
 
         public void Initialize(Vector3 center, Transform player, PitData data, LayerMask enemyLayer)
         {

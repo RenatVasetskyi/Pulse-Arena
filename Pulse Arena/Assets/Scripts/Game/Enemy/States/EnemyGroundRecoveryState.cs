@@ -5,11 +5,11 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    /// The ground-recovery slice of the old physics-recovery tick: after the knockback timer has run
-    /// out the enemy keeps falling under extra gravity (and keeps sweeping for impact damage while it
-    /// is still a thrown projectile) until it has touched ground and can snap onto it. Counts up the
-    /// physics-recovery timer, then finishes (clears flags, zeroes vertical velocity, snaps to ground —
-    /// the old FinishPhysicsRecovery body) and returns to chasing.
+    ///     The ground-recovery slice of the old physics-recovery tick: after the knockback timer has run
+    ///     out the enemy keeps falling under extra gravity (and keeps sweeping for impact damage while it
+    ///     is still a thrown projectile) until it has touched ground and can snap onto it. Counts up the
+    ///     physics-recovery timer, then finishes (clears flags, zeroes vertical velocity, snaps to ground —
+    ///     the old FinishPhysicsRecovery body) and returns to chasing.
     /// </summary>
     public class EnemyGroundRecoveryState : ActorState
     {

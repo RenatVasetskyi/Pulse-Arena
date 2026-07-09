@@ -9,71 +9,44 @@ using Zenject;
 namespace Game.Combat
 {
     /// <summary>
-    /// The lasso orchestrator: runs the grab state machine (Idle → Throwing → Wrapping → Pulling → Spinning),
-    /// the spin/pull/launch physics in FixedUpdate, and assembles the rope frame each frame. The distinct
-    /// concerns are delegated to helpers — <see cref="IRopeTension"/> (tension math), <see cref="IEnemyTargetFinder"/>
-    /// (grab target search), <see cref="ISnapBurstEffect"/> (break VFX) and <see cref="IHookTargetMarkerPresenter"/>
-    /// (target highlight) — leaving only the core combat-feel logic here.
+    ///     The lasso orchestrator: runs the grab state machine (Idle → Throwing → Wrapping → Pulling → Spinning),
+    ///     the spin/pull/launch physics in FixedUpdate, and assembles the rope frame each frame. The distinct
+    ///     concerns are delegated to helpers — <see cref="IRopeTension" /> (tension math), <see cref="IEnemyTargetFinder" />
+    ///     (grab target search), <see cref="ISnapBurstEffect" /> (break VFX) and <see cref="IHookTargetMarkerPresenter" />
+    ///     (target highlight) — leaving only the core combat-feel logic here.
     /// </summary>
     public class EnemySlingshot : MonoBehaviour
     {
-        private enum LassoState
-        {
-            Idle,
-            Throwing,
-            Wrapping,
-            Pulling,
-            Spinning
-        }
-
-        public event Action LassoThrown;
-        public event Action EnemyGrabbed;
-        public event Action<float> ChargeChanged;
-        public event Action<float> EnemyLaunched;
-        public event Action<float> TensionChanged;
-        public event Action RopeBroke;
-
         [SerializeField] private Transform _lassoOrigin;
+        private readonly IEnemyTargetFinder _finder = new EnemyTargetFinder();
+        private readonly IHookTargetMarkerPresenter _marker = new HookTargetMarkerPresenter();
+        private readonly RopeRenderer _rope = new();
+        private readonly ISnapBurstEffect _snapBurst = new SnapBurstEffect();
+        private readonly IRopeTension _tension = new RopeTension();
+        private float _chargeTimer;
+        private float _cooldownTimer;
+        private SlingshotData _data;
+        private EnemyController _grabbedEnemy;
+        private float _holdAngle;
 
         private IInputService _inputService;
-        private SlingshotData _data;
-        private EnemyController _targetEnemy;
-        private EnemyController _grabbedEnemy;
-        private readonly RopeRenderer _rope = new();
-        private readonly IRopeTension _tension = new RopeTension();
-        private readonly IEnemyTargetFinder _finder = new EnemyTargetFinder();
-        private readonly ISnapBurstEffect _snapBurst = new SnapBurstEffect();
-        private readonly IHookTargetMarkerPresenter _marker = new HookTargetMarkerPresenter();
-        private LassoState _state;
-        private Vector3 _lassoStart;
         private Vector3 _lassoEnd;
+        private Vector3 _lassoStart;
         private Vector3 _pullStartPosition;
+        private float _pullTimer;
+        private bool _releaseRequested;
+        private float _spinSpeed;
+        private LassoState _state;
+        private EnemyController _targetEnemy;
         private float _throwTimer;
         private float _wrapTimer;
-        private float _pullTimer;
-        private float _chargeTimer;
-        private float _holdAngle;
-        private float _spinSpeed;
-        private float _cooldownTimer;
-        private bool _releaseRequested;
+        public event Action<float> ChargeChanged;
+        public event Action EnemyGrabbed;
+        public event Action<float> EnemyLaunched;
 
-        [Inject]
-        public void Construct(IInputService inputService, GameSettings gameSettings)
-        {
-            _inputService = inputService;
-            _data = gameSettings.SlingshotData;
-            _rope.Initialize(transform, _data);
-            _finder.Initialize(transform, _data);
-            _tension.Initialize(_data);
-            _tension.Changed += OnTensionChanged;
-            _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
-            _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
-        }
-
-        private void OnTensionChanged(float value)
-        {
-            TensionChanged?.Invoke(value);
-        }
+        public event Action LassoThrown;
+        public event Action RopeBroke;
+        public event Action<float> TensionChanged;
 
         private void Update()
         {
@@ -106,6 +79,44 @@ namespace Game.Combat
             _marker.Tick(_state == LassoState.Idle, _cooldownTimer > 0f);
         }
 
+        private void FixedUpdate()
+        {
+            if (_grabbedEnemy == null)
+                return;
+
+            if (_state == LassoState.Pulling)
+            {
+                TickPullToHold();
+                return;
+            }
+
+            if (_state == LassoState.Spinning)
+                TickSpin();
+        }
+
+        [Inject]
+        public void Construct(IInputService inputService, GameSettings gameSettings)
+        {
+            _inputService = inputService;
+            _data = gameSettings.SlingshotData;
+            _rope.Initialize(transform, _data);
+            _finder.Initialize(transform, _data);
+            _tension.Initialize(_data);
+            _tension.Changed += OnTensionChanged;
+            _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
+            _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
+        }
+
+        public void SetLassoOrigin(Transform lassoOrigin)
+        {
+            _lassoOrigin = lassoOrigin;
+        }
+
+        private void OnTensionChanged(float value)
+        {
+            TensionChanged?.Invoke(value);
+        }
+
         private RopeRenderer.RopeFrame BuildRopeFrame()
         {
             bool ringVisible = (_state == LassoState.Wrapping || _state == LassoState.Pulling ||
@@ -125,21 +136,6 @@ namespace Game.Combat
                 wrapTimer: _wrapTimer,
                 chargeProgress: GetChargeProgress(),
                 tensionWarning: _tension.Warning);
-        }
-
-        private void FixedUpdate()
-        {
-            if (_grabbedEnemy == null)
-                return;
-
-            if (_state == LassoState.Pulling)
-            {
-                TickPullToHold();
-                return;
-            }
-
-            if (_state == LassoState.Spinning)
-                TickSpin();
         }
 
         private void TickSpin()
@@ -164,7 +160,7 @@ namespace Game.Combat
             float spinProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float weightFactor = GetGrabbedWeightFactor();
             float targetSpinSpeed = Mathf.Lerp(_data.HoldAngularSpeed, _data.MaxHoldAngularSpeed, spinProgress) *
-                weightFactor;
+                                    weightFactor;
             _spinSpeed = Mathf.MoveTowards(_spinSpeed, targetSpinSpeed,
                 _data.SpinAcceleration * weightFactor * Time.fixedDeltaTime);
             _holdAngle += _spinSpeed * Time.fixedDeltaTime;
@@ -210,11 +206,6 @@ namespace Game.Combat
             _releaseRequested = false;
             _state = LassoState.Throwing;
             LassoThrown?.Invoke();
-        }
-
-        public void SetLassoOrigin(Transform lassoOrigin)
-        {
-            _lassoOrigin = lassoOrigin;
         }
 
         private void TickThrow()
@@ -299,8 +290,8 @@ namespace Game.Combat
             float launchProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float chargeProgress = GetChargeProgress();
             float launchForce = _data.LaunchForce *
-                Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress) *
-                GetGrabbedLaunchMultiplier();
+                                Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress) *
+                                GetGrabbedLaunchMultiplier();
             Vector3 velocity = launchDirection.normalized * launchForce;
             velocity.y = -Mathf.Lerp(_data.LaunchDownwardVelocity,
                 _data.LaunchDownwardVelocity * 1.25f, launchProgress);
@@ -387,7 +378,7 @@ namespace Game.Combat
             {
                 Vector3 dropDirection = GetPlanarDirectionTo(enemy.transform.position);
                 enemy.Knockback(dropDirection * _data.BreakDropForce +
-                    Vector3.up * (_data.BreakDropForce * 0.25f));
+                                Vector3.up * (_data.BreakDropForce * 0.25f));
             }
 
             ResetLasso();
@@ -414,6 +405,15 @@ namespace Game.Combat
         {
             if (_cooldownTimer > 0f)
                 _cooldownTimer -= Time.deltaTime;
+        }
+
+        private enum LassoState
+        {
+            Idle,
+            Throwing,
+            Wrapping,
+            Pulling,
+            Spinning
         }
     }
 }

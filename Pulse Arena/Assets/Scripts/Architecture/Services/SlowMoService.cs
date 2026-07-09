@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// Bullet-time on a coroutine driven by real time: drop Time.timeScale (and fixedDeltaTime, to keep
-    /// physics smooth), hold, then ease back to normal. <see cref="Stop"/> cancels and restores at once.
+    ///     Bullet-time on a coroutine driven by real time: drop Time.timeScale (and fixedDeltaTime, to keep
+    ///     physics smooth), hold, then ease back to normal. <see cref="Stop" /> cancels and restores at once.
     /// </summary>
     public class SlowMoService : ISlowMoService
     {
@@ -20,12 +20,6 @@ namespace Architecture.Services
             _runner = runner;
         }
 
-        public void Trigger(float scale, float duration)
-        {
-            Stop();
-            _routine = _runner.StartCoroutine(Run(Mathf.Clamp(scale, 0.05f, 1f), Mathf.Max(0.01f, duration)));
-        }
-
         public void Stop()
         {
             if (_routine != null)
@@ -36,6 +30,12 @@ namespace Architecture.Services
 
             Time.timeScale = 1f;
             Time.fixedDeltaTime = DefaultFixedDelta;
+        }
+
+        public void Trigger(float scale, float duration)
+        {
+            Stop();
+            _routine = _runner.StartCoroutine(Run(Mathf.Clamp(scale, 0.05f, 1f), Mathf.Max(0.01f, duration)));
         }
 
         private IEnumerator Run(float scale, float duration)

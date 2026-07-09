@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// Owns the single shared settings panel instance (lazily created, kept across scenes) and opens it. Both the
-    /// main menu and the in-game pause call into this; the panel hides itself via its own close button.
+    ///     Owns the single shared settings panel instance (lazily created, kept across scenes) and opens it. Both the
+    ///     main menu and the in-game pause call into this; the panel hides itself via its own close button.
     /// </summary>
     public class SettingsController : ISettingsController
     {

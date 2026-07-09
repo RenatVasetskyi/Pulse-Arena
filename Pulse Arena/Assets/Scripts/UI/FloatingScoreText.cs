@@ -7,9 +7,9 @@ using UnityEngine.SceneManagement;
 namespace UI
 {
     /// <summary>
-    /// World-space "+N" score popup that rises and fades out. The canvas + text live on the prefab;
-    /// instances are pooled and recycled on expiry (the pool is cleared on scene unload) so a kill no
-    /// longer allocates a fresh canvas + text each time.
+    ///     World-space "+N" score popup that rises and fades out. The canvas + text live on the prefab;
+    ///     instances are pooled and recycled on expiry (the pool is cleared on scene unload) so a kill no
+    ///     longer allocates a fresh canvas + text each time.
     /// </summary>
     public class FloatingScoreText : MonoBehaviour
     {
@@ -17,12 +17,31 @@ namespace UI
         private static bool _sceneHookRegistered;
 
         [SerializeField] private TextMeshProUGUI _text;
+        private Color _baseColor = new(1f, 0.92f, 0.4f, 1f);
 
         private Camera _camera;
-        private Color _baseColor = new(1f, 0.92f, 0.4f, 1f);
-        private float _timer;
         private float _lifetime = 0.9f;
         private float _riseSpeed = 1.6f;
+        private float _timer;
+
+        private void Update()
+        {
+            _timer += Time.deltaTime;
+            transform.position += Vector3.up * (_riseSpeed * Time.deltaTime);
+
+            if (_camera != null)
+                transform.rotation = Quaternion.LookRotation(transform.position - _camera.transform.position);
+
+            if (_text != null)
+            {
+                Color color = _baseColor;
+                color.a = _baseColor.a * (1f - Mathf.SmoothStep(0.35f, 1f, _timer / _lifetime));
+                _text.color = color;
+            }
+
+            if (_timer >= _lifetime)
+                Release();
+        }
 
         public static FloatingScoreText Create(GameObject prefab, Vector3 position, string value, VfxData vfx = null)
         {
@@ -85,25 +104,6 @@ namespace UI
                 _text.text = value;
                 _text.color = _baseColor;
             }
-        }
-
-        private void Update()
-        {
-            _timer += Time.deltaTime;
-            transform.position += Vector3.up * (_riseSpeed * Time.deltaTime);
-
-            if (_camera != null)
-                transform.rotation = Quaternion.LookRotation(transform.position - _camera.transform.position);
-
-            if (_text != null)
-            {
-                Color color = _baseColor;
-                color.a = _baseColor.a * (1f - Mathf.SmoothStep(0.35f, 1f, _timer / _lifetime));
-                _text.color = color;
-            }
-
-            if (_timer >= _lifetime)
-                Release();
         }
 
         private void Release()

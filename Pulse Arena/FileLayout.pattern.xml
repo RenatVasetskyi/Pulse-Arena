@@ -1,0 +1,113 @@
+<Patterns xmlns="urn:schemas-jetbrains-com:member-reordering-patterns">
+
+  <!-- Don't reorder members of these special types -->
+  <TypePattern DisplayName="Non-reorderable types" Priority="99999999">
+    <TypePattern.Match>
+      <Or>
+        <And>
+          <Kind Is="Interface" />
+          <Or>
+            <HasAttribute Name="System.Runtime.InteropServices.InterfaceTypeAttribute" />
+            <HasAttribute Name="System.Runtime.InteropServices.ComImport" />
+          </Or>
+        </And>
+        <Kind Is="Struct" />
+        <HasAttribute Name="System.Runtime.InteropServices.StructLayoutAttribute" />
+        <HasAttribute Name="JetBrains.Annotations.NoReorderAttribute" />
+      </Or>
+    </TypePattern.Match>
+  </TypePattern>
+
+  <!-- Pulse Arena order (StyleCop-based, events hoisted) -->
+  <TypePattern DisplayName="Default Pattern">
+
+    <Entry DisplayName="Constants and static fields">
+      <Entry.Match>
+        <Or>
+          <Kind Is="Constant" />
+          <And>
+            <Kind Is="Field" />
+            <Static />
+          </And>
+        </Or>
+      </Entry.Match>
+      <Entry.SortBy>
+        <Kind>
+          <Kind.Order>
+            <DeclarationKind>Constant</DeclarationKind>
+            <DeclarationKind>Field</DeclarationKind>
+          </Kind.Order>
+        </Kind>
+        <Readonly />
+        <Name />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="Instance fields">
+      <Entry.Match>
+        <And>
+          <Kind Is="Field" />
+          <Not>
+            <Static />
+          </Not>
+        </And>
+      </Entry.Match>
+      <Entry.SortBy>
+        <Readonly />
+        <Name />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="Events">
+      <Entry.Match>
+        <Kind Is="Event" />
+      </Entry.Match>
+      <Entry.SortBy>
+        <Name />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="Properties and indexers">
+      <Entry.Match>
+        <Or>
+          <Kind Is="Property" />
+          <Kind Is="Indexer" />
+        </Or>
+      </Entry.Match>
+      <Entry.SortBy>
+        <Name />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="Constructors">
+      <Entry.Match>
+        <Kind Is="Constructor" />
+      </Entry.Match>
+      <Entry.SortBy>
+        <Static />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="Public methods">
+      <Entry.Match>
+        <And>
+          <Kind Is="Method" />
+          <Access Is="Public" />
+        </And>
+      </Entry.Match>
+      <Entry.SortBy>
+        <Static />
+        <Name />
+      </Entry.SortBy>
+    </Entry>
+
+    <Entry DisplayName="All other members" />
+
+    <Entry DisplayName="Nested types">
+      <Entry.Match>
+        <Kind Is="Type" />
+      </Entry.Match>
+    </Entry>
+
+  </TypePattern>
+</Patterns>

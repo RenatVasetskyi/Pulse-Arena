@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// Charges the ultimate meter one notch per kill (it listens to the combo service, which fires on every
-    /// kill). Fills after <see cref="SuperData.KillsToCharge"/> kills; <see cref="TryConsume"/> spends it.
+    ///     Charges the ultimate meter one notch per kill (it listens to the combo service, which fires on every
+    ///     kill). Fills after <see cref="SuperData.KillsToCharge" /> kills; <see cref="TryConsume" /> spends it.
     /// </summary>
     public class SuperMeterService : ISuperMeterService, IDisposable
     {
@@ -17,6 +17,12 @@ namespace Architecture.Services
         private int _kills;
         private bool _wasFull;
 
+        public event Action<float> ChargeChanged;
+        public event Action Ready;
+
+        public float Charge01 => Mathf.Clamp01((float)_kills / _killsToCharge);
+        public bool IsFull => _kills >= _killsToCharge;
+
         public SuperMeterService(GameSettings gameSettings, IComboService comboService)
         {
             _comboService = comboService;
@@ -24,11 +30,29 @@ namespace Architecture.Services
             _comboService.ComboChanged += OnComboChanged;
         }
 
-        public event Action<float> ChargeChanged;
-        public event Action Ready;
+        public void Dispose()
+        {
+            if (_comboService != null)
+                _comboService.ComboChanged -= OnComboChanged;
+        }
 
-        public float Charge01 => Mathf.Clamp01((float)_kills / _killsToCharge);
-        public bool IsFull => _kills >= _killsToCharge;
+        public void Reset()
+        {
+            _kills = 0;
+            _wasFull = false;
+            ChargeChanged?.Invoke(0f);
+        }
+
+        public bool TryConsume()
+        {
+            if (!IsFull)
+                return false;
+
+            _kills = 0;
+            _wasFull = false;
+            ChargeChanged?.Invoke(0f);
+            return true;
+        }
 
         // The combo service fires ComboChanged on every kill (count >= 1) and on reset (count 0).
         private void OnComboChanged(int combo)
@@ -52,30 +76,6 @@ namespace Architecture.Services
                 _wasFull = true;
                 Ready?.Invoke();
             }
-        }
-
-        public bool TryConsume()
-        {
-            if (!IsFull)
-                return false;
-
-            _kills = 0;
-            _wasFull = false;
-            ChargeChanged?.Invoke(0f);
-            return true;
-        }
-
-        public void Reset()
-        {
-            _kills = 0;
-            _wasFull = false;
-            ChargeChanged?.Invoke(0f);
-        }
-
-        public void Dispose()
-        {
-            if (_comboService != null)
-                _comboService.ComboChanged -= OnComboChanged;
         }
     }
 }

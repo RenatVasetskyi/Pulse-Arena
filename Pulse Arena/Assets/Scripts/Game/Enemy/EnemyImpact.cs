@@ -6,22 +6,40 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    /// The "thrown enemy damages OTHER enemies" system: tracks who was already hit this flight,
-    /// sweeps along the trajectory, applies damage + knockback. The controller keeps the collision
-    /// callbacks, ground bounce and shared cooldown timer (those are coupled to physics recovery).
+    ///     The "thrown enemy damages OTHER enemies" system: tracks who was already hit this flight,
+    ///     sweeps along the trajectory, applies damage + knockback. The controller keeps the collision
+    ///     callbacks, ground bounce and shared cooldown timer (those are coupled to physics recovery).
     /// </summary>
     public class EnemyImpact
     {
-        private static readonly RaycastHit[] SweepBuffer = new RaycastHit[32];
         private static readonly Collider[] OverlapBuffer = new Collider[32];
+        private static readonly RaycastHit[] SweepBuffer = new RaycastHit[32];
 
         private readonly Dictionary<EnemyController, float> _hitTimers = new();
-        private EnemyController _owner;
-        private Transform _transform;
-        private Rigidbody _rigidbody;
         private EnemyData _data;
-        private Func<EnemyTypeData> _type;
         private Vector3 _lastPosition;
+        private EnemyController _owner;
+        private Rigidbody _rigidbody;
+        private Transform _transform;
+        private Func<EnemyTypeData> _type;
+
+        public void Clear()
+        {
+            _hitTimers.Clear();
+        }
+
+        /// <summary>Sweep along the current velocity. Returns true if it damaged any enemy this tick.</summary>
+        public bool DamageDuringSweep()
+        {
+            if (!TryBuildSweepSegment(out Vector3 sweepStart, out Vector3 sweepEnd, out Vector3 currentPosition))
+                return false;
+
+            bool damagedBySweep = DamageAlongSweepCast(sweepStart, sweepEnd);
+            bool damagedByOverlap = DamageAtSweepEndOverlap(sweepEnd);
+
+            _lastPosition = currentPosition;
+            return damagedBySweep || damagedByOverlap;
+        }
 
         public void Initialize(EnemyController owner, Transform transform, Rigidbody rigidbody,
             EnemyData data, Func<EnemyTypeData> typeProvider)
@@ -36,11 +54,6 @@ namespace Game.Enemy
         public void ResetSweepOrigin()
         {
             _lastPosition = _transform.position;
-        }
-
-        public void Clear()
-        {
-            _hitTimers.Clear();
         }
 
         public void Tick(float deltaTime)
@@ -71,19 +84,6 @@ namespace Game.Enemy
             Rigidbody otherBody = collision.rigidbody;
             EnemyController other = otherBody != null ? otherBody.GetComponent<EnemyController>() : null;
             return TryHit(other);
-        }
-
-        /// <summary>Sweep along the current velocity. Returns true if it damaged any enemy this tick.</summary>
-        public bool DamageDuringSweep()
-        {
-            if (!TryBuildSweepSegment(out Vector3 sweepStart, out Vector3 sweepEnd, out Vector3 currentPosition))
-                return false;
-
-            bool damagedBySweep = DamageAlongSweepCast(sweepStart, sweepEnd);
-            bool damagedByOverlap = DamageAtSweepEndOverlap(sweepEnd);
-
-            _lastPosition = currentPosition;
-            return damagedBySweep || damagedByOverlap;
         }
 
         // The velocity gate + trajectory geometry: false (and parks _lastPosition) when too slow to damage.
@@ -175,7 +175,8 @@ namespace Game.Enemy
 
             direction.y = 0f;
 
-            Vector3 knockbackDirection = (direction.normalized + Vector3.up * _data.ImpactKnockbackUpwardRatio).normalized;
+            Vector3 knockbackDirection =
+                (direction.normalized + Vector3.up * _data.ImpactKnockbackUpwardRatio).normalized;
             other.Knockback(knockbackDirection * (_data.ImpactKnockbackForce * _type().ImpactKnockbackMultiplier));
         }
 

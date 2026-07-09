@@ -12,6 +12,15 @@ namespace UI.Hud
 
         private IBattleCamera _camera;
 
+        private void OnDestroy()
+        {
+            if (_zoomIn != null)
+                _zoomIn.onClick.RemoveListener(OnZoomIn);
+
+            if (_zoomOut != null)
+                _zoomOut.onClick.RemoveListener(OnZoomOut);
+        }
+
         public void Bind(IBattleCamera camera)
         {
             _camera = camera;
@@ -21,15 +30,6 @@ namespace UI.Hud
 
             if (_zoomOut != null)
                 _zoomOut.onClick.AddListener(OnZoomOut);
-        }
-
-        private void OnDestroy()
-        {
-            if (_zoomIn != null)
-                _zoomIn.onClick.RemoveListener(OnZoomIn);
-
-            if (_zoomOut != null)
-                _zoomOut.onClick.RemoveListener(OnZoomOut);
         }
 
         private void OnZoomIn()

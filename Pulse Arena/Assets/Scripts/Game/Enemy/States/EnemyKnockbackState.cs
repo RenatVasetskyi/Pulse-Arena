@@ -5,23 +5,22 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    /// The knockback slice of the old physics-recovery tick, and the entry point for every "the enemy
-    /// got flung" flow (Knockback / Launch both transition here). Enter reproduces the old
-    /// EnterPhysicsRecoveryState body (disable agent, clear grabbed, mark ground-recovery, thrown visual,
-    /// wake body) — the body that used to live on the controller as ContextOnEnterPhysicsRecovery.
-    ///
-    /// FixedTick owns the knockback timer AND its expiry side effect (this is the one place it lives —
-    /// it is NOT ticked by the controller's generic timer loop). The decrement + its else-expiry side
-    /// effect run TARGET-INDEPENDENTLY at the top of FixedTick, reproducing the old
-    /// EnemyController.TickTimers knockback block that advanced every non-dead FixedUpdate with no
-    /// target guard; only the gravity / sweep / ground-recovery-handoff work below is target-guarded,
-    /// exactly as the old FixedTickPhysicsRecoveryState's own `target == null` early-return was. While
-    /// the timer runs the enemy falls under extra gravity and, if it is a thrown projectile, sweeps for
-    /// impact damage. When the timer expires it hands off to the ground-recovery state, and — to match
-    /// the ORIGINAL single-state tick byte-for-byte — immediately drives ONE ground-recovery tick on
-    /// the SAME physics frame (in the old FixedTickPhysicsRecoveryState the expiry frame fell straight
-    /// through the knockback branch into the ground-recovery branch, so gravity, the sweep-damage check,
-    /// the recovery-timer increment and even the earliest possible finish all happened that same frame).
+    ///     The knockback slice of the old physics-recovery tick, and the entry point for every "the enemy
+    ///     got flung" flow (Knockback / Launch both transition here). Enter reproduces the old
+    ///     EnterPhysicsRecoveryState body (disable agent, clear grabbed, mark ground-recovery, thrown visual,
+    ///     wake body) — the body that used to live on the controller as ContextOnEnterPhysicsRecovery.
+    ///     FixedTick owns the knockback timer AND its expiry side effect (this is the one place it lives —
+    ///     it is NOT ticked by the controller's generic timer loop). The decrement + its else-expiry side
+    ///     effect run TARGET-INDEPENDENTLY at the top of FixedTick, reproducing the old
+    ///     EnemyController.TickTimers knockback block that advanced every non-dead FixedUpdate with no
+    ///     target guard; only the gravity / sweep / ground-recovery-handoff work below is target-guarded,
+    ///     exactly as the old FixedTickPhysicsRecoveryState's own `target == null` early-return was. While
+    ///     the timer runs the enemy falls under extra gravity and, if it is a thrown projectile, sweeps for
+    ///     impact damage. When the timer expires it hands off to the ground-recovery state, and — to match
+    ///     the ORIGINAL single-state tick byte-for-byte — immediately drives ONE ground-recovery tick on
+    ///     the SAME physics frame (in the old FixedTickPhysicsRecoveryState the expiry frame fell straight
+    ///     through the knockback branch into the ground-recovery branch, so gravity, the sweep-damage check,
+    ///     the recovery-timer increment and even the earliest possible finish all happened that same frame).
     /// </summary>
     public class EnemyKnockbackState : ActorState
     {

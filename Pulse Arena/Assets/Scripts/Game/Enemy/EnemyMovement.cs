@@ -7,30 +7,20 @@ using UnityEngine.AI;
 namespace Game.Enemy
 {
     /// <summary>
-    /// Owns the enemy's locomotion: the NavMeshAgent + Rigidbody hybrid. The controller keeps
-    /// game state (dead/grabbed/knocked) and gates when the agent may take over; this class
-    /// handles the "how" — placing the agent on the NavMesh, driving it, or the physics fallback.
+    ///     Owns the enemy's locomotion: the NavMeshAgent + Rigidbody hybrid. The controller keeps
+    ///     game state (dead/grabbed/knocked) and gates when the agent may take over; this class
+    ///     handles the "how" — placing the agent on the NavMesh, driving it, or the physics fallback.
     /// </summary>
     public class EnemyMovement
     {
-        private Transform _transform;
-        private Rigidbody _rigidbody;
         private NavMeshAgent _agent;
         private EnemyData _data;
-        private Func<float> _moveSpeed;
         private float _destinationUpdateTimer;
+        private Func<float> _moveSpeed;
+        private Rigidbody _rigidbody;
+        private Transform _transform;
 
         public bool UsesAgent { get; private set; }
-
-        public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
-            EnemyData data, Func<float> moveSpeedProvider)
-        {
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _agent = agent;
-            _data = data;
-            _moveSpeed = moveSpeedProvider;
-        }
 
         public void ConfigureAgent()
         {
@@ -50,35 +40,6 @@ namespace Game.Enemy
             _agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         }
 
-        /// <summary>
-        /// Enables agent control. The controller must have already checked its own state
-        /// (not dead/grabbed/recovering/knocked) before calling this.
-        /// </summary>
-        public bool TryEnableAgent()
-        {
-            if (_agent == null)
-                return false;
-
-            if (!_agent.enabled)
-                _agent.enabled = true;
-
-            if (!TryPlaceAgentOnNavMesh())
-            {
-                _agent.enabled = false;
-                UsesAgent = false;
-                _rigidbody.isKinematic = false;
-                return false;
-            }
-
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-            _rigidbody.isKinematic = true;
-            UsesAgent = true;
-            _destinationUpdateTimer = 0f;
-
-            return true;
-        }
-
         public void DisableAgent()
         {
             if (_agent != null && _agent.enabled)
@@ -93,6 +54,40 @@ namespace Game.Enemy
 
             if (_rigidbody != null)
                 _rigidbody.isKinematic = false;
+        }
+
+        public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
+            EnemyData data, Func<float> moveSpeedProvider)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _agent = agent;
+            _data = data;
+            _moveSpeed = moveSpeedProvider;
+        }
+
+        public void MoveDirectlyToTarget(Transform target)
+        {
+            Vector3 offset = target.position - _transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance)
+            {
+                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
+                RotateTo(offset);
+                return;
+            }
+
+            Vector3 direction = offset.normalized;
+            direction.y = 0f;
+            Vector3 horizontalVelocity = direction * _moveSpeed();
+
+            _rigidbody.linearVelocity = new Vector3(
+                horizontalVelocity.x,
+                _rigidbody.linearVelocity.y,
+                horizontalVelocity.z);
+
+            RotateTo(direction);
         }
 
         public void MoveToTarget(Transform target)
@@ -131,28 +126,33 @@ namespace Game.Enemy
             RotateTo(_agent.desiredVelocity);
         }
 
-        public void MoveDirectlyToTarget(Transform target)
+        /// <summary>
+        ///     Enables agent control. The controller must have already checked its own state
+        ///     (not dead/grabbed/recovering/knocked) before calling this.
+        /// </summary>
+        public bool TryEnableAgent()
         {
-            Vector3 offset = target.position - _transform.position;
-            offset.y = 0f;
+            if (_agent == null)
+                return false;
 
-            if (offset.sqrMagnitude <= _data.AgentStoppingDistance * _data.AgentStoppingDistance)
+            if (!_agent.enabled)
+                _agent.enabled = true;
+
+            if (!TryPlaceAgentOnNavMesh())
             {
-                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
-                RotateTo(offset);
-                return;
+                _agent.enabled = false;
+                UsesAgent = false;
+                _rigidbody.isKinematic = false;
+                return false;
             }
 
-            Vector3 direction = offset.normalized;
-            direction.y = 0f;
-            Vector3 horizontalVelocity = direction * _moveSpeed();
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = true;
+            UsesAgent = true;
+            _destinationUpdateTimer = 0f;
 
-            _rigidbody.linearVelocity = new Vector3(
-                horizontalVelocity.x,
-                _rigidbody.linearVelocity.y,
-                horizontalVelocity.z);
-
-            RotateTo(direction);
+            return true;
         }
 
         private void RotateTo(Vector3 direction)

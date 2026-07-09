@@ -6,18 +6,18 @@ using UnityEngine;
 namespace UI.Hud
 {
     /// <summary>
-    /// "COMBO xN" popup. Pops in on each kill in the chain and fades out after the hold time (kept in
-    /// sync with the combo window). Assign the CanvasGroup + TMP label; starts hidden.
+    ///     "COMBO xN" popup. Pops in on each kill in the chain and fades out after the hold time (kept in
+    ///     sync with the combo window). Assign the CanvasGroup + TMP label; starts hidden.
     /// </summary>
     public class HudComboView : MonoBehaviour
     {
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private TextMeshProUGUI _label;
         [SerializeField] private float _holdDuration = 2.5f;
-
-        private RectTransform _rect;
         private Vector3 _baseScale = Vector3.one;
         private Coroutine _hideRoutine;
+
+        private RectTransform _rect;
 
         private void Awake()
         {
@@ -26,6 +26,17 @@ namespace UI.Hud
 
             if (_canvasGroup != null)
                 _canvasGroup.alpha = 0f;
+        }
+
+        public void Hide()
+        {
+            if (_hideRoutine != null)
+            {
+                StopCoroutine(_hideRoutine);
+                _hideRoutine = null;
+            }
+
+            FadeOut();
         }
 
         public void Show(int combo)
@@ -50,17 +61,6 @@ namespace UI.Hud
                 StopCoroutine(_hideRoutine);
 
             _hideRoutine = StartCoroutine(HideAfter(_holdDuration));
-        }
-
-        public void Hide()
-        {
-            if (_hideRoutine != null)
-            {
-                StopCoroutine(_hideRoutine);
-                _hideRoutine = null;
-            }
-
-            FadeOut();
         }
 
         private IEnumerator HideAfter(float delay)

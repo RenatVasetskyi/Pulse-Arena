@@ -22,12 +22,17 @@ namespace Game.Enemy
             _gameSettings = gameSettings;
         }
 
-        public void Preload()
+        public void Clear()
         {
-            if (_gameSettings.Prefabs.EnemyPrefab == null)
-                throw new InvalidOperationException("Enemy prefab is not assigned in GameSettings.");
+            // Clear runs during scene unload (GameWorldBuilder.Teardown). The scene itself destroys the pooled
+            // enemies (children of the pool root), so we only explicitly destroy the root if it is still alive.
+            // We must NOT reparent/create GameObjects here: ReleaseAll -> GetPoolRoot would spawn a fresh
+            // "Enemy Pool" mid-OnDestroy and trip Unity's "objects not cleaned up when closing the scene" error.
+            if (_poolRoot != null)
+                UnityEngine.Object.Destroy(_poolRoot.gameObject);
 
-            EnsurePool();
+            _enemyPool = null;
+            _poolRoot = null;
         }
 
         public EnemyController Create(Vector3 at, Quaternion rotation, Transform parent, Transform target,
@@ -46,6 +51,14 @@ namespace Game.Enemy
             enemy.Initialize(target, typeData);
 
             return enemy;
+        }
+
+        public void Preload()
+        {
+            if (_gameSettings.Prefabs.EnemyPrefab == null)
+                throw new InvalidOperationException("Enemy prefab is not assigned in GameSettings.");
+
+            EnsurePool();
         }
 
         private void EnsurePool()
@@ -72,19 +85,6 @@ namespace Game.Enemy
         private void Release(EnemyController enemy)
         {
             _enemyPool?.Release(enemy);
-        }
-
-        public void Clear()
-        {
-            // Clear runs during scene unload (GameWorldBuilder.Teardown). The scene itself destroys the pooled
-            // enemies (children of the pool root), so we only explicitly destroy the root if it is still alive.
-            // We must NOT reparent/create GameObjects here: ReleaseAll -> GetPoolRoot would spawn a fresh
-            // "Enemy Pool" mid-OnDestroy and trip Unity's "objects not cleaned up when closing the scene" error.
-            if (_poolRoot != null)
-                UnityEngine.Object.Destroy(_poolRoot.gameObject);
-
-            _enemyPool = null;
-            _poolRoot = null;
         }
 
         private void ReleaseEnemyInstance(EnemyController enemy)

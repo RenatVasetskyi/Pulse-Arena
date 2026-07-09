@@ -8,10 +8,10 @@ namespace UI.MainMenu
 {
     public class MainMenuPresenter : IDisposable
     {
-        private readonly MainMenuView _view;
-        private readonly IStateMachine _stateMachine;
         private readonly IAudioService _audioService;
         private readonly ISettingsController _settingsController;
+        private readonly IStateMachine _stateMachine;
+        private readonly MainMenuView _view;
 
         public MainMenuPresenter(MainMenuView view, IStateMachine stateMachine, IAudioService audioService,
             ISettingsController settingsController)
@@ -22,13 +22,6 @@ namespace UI.MainMenu
             _settingsController = settingsController;
         }
 
-        public void Initialize()
-        {
-            _view.PlayClicked += OnPlayClicked;
-            _view.SettingsClicked += OnSettingsClicked;
-            _view.Show();
-        }
-
         public void Dispose()
         {
             if (_view == null)
@@ -37,6 +30,13 @@ namespace UI.MainMenu
             _view.PlayClicked -= OnPlayClicked;
             _view.SettingsClicked -= OnSettingsClicked;
             _view.Dispose();
+        }
+
+        public void Initialize()
+        {
+            _view.PlayClicked += OnPlayClicked;
+            _view.SettingsClicked += OnSettingsClicked;
+            _view.Show();
         }
 
         private void OnPlayClicked()

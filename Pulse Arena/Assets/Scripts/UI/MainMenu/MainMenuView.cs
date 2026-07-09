@@ -6,9 +6,9 @@ using UnityEngine.UI;
 namespace UI.MainMenu
 {
     /// <summary>
-    /// Prefab-based main menu. Wires the Play button, controls visibility and adds entrance juice
-    /// (title pop-in + Play pulse) relative to each element's designed scale so nothing is resized.
-    /// Assign _canvasGroup, _playButton and (optionally) _title in the prefab inspector.
+    ///     Prefab-based main menu. Wires the Play button, controls visibility and adds entrance juice
+    ///     (title pop-in + Play pulse) relative to each element's designed scale so nothing is resized.
+    ///     Assign _canvasGroup, _playButton and (optionally) _title in the prefab inspector.
     /// </summary>
     public class MainMenuView : MonoBehaviour
     {
@@ -16,26 +16,51 @@ namespace UI.MainMenu
         [SerializeField] private Button _playButton;
         [SerializeField] private Button _settingsButton;
         [SerializeField] private RectTransform _title;
-
-        private Vector3 _titleBaseScale = Vector3.one;
         private Vector3 _playButtonBaseScale = Vector3.one;
         private Vector3 _settingsButtonBaseScale = Vector3.one;
+
+        private Vector3 _titleBaseScale = Vector3.one;
 
         public event Action PlayClicked;
         public event Action SettingsClicked;
 
-        public void Show()
+        private void Awake()
         {
-            gameObject.SetActive(true);
-
-            if (_canvasGroup != null)
+            if (_playButton != null)
             {
-                _canvasGroup.alpha = 1f;
-                _canvasGroup.interactable = true;
-                _canvasGroup.blocksRaycasts = true;
+                _playButtonBaseScale = _playButton.transform.localScale;
+                _playButton.onClick.AddListener(OnPlayClicked);
             }
 
-            PlayIntro();
+            if (_settingsButton != null)
+            {
+                _settingsButtonBaseScale = _settingsButton.transform.localScale;
+                _settingsButton.onClick.AddListener(OnSettingsClicked);
+            }
+
+            if (_title != null)
+                _titleBaseScale = _title.localScale;
+        }
+
+        private void Start()
+        {
+            if (gameObject.activeInHierarchy)
+                PlayIntro();
+        }
+
+        private void OnDestroy()
+        {
+            if (_playButton != null)
+                _playButton.onClick.RemoveListener(OnPlayClicked);
+
+            if (_settingsButton != null)
+                _settingsButton.onClick.RemoveListener(OnSettingsClicked);
+        }
+
+        public void Dispose()
+        {
+            if (this != null)
+                Destroy(gameObject);
         }
 
         public void Hide()
@@ -50,10 +75,18 @@ namespace UI.MainMenu
             _canvasGroup.alpha = 0f;
         }
 
-        public void Dispose()
+        public void Show()
         {
-            if (this != null)
-                Destroy(gameObject);
+            gameObject.SetActive(true);
+
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 1f;
+                _canvasGroup.interactable = true;
+                _canvasGroup.blocksRaycasts = true;
+            }
+
+            PlayIntro();
         }
 
         private void PlayIntro()
@@ -105,39 +138,6 @@ namespace UI.MainMenu
                 _settingsButton.transform.DOKill();
                 _settingsButton.transform.localScale = _settingsButtonBaseScale;
             }
-        }
-
-        private void Awake()
-        {
-            if (_playButton != null)
-            {
-                _playButtonBaseScale = _playButton.transform.localScale;
-                _playButton.onClick.AddListener(OnPlayClicked);
-            }
-
-            if (_settingsButton != null)
-            {
-                _settingsButtonBaseScale = _settingsButton.transform.localScale;
-                _settingsButton.onClick.AddListener(OnSettingsClicked);
-            }
-
-            if (_title != null)
-                _titleBaseScale = _title.localScale;
-        }
-
-        private void Start()
-        {
-            if (gameObject.activeInHierarchy)
-                PlayIntro();
-        }
-
-        private void OnDestroy()
-        {
-            if (_playButton != null)
-                _playButton.onClick.RemoveListener(OnPlayClicked);
-
-            if (_settingsButton != null)
-                _settingsButton.onClick.RemoveListener(OnSettingsClicked);
         }
 
         private void OnPlayClicked()

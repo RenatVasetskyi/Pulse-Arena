@@ -12,14 +12,14 @@ namespace Game.Spawning
     public class PickupSpawner : IPickupSpawner
     {
         private readonly ICoroutineRunner _coroutineRunner;
-        private readonly IPickupFactory _pickupFactory;
         private readonly GameSettings _gameSettings;
-
-        private Coroutine _spawnRoutine;
+        private readonly IPickupFactory _pickupFactory;
+        private int _alivePickups;
+        private float _spawnHeightOffset;
         private Transform _spawnParent;
         private Transform[] _spawnPoints;
-        private float _spawnHeightOffset;
-        private int _alivePickups;
+
+        private Coroutine _spawnRoutine;
 
         public event Action<string, float> RarePickupSpawned;
 

@@ -8,48 +8,37 @@ using Zenject;
 namespace Game.Cameras
 {
     /// <summary>
-    /// The thin Cinemachine orchestrator for the battle view. It owns the component wiring + the per-frame
-    /// composite (base framing + zoom + transient FX) + the high-level choreography (lasso launch / player
-    /// hit), and delegates the three independent effects to focused helpers: <see cref="CameraShaker"/>
-    /// (Perlin shake), <see cref="CameraKickFx"/> (offset + FOV punch) and <see cref="CameraZoomController"/>
-    /// (the settings-coupled zoom axis). Feel/balance values are read straight from <see cref="CameraData"/>;
-    /// only the base rig setup (offsets/damping/FOV) lives on the component.
+    ///     The thin Cinemachine orchestrator for the battle view. It owns the component wiring + the per-frame
+    ///     composite (base framing + zoom + transient FX) + the high-level choreography (lasso launch / player
+    ///     hit), and delegates the three independent effects to focused helpers: <see cref="CameraShaker" />
+    ///     (Perlin shake), <see cref="CameraKickFx" /> (offset + FOV punch) and <see cref="CameraZoomController" />
+    ///     (the settings-coupled zoom axis). Feel/balance values are read straight from <see cref="CameraData" />;
+    ///     only the base rig setup (offsets/damping/FOV) lives on the component.
     /// </summary>
     public class BattleCamera : MonoBehaviour, IBattleCamera
     {
-        [Header("Cinemachine")]
-        [SerializeField] private CinemachineCamera _camera;
+        [Header("Cinemachine")] [SerializeField]
+        private CinemachineCamera _camera;
+
         [SerializeField] private CinemachineFollow _follow;
         [SerializeField] private CinemachineRotationComposer _rotationComposer;
         [SerializeField] private CinemachineBasicMultiChannelPerlin _noise;
 
-        [Header("Battle View (rig setup)")]
-        [SerializeField] private Vector3 _followOffset = new(0f, 14f, -11f);
+        [Header("Battle View (rig setup)")] [SerializeField]
+        private Vector3 _followOffset = new(0f, 14f, -11f);
+
         [SerializeField] private Vector3 _lookAtOffset = new(0f, 0.8f, 0f);
         [SerializeField] private Vector3 _positionDamping = new(0.12f, 0.18f, 0.12f);
         [SerializeField] private Vector2 _rotationDamping = new(0.25f, 0.25f);
         [SerializeField] private float _fieldOfView = 55f;
+        private readonly CameraKickFx _kick = new();
+        private readonly CameraShaker _shaker = new();
+        private readonly CameraZoomController _zoom = new();
+        private CameraData _data;
 
         private ISettingsService _settings;
-        private CameraData _data;
-        private readonly CameraShaker _shaker = new();
-        private readonly CameraKickFx _kick = new();
-        private readonly CameraZoomController _zoom = new();
 
-        [Inject]
-        public void Construct(GameSettings gameSettings, ISettingsService settings)
-        {
-            _settings = settings;
-            _data = gameSettings.CameraData;
-
-            if (_settings != null)
-                _settings.Changed += OnSettingsChanged;
-        }
-
-        private void OnSettingsChanged()
-        {
-            _zoom.SyncTargetFromSettings();
-        }
+        private bool CameraEffectsEnabled => _settings == null || _settings.CameraEffectsEnabled;
 
         private void Awake()
         {
@@ -67,16 +56,26 @@ namespace Game.Cameras
             ApplyComposite();
         }
 
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
+        }
+
         private void OnValidate()
         {
             CacheComponents();
             ApplySettings();
         }
 
-        private void OnDestroy()
+        [Inject]
+        public void Construct(GameSettings gameSettings, ISettingsService settings)
         {
+            _settings = settings;
+            _data = gameSettings.CameraData;
+
             if (_settings != null)
-                _settings.Changed -= OnSettingsChanged;
+                _settings.Changed += OnSettingsChanged;
         }
 
         public void Follow(Transform target, bool snap = true)
@@ -93,21 +92,6 @@ namespace Game.Cameras
                 Quaternion rotation = Quaternion.LookRotation(target.position + _lookAtOffset - position);
                 _camera.ForceCameraPosition(position, rotation);
             }
-        }
-
-        private bool CameraEffectsEnabled => _settings == null || _settings.CameraEffectsEnabled;
-
-        public void Shake(float duration, float strength)
-        {
-            if (!CameraEffectsEnabled)
-                return;
-
-            _shaker.Shake(duration, strength);
-        }
-
-        public void Shake()
-        {
-            Shake(_data.DefaultShakeDuration, _data.DefaultShakeStrength);
         }
 
         public void PlayLassoLaunch(float chargeProgress)
@@ -128,6 +112,19 @@ namespace Game.Cameras
             Shake(_data.PlayerHitShakeDuration, _data.PlayerHitShakeStrength);
         }
 
+        public void Shake(float duration, float strength)
+        {
+            if (!CameraEffectsEnabled)
+                return;
+
+            _shaker.Shake(duration, strength);
+        }
+
+        public void Shake()
+        {
+            Shake(_data.DefaultShakeDuration, _data.DefaultShakeStrength);
+        }
+
         public void ZoomIn()
         {
             _zoom.ZoomIn();
@@ -136,6 +133,11 @@ namespace Game.Cameras
         public void ZoomOut()
         {
             _zoom.ZoomOut();
+        }
+
+        private void OnSettingsChanged()
+        {
+            _zoom.SyncTargetFromSettings();
         }
 
         // Per-frame: base FOV/offset + the live zoom + the transient kick FX.

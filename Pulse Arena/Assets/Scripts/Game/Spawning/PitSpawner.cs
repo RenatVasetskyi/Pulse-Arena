@@ -8,20 +8,20 @@ using UnityEngine;
 namespace Game.Spawning
 {
     /// <summary>
-    /// Spawns transient <see cref="Pit"/> hazards inside the play ring at random size and lifetime, up to a
-    /// cap. Owns the spawn cadence + active-pit bookkeeping; the placement geometry lives in
-    /// <see cref="IPitPlacementFinder"/>. Each pit frees its slot when it despawns (eaten or timed out).
+    ///     Spawns transient <see cref="Pit" /> hazards inside the play ring at random size and lifetime, up to a
+    ///     cap. Owns the spawn cadence + active-pit bookkeeping; the placement geometry lives in
+    ///     <see cref="IPitPlacementFinder" />. Each pit frees its slot when it despawns (eaten or timed out).
     /// </summary>
     public class PitSpawner : IPitSpawner
     {
         private readonly ICoroutineRunner _coroutineRunner;
-        private readonly IPitFactory _pitFactory;
         private readonly GameSettings _gameSettings;
+        private readonly IPitFactory _pitFactory;
         private readonly IPitPlacementFinder _placementFinder = new PitPlacementFinder();
+        private int _activePits;
+        private Transform _parent;
 
         private Coroutine _spawnRoutine;
-        private Transform _parent;
-        private int _activePits;
 
         public PitSpawner(ICoroutineRunner coroutineRunner, IPitFactory pitFactory, GameSettings gameSettings)
         {

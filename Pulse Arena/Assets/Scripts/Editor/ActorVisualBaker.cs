@@ -6,18 +6,18 @@ using UnityEngine;
 namespace GameEditor
 {
     /// <summary>
-    /// Bakes the player/enemy primitive visuals — previously built at runtime by
-    /// PlayerPrimitiveVisual/EnemyPrimitiveVisual — into the actor prefabs as real child
-    /// GameObjects with material assets. Runs once automatically, and on demand via the menu.
-    /// The runtime build stays as a fallback, so a failed bake never breaks the game.
+    ///     Bakes the player/enemy primitive visuals — previously built at runtime by
+    ///     PlayerPrimitiveVisual/EnemyPrimitiveVisual — into the actor prefabs as real child
+    ///     GameObjects with material assets. Runs once automatically, and on demand via the menu.
+    ///     The runtime build stays as a fallback, so a failed bake never breaks the game.
     /// </summary>
     public static class ActorVisualBaker
     {
-        private const string PlayerPrefabPath = "Assets/Prefabs/Game/player.prefab";
-        private const string EnemyPrefabPath = "Assets/Prefabs/Game/enemy.prefab";
-        private const string SettingsPath = "Assets/Game Settings.asset";
-        private const string MaterialsFolder = "Assets/Materials/Actors";
         private const string BakedPrefKey = "PulseArena.ActorVisualsBaked.v1";
+        private const string EnemyPrefabPath = "Assets/Prefabs/Game/enemy.prefab";
+        private const string MaterialsFolder = "Assets/Materials/Actors";
+        private const string PlayerPrefabPath = "Assets/Prefabs/Game/player.prefab";
+        private const string SettingsPath = "Assets/Game Settings.asset";
 
         [MenuItem("Tools/Pulse Arena/Bake Actor Visuals")]
         public static void BakeMenu()
@@ -148,9 +148,11 @@ namespace GameEditor
                 BakePart("Spike_Back_1", PrimitiveType.Cube, spikeRoot,
                     new Vector3(0f, 1.52f, -0.34f), new Vector3(42f, 0f, 0f), new Vector3(0.24f, 0.42f, 0.24f), spike);
                 BakePart("Spike_Back_2", PrimitiveType.Cube, spikeRoot,
-                    new Vector3(-0.28f, 1.16f, -0.34f), new Vector3(48f, -18f, 0f), new Vector3(0.18f, 0.34f, 0.18f), spike);
+                    new Vector3(-0.28f, 1.16f, -0.34f), new Vector3(48f, -18f, 0f), new Vector3(0.18f, 0.34f, 0.18f),
+                    spike);
                 BakePart("Spike_Back_3", PrimitiveType.Cube, spikeRoot,
-                    new Vector3(0.28f, 1.16f, -0.34f), new Vector3(48f, 18f, 0f), new Vector3(0.18f, 0.34f, 0.18f), spike);
+                    new Vector3(0.28f, 1.16f, -0.34f), new Vector3(48f, 18f, 0f), new Vector3(0.18f, 0.34f, 0.18f),
+                    spike);
 
                 PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefabPath);
                 Debug.Log("[ActorVisualBaker] Baked enemy.prefab visual.");

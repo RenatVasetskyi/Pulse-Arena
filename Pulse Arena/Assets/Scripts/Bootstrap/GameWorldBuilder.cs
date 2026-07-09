@@ -14,34 +14,34 @@ using Zenject;
 namespace Game.Scene
 {
     /// <summary>
-    /// Builds and tears down the whole game world. It lives in the game scene's SceneContext and runs off that
-    /// context's kernel: <see cref="Initialize"/> (→ Build) fires when the scene loads, <see cref="Dispose"/>
-    /// (→ Teardown) fires automatically when the scene unloads — so no state has to manage the match lifecycle,
-    /// and cleanup can never be forgotten. It coordinates: creates the arena + player via factories, then hands
-    /// the world to focused collaborators (<see cref="HudPresenter"/>, <see cref="GameplayFeedbackDirector"/>,
-    /// <see cref="GameFlowController"/>) and starts spawning.
+    ///     Builds and tears down the whole game world. It lives in the game scene's SceneContext and runs off that
+    ///     context's kernel: <see cref="Initialize" /> (→ Build) fires when the scene loads, <see cref="Dispose" />
+    ///     (→ Teardown) fires automatically when the scene unloads — so no state has to manage the match lifecycle,
+    ///     and cleanup can never be forgotten. It coordinates: creates the arena + player via factories, then hands
+    ///     the world to focused collaborators (<see cref="HudPresenter" />, <see cref="GameplayFeedbackDirector" />,
+    ///     <see cref="GameFlowController" />) and starts spawning.
     /// </summary>
     public class GameWorldBuilder : IInitializable, System.IDisposable
     {
         private readonly IArenaFactory _arenaFactory;
-        private readonly IPlayerFactory _playerFactory;
+        private readonly IAudioService _audioService;
+        private readonly IComboService _comboService;
         private readonly IEnemyFactory _enemyFactory;
         private readonly IEnemySpawner _enemySpawner;
-        private readonly IPickupSpawner _pickupSpawner;
-        private readonly IPitSpawner _pitSpawner;
-        private readonly IInputService _inputService;
-        private readonly IScoreService _scoreService;
-        private readonly IComboService _comboService;
-        private readonly ISuperMeterService _superMeterService;
-        private readonly IAudioService _audioService;
-        private readonly HudPresenter _hudPresenter;
         private readonly GameplayFeedbackDirector _feedback;
         private readonly GameFlowController _gameFlow;
         private readonly GameSettings _gameSettings;
-        private GameSceneReferences _sceneReferences;
-        private IBattleCamera _battleCamera;
+        private readonly HudPresenter _hudPresenter;
+        private readonly IInputService _inputService;
+        private readonly IPickupSpawner _pickupSpawner;
+        private readonly IPitSpawner _pitSpawner;
+        private readonly IPlayerFactory _playerFactory;
+        private readonly IScoreService _scoreService;
+        private readonly ISuperMeterService _superMeterService;
         private GameObject _arena;
+        private IBattleCamera _battleCamera;
         private PlayerController _player;
+        private GameSceneReferences _sceneReferences;
 
         public GameWorldBuilder(
             IArenaFactory arenaFactory,
@@ -97,6 +97,16 @@ namespace Game.Scene
             StartSpawners();
         }
 
+        public void Dispose()
+        {
+            Teardown();
+        }
+
+        public void Initialize()
+        {
+            Build();
+        }
+
         public void Teardown()
         {
             Time.timeScale = 1f;
@@ -116,16 +126,6 @@ namespace Game.Scene
 
             _arena = null;
             _player = null;
-        }
-        
-        public void Initialize()
-        {
-            Build();
-        }
-
-        public void Dispose()
-        {
-            Teardown();
         }
 
         private void ResetSession()

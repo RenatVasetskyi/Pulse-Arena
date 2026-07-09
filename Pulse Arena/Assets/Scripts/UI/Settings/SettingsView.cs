@@ -8,9 +8,9 @@ using UnityEngine.UI;
 namespace UI.Settings
 {
     /// <summary>
-    /// Self-contained settings panel (its own overlay canvas). Two-way binds sliders/toggles to
-    /// <see cref="ISettingsService"/>. Reused from the main menu and the in-game pause. Assign the
-    /// controls on the prefab.
+    ///     Self-contained settings panel (its own overlay canvas). Two-way binds sliders/toggles to
+    ///     <see cref="ISettingsService" />. Reused from the main menu and the in-game pause. Assign the
+    ///     controls on the prefab.
     /// </summary>
     public class SettingsView : MonoBehaviour
     {
@@ -24,15 +24,16 @@ namespace UI.Settings
         [SerializeField] private Toggle _vibrationToggle;
         [SerializeField] private Button _closeButton;
 
-        [Header("Optional value labels")]
-        [SerializeField] private TextMeshProUGUI _masterValue;
+        [Header("Optional value labels")] [SerializeField]
+        private TextMeshProUGUI _masterValue;
+
         [SerializeField] private TextMeshProUGUI _musicValue;
         [SerializeField] private TextMeshProUGUI _sfxValue;
         [SerializeField] private TextMeshProUGUI _zoomValue;
 
         private ISettingsService _settings;
-        private Vector3 _windowBaseScale = Vector3.one;
         private bool _suppress;
+        private Vector3 _windowBaseScale = Vector3.one;
 
         public event Action Closed;
 
@@ -62,6 +63,12 @@ namespace UI.Settings
             Hide();
         }
 
+        public void Hide()
+        {
+            SetVisible(false);
+            gameObject.SetActive(false);
+        }
+
         public void Show()
         {
             // Activate first, THEN push values — setting a slider while its object is inactive doesn't
@@ -76,12 +83,6 @@ namespace UI.Settings
             }
 
             UiTween.OpenWindow(_window, _canvasGroup, _windowBaseScale);
-        }
-
-        public void Hide()
-        {
-            SetVisible(false);
-            gameObject.SetActive(false);
         }
 
         private void RaiseClosed()

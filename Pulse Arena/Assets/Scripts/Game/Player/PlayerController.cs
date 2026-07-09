@@ -13,36 +13,35 @@ using Zenject;
 namespace Game.Player
 {
     /// <summary>
-    /// The player's thin orchestrator. It owns the state machine + Unity lifecycle + the public API + events,
-    /// and wires three focused collaborators: <see cref="IPlayerHealth"/> (HP + i-frames),
-    /// <see cref="IPlayerMovement"/> (Rigidbody locomotion + knockback) and <see cref="IPlayerDash"/> (the
-    /// dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
-    /// controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
+    ///     The player's thin orchestrator. It owns the state machine + Unity lifecycle + the public API + events,
+    ///     and wires three focused collaborators: <see cref="IPlayerHealth" /> (HP + i-frames),
+    ///     <see cref="IPlayerMovement" /> (Rigidbody locomotion + knockback) and <see cref="IPlayerDash" /> (the
+    ///     dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
+    ///     controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
-        public event Action Died;
-        public event Action<int, int> HealthChanged;
-        public event Action Dashed;
-
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
+        private readonly IPlayerDash _dash = new PlayerDash();
+        private readonly IPlayerHealth _health = new PlayerHealth();
+        private readonly HitFlash _hitFlash = new();
+        private readonly IPlayerMovement _movement = new PlayerMovement();
+        private PlayerDashState _dashState;
+        private PlayerData _data;
+        private PlayerDeadState _deadState;
+        private PlayerHitState _hitState;
+        private IInputService _inputService;
+        private bool _isDead;
+        private PlayerMoveState _moveState;
+        private GameSettings _settings;
+        private ActorStateMachine _stateMachine;
 
         private PlayerPrimitiveVisual _visual;
-        private IInputService _inputService;
-        private GameSettings _settings;
-        private PlayerData _data;
-        private readonly HitFlash _hitFlash = new();
-        private readonly IPlayerHealth _health = new PlayerHealth();
-        private readonly IPlayerMovement _movement = new PlayerMovement();
-        private readonly IPlayerDash _dash = new PlayerDash();
-        private ActorStateMachine _stateMachine;
-        private PlayerMoveState _moveState;
-        private PlayerHitState _hitState;
-        private PlayerDashState _dashState;
-        private PlayerDeadState _deadState;
-        private bool _isDead;
+        public event Action Dashed;
+        public event Action Died;
+        public event Action<int, int> HealthChanged;
 
         public int Health => _health.Current;
         public int MaxHealth => _health.Max;
@@ -50,14 +49,6 @@ namespace Game.Player
 
         /// <summary>Dash readiness for the HUD: 0 just after a dash, filling to 1 when the cooldown is up.</summary>
         public float DashCharge01 => _dash.Charge01;
-
-        [Inject]
-        public void Construct(IInputService inputService, GameSettings gameSettings)
-        {
-            _inputService = inputService;
-            _settings = gameSettings;
-            _data = gameSettings.PlayerData;
-        }
 
         private void Awake()
         {
@@ -73,16 +64,6 @@ namespace Game.Player
             _dash.Initialize(transform, _rigidbody, _data, _inputService, _dashTrail);
             _health.Initialize(_data.MaxHealth, _data.HitInvulnerability);
             _health.Changed += OnHealthChanged;
-        }
-
-        private void OnDestroy()
-        {
-            _health.Changed -= OnHealthChanged;
-        }
-
-        private void OnHealthChanged(int current, int max)
-        {
-            HealthChanged?.Invoke(current, max);
         }
 
         private void Update()
@@ -108,10 +89,22 @@ namespace Game.Player
                 _movement.KillAngularVelocity();
         }
 
-        private void TickRingout()
+        private void OnDestroy()
         {
-            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
-                Die();
+            _health.Changed -= OnHealthChanged;
+        }
+
+        [Inject]
+        public void Construct(IInputService inputService, GameSettings gameSettings)
+        {
+            _inputService = inputService;
+            _settings = gameSettings;
+            _data = gameSettings.PlayerData;
+        }
+
+        public void Kill()
+        {
+            Die();
         }
 
         public bool TakeDamage(int damage, Vector3 sourcePosition)
@@ -137,9 +130,15 @@ namespace Game.Player
             return _health.TryHeal(amount);
         }
 
-        public void Kill()
+        private void OnHealthChanged(int current, int max)
         {
-            Die();
+            HealthChanged?.Invoke(current, max);
+        }
+
+        private void TickRingout()
+        {
+            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
+                Die();
         }
 
         // --- thin delegates the states drive --------------------------------------------------

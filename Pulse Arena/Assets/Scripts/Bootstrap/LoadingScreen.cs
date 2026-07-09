@@ -14,6 +14,17 @@ namespace Architecture.Services
             _view.HideImmediate();
         }
 
+        public IEnumerator Hide()
+        {
+            yield return _view.FadeTo(0f);
+            _view.HideImmediate();
+        }
+
+        public void SetProgress(float progress)
+        {
+            _view.SetProgress(progress);
+        }
+
         public IEnumerator Show()
         {
             ShowImmediate();
@@ -24,17 +35,6 @@ namespace Architecture.Services
         {
             _view.SetProgress(0f);
             _view.ShowImmediate();
-        }
-
-        public void SetProgress(float progress)
-        {
-            _view.SetProgress(progress);
-        }
-
-        public IEnumerator Hide()
-        {
-            yield return _view.FadeTo(0f);
-            _view.HideImmediate();
         }
     }
 }

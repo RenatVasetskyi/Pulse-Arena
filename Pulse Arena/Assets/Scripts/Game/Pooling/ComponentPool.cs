@@ -6,11 +6,11 @@ namespace Game.Pooling
 {
     public class ComponentPool<T> where T : Component
     {
+        private readonly HashSet<T> _active = new();
         private readonly Func<T> _createFunc;
         private readonly Action<T> _getAction;
-        private readonly Action<T> _releaseAction;
         private readonly Queue<T> _inactive = new();
-        private readonly HashSet<T> _active = new();
+        private readonly Action<T> _releaseAction;
 
         public ComponentPool(
             Func<T> createFunc,

@@ -14,31 +14,31 @@ using UnityEngine.SceneManagement;
 namespace Game.Scene
 {
     /// <summary>
-    /// Owns the game's flow: win / lose (EndGame), the game-over screen, pause, restart and quit-to-menu.
-    /// GameWorldBuilder builds the world then hands the player + HUD here via <see cref="Bind"/>; everything
-    /// about "how a run ends and what the buttons do" lives in this one class. Restart reloads the game scene
-    /// (Unity defers the load to end of frame, so it is safe to call from a button callback); quit hands back to
-    /// the state machine. Either way the scene unload lets the SceneContext tear the world down automatically.
+    ///     Owns the game's flow: win / lose (EndGame), the game-over screen, pause, restart and quit-to-menu.
+    ///     GameWorldBuilder builds the world then hands the player + HUD here via <see cref="Bind" />; everything
+    ///     about "how a run ends and what the buttons do" lives in this one class. Restart reloads the game scene
+    ///     (Unity defers the load to end of frame, so it is safe to call from a button callback); quit hands back to
+    ///     the state machine. Either way the scene unload lets the SceneContext tear the world down automatically.
     /// </summary>
     public class GameFlowController
     {
-        private readonly IInputService _inputService;
-        private readonly IScoreService _scoreService;
-        private readonly ISlowMoService _slowMoService;
-        private readonly IStateMachine _stateMachine;
-        private readonly ISettingsController _settingsController;
         private readonly IAudioService _audioService;
         private readonly IEnemySpawner _enemySpawner;
+        private readonly GameSettings _gameSettings;
+        private readonly IInputService _inputService;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
-        private readonly GameSettings _gameSettings;
-
-        private PlayerController _player;
+        private readonly IScoreService _scoreService;
+        private readonly ISettingsController _settingsController;
+        private readonly ISlowMoService _slowMoService;
+        private readonly IStateMachine _stateMachine;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
-        private PausePanelView _pausePanel;
-        private PauseController _pauseController;
         private bool _isGameOver;
+        private PauseController _pauseController;
+        private PausePanelView _pausePanel;
+
+        private PlayerController _player;
 
         public GameFlowController(IInputService inputService, IScoreService scoreService,
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,

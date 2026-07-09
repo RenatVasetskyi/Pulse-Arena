@@ -7,22 +7,25 @@ namespace Data
     [CreateAssetMenu(fileName = "Game Settings", menuName = "Pulse Arena/Game Settings")]
     public class GameSettings : ScriptableObject
     {
-        [Header("Bootstrap")]
-        public int TargetFrameRate = 120;
+        [Header("Bootstrap")] public int TargetFrameRate = 120;
+
         public string MainMenuSceneName = SceneName.MainMenu;
         public string GameSceneName = SceneName.Game;
         public float MinLoadingScreenTime = 0.35f;
 
-        [Header("Core")]
-        public GroundingData Grounding = new();
+        [Header("Core")] public GroundingData Grounding = new();
+
         public PrefabData Prefabs;
 
-        [Header("Sub-Configs")]
-        [SerializeField] private PlayerConfig _player;
+        [Header("Sub-Configs")] [SerializeField]
+        private PlayerConfig _player;
+
         [SerializeField] private EnemyConfig _enemy;
         [SerializeField] private CombatConfig _combat;
         [SerializeField] private LevelConfig _level;
         [SerializeField] private PresentationConfig _presentation;
+
+        [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
 
         // Facade: consumers keep calling gameSettings.PlayerData etc.
         // The data now lives in separate, swappable config assets.
@@ -45,8 +48,6 @@ namespace Data
         public CameraData CameraData => _presentation.Camera;
         public UiData Ui => _presentation.Ui;
         public AudioData AudioData => _presentation.Audio;
-
-        [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
 
         public EnemyTypeData GetEnemyType(EnemyTypeId id)
         {
@@ -79,13 +80,15 @@ namespace Data
         public float HitKnockbackForce = 5f;
         public float HitKnockbackDuration = 0.18f;
 
-        [Header("Dash / Dodge")]
-        [Tooltip("Burst speed during a dash (vs MoveSpeed for normal movement).")]
+        [Header("Dash / Dodge")] [Tooltip("Burst speed during a dash (vs MoveSpeed for normal movement).")]
         public float DashSpeed = 24f;
+
         [Tooltip("How long the dash burst lasts.")]
         public float DashDuration = 0.18f;
+
         [Tooltip("Seconds before the player can dash again.")]
         public float DashCooldown = 0.9f;
+
         [Tooltip("Invulnerability window granted by a dash (dodge i-frames).")]
         public float DashInvulnerability = 0.3f;
     }
@@ -186,8 +189,8 @@ namespace Data
     [Serializable]
     public class VfxData
     {
-        [Header("Rope Snap Burst")]
-        public int SnapBurstCount = 26;
+        [Header("Rope Snap Burst")] public int SnapBurstCount = 26;
+
         public float SnapBurstLifetimeMin = 0.18f;
         public float SnapBurstLifetimeMax = 0.42f;
         public float SnapBurstSpeedMin = 2.5f;
@@ -196,8 +199,8 @@ namespace Data
         public float SnapBurstSizeMax = 0.14f;
         public float SnapBurstGravity = 1.2f;
 
-        [Header("Ringout Burst")]
-        public int RingoutBurstCount = 20;
+        [Header("Ringout Burst")] public int RingoutBurstCount = 20;
+
         public float RingoutBurstLifetimeMin = 0.22f;
         public float RingoutBurstLifetimeMax = 0.5f;
         public float RingoutBurstSpeedMin = 2f;
@@ -208,8 +211,8 @@ namespace Data
         public Color RingoutColorA = new(1f, 0.92f, 0.4f, 1f);
         public Color RingoutColorB = new(1f, 0.55f, 0.2f, 1f);
 
-        [Header("Floating Score Text")]
-        public float FloatingTextLifetime = 0.9f;
+        [Header("Floating Score Text")] public float FloatingTextLifetime = 0.9f;
+
         public float FloatingTextRiseSpeed = 1.6f;
         public Color FloatingTextColor = new(1f, 0.92f, 0.4f, 1f);
     }
@@ -217,32 +220,33 @@ namespace Data
     [Serializable]
     public class CameraData
     {
-        [Header("Zoom")]
-        public float DefaultZoom = 1f;
+        [Header("Zoom")] public float DefaultZoom = 1f;
+
         public float MinZoom = 0.72f;
         public float MaxZoom = 1.38f;
         public float ZoomStep = 0.08f;
         public float ZoomSmoothTime = 0.22f;
 
-        [Header("Shake")]
-        public float DefaultShakeDuration = 0.18f;
+        [Header("Shake")] public float DefaultShakeDuration = 0.18f;
+
         public float DefaultShakeStrength = 0.35f;
         public float ShakeFrequency = 35f;
         public float RopeBreakShakeDuration = 0.12f;
         public float RopeBreakShakeStrength = 0.32f;
 
-        [Header("Player Hit FX")]
-        public float PlayerHitShakeDuration = 0.15f;
+        [Header("Player Hit FX")] public float PlayerHitShakeDuration = 0.15f;
+
         public float PlayerHitShakeStrength = 0.25f;
 
-        [Header("Lasso Launch FX")]
-        public Vector3 LaunchKickOffset = new(0f, 0.32f, -0.65f);
+        [Header("Lasso Launch FX")] public Vector3 LaunchKickOffset = new(0f, 0.32f, -0.65f);
+
         public float LaunchKickDuration = 0.2f;
         public float LaunchShakeDuration = 0.12f;
         public float LaunchShakeStrength = 0.18f;
 
         [Tooltip("FOV delta punched on lasso launch (negative = quick zoom-in). Scaled by charge.")]
         public float LaunchFovPunch = -3f;
+
         public float LaunchFovDuration = 0.26f;
     }
 
@@ -251,8 +255,10 @@ namespace Data
     {
         [Range(0.05f, 1f)] public float Scale = 0.4f;
         public float Duration = 0.22f;
-        [Tooltip("Launch charge (0-1) at/above which a big fling triggers slow-mo.")]
-        [Range(0f, 1f)] public float LaunchChargeThreshold = 0.85f;
+
+        [Tooltip("Launch charge (0-1) at/above which a big fling triggers slow-mo.")] [Range(0f, 1f)]
+        public float LaunchChargeThreshold = 0.85f;
+
         [Tooltip("Minimum seconds between launch-triggered slow-mos.")]
         public float Cooldown = 1.4f;
     }
@@ -260,32 +266,39 @@ namespace Data
     [Serializable]
     public class PitData
     {
-        [Header("Spawn")]
-        [Tooltip("Seconds between pit spawn attempts.")]
+        [Header("Spawn")] [Tooltip("Seconds between pit spawn attempts.")]
         public float SpawnInterval = 5f;
-        [Tooltip("Max pits open at once.")]
-        public int MaxActive = 3;
+
+        [Tooltip("Max pits open at once.")] public int MaxActive = 3;
+
         [Tooltip("Inner/outer ring (from arena center) where pits can appear.")]
         public float MinRadius = 4f;
+
         public float MaxRadius = 18f;
+
         [Tooltip("Pits never spawn closer than this (horizontal) to the player.")]
         public float MinPlayerDistance = 3.5f;
-        [Tooltip("Extra clearance (beyond the pit's own radius) kept from the player and every enemy, so a pit never opens right on top of someone.")]
+
+        [Tooltip(
+            "Extra clearance (beyond the pit's own radius) kept from the player and every enemy, so a pit never opens right on top of someone.")]
         public float SpawnClearance = 1.5f;
+
         [Tooltip("Height (Y) pits sit at, just above the floor.")]
         public float SpawnHeight = 0.05f;
 
-        [Header("Size / Lifetime")]
-        [Tooltip("Random uniform scale each pit spawns at (bigger = wider catch zone).")]
+        [Header("Size / Lifetime")] [Tooltip("Random uniform scale each pit spawns at (bigger = wider catch zone).")]
         public float MinScale = 0.7f;
+
         public float MaxScale = 1.8f;
+
         [Tooltip("Seconds an unused pit stays open before it closes on its own.")]
         public float MinLifetime = 6f;
+
         public float MaxLifetime = 11f;
 
-        [Header("Suck-In")]
-        [Tooltip("Horizontal speed the eaten enemy is yanked toward the pit center.")]
+        [Header("Suck-In")] [Tooltip("Horizontal speed the eaten enemy is yanked toward the pit center.")]
         public float SuckSpeed = 12f;
+
         [Tooltip("Downward speed added as the enemy is swallowed.")]
         public float SuckDown = 4f;
     }
@@ -295,6 +308,7 @@ namespace Data
     {
         [Tooltip("Seconds within which the next kill keeps the combo chain alive.")]
         public float Window = 2.5f;
+
         [Tooltip("Highest score multiplier the combo can reach.")]
         public int MaxMultiplier = 8;
     }
@@ -302,22 +316,23 @@ namespace Data
     [Serializable]
     public class SuperData
     {
-        [Header("Charge")]
-        [Tooltip("Kills needed to fill the super meter.")]
+        [Header("Charge")] [Tooltip("Kills needed to fill the super meter.")]
         public int KillsToCharge = 10;
 
-        [Header("Ultimate — Shockwave")]
-        [Tooltip("Radius around the player that the ultimate flings enemies within.")]
+        [Header("Ultimate — Shockwave")] [Tooltip("Radius around the player that the ultimate flings enemies within.")]
         public float Radius = 12f;
+
         [Tooltip("Outward launch speed applied to caught enemies.")]
         public float LaunchSpeed = 22f;
+
         [Tooltip("Upward launch ratio (arc height) on top of the outward speed.")]
         public float UpwardRatio = 0.4f;
+
         [Tooltip("How long caught enemies stay airborne / launched.")]
         public float LaunchDuration = 1f;
 
-        [Header("Ultimate — Juice")]
-        public float ShakeDuration = 0.4f;
+        [Header("Ultimate — Juice")] public float ShakeDuration = 0.4f;
+
         public float ShakeStrength = 0.7f;
         [Range(0.05f, 1f)] public float SlowMoScale = 0.35f;
         public float SlowMoDuration = 0.4f;
@@ -330,8 +345,8 @@ namespace Data
         [Range(0f, 1f)] public float SfxVolume = 0.85f;
         public SfxEntry[] Sfx;
 
-        [Header("Music")]
-        [Range(0f, 1f)] public float MusicVolume = 0.45f;
+        [Header("Music")] [Range(0f, 1f)] public float MusicVolume = 0.45f;
+
         public AudioClip MenuMusic;
         public AudioClip BattleMusic;
     }
@@ -349,8 +364,8 @@ namespace Data
     [Serializable]
     public class UiData
     {
-        [Header("HUD")]
-        public Color HudPanelColor = new(0.06f, 0.07f, 0.1f, 0.62f);
+        [Header("HUD")] public Color HudPanelColor = new(0.06f, 0.07f, 0.1f, 0.62f);
+
         public Color HealthAliveColor = new(1f, 0.16f, 0.12f, 1f);
         public Color HealthEmptyColor = new(0.18f, 0.2f, 0.24f, 0.82f);
         public Color ScoreTextColor = new(1f, 0.92f, 0.4f, 1f);
@@ -361,8 +376,8 @@ namespace Data
         public Color TensionSafeColor = new(1f, 0.82f, 0.3f, 0.95f);
         public Color TensionDangerColor = new(1f, 0.22f, 0.12f, 1f);
 
-        [Header("World Health Bar")]
-        public Color WorldHealthAliveColor = new(1f, 0.2f, 0.12f, 1f);
+        [Header("World Health Bar")] public Color WorldHealthAliveColor = new(1f, 0.2f, 0.12f, 1f);
+
         public Color WorldHealthEmptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
         public Color WorldHealthBackgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
     }
@@ -407,12 +422,12 @@ namespace Data
         public Color RopeBaseColor = new(0.78f, 0.48f, 0.22f, 1f);
         public Color RopeStripeColor = new(0.35f, 0.21f, 0.1f, 1f);
 
-        [Header("Weight Feel")]
-        public float WeightFactorMin = 0.35f;
+        [Header("Weight Feel")] public float WeightFactorMin = 0.35f;
+
         public float WeightFactorMax = 1.5f;
 
-        [Header("Target Marker")]
-        public float MarkerSearchRangeMultiplier = 1.5f;
+        [Header("Target Marker")] public float MarkerSearchRangeMultiplier = 1.5f;
+
         public float MarkerRadius = 0.85f;
         public float MarkerHeight = 0.05f;
         public float MarkerWidth = 0.07f;
@@ -421,8 +436,8 @@ namespace Data
         public Color MarkerActiveColor = new(0.35f, 1f, 0.5f, 0.85f);
         public Color MarkerInactiveColor = new(0.7f, 0.7f, 0.7f, 0.35f);
 
-        [Header("Rope Tension")]
-        public float TensionBreakTime = 5f;
+        [Header("Rope Tension")] public float TensionBreakTime = 5f;
+
         public float TensionChargeInfluence = 0.5f;
         public float TensionWarningThreshold = 0.55f;
         public float TensionShakeAmplitude = 1.6f;
@@ -455,7 +470,8 @@ namespace Data
         public int MaxPickups = 1;
         public float WavePollInterval = 0.25f;
 
-        [Tooltip("Enemies won't spawn at points closer than this (horizontal) to the player, so they never pop up right on top of you.")]
+        [Tooltip(
+            "Enemies won't spawn at points closer than this (horizontal) to the player, so they never pop up right on top of you.")]
         public float MinPlayerSpawnDistance = 5f;
     }
 
@@ -491,19 +507,17 @@ namespace Data
         public GameObject GameOverPrefab;
         public GameObject ArenaPrefab;
 
-        [Header("World UI")]
-        public GameObject WorldHealthBarPrefab;
+        [Header("World UI")] public GameObject WorldHealthBarPrefab;
+
         public GameObject HookTargetMarkerPrefab;
         public GameObject FloatingScoreTextPrefab;
 
-        [Header("Pickups")]
-        public GameObject HealthOrbPrefab;
+        [Header("Pickups")] public GameObject HealthOrbPrefab;
 
-        [Header("Hazards")]
-        public GameObject PitPrefab;
+        [Header("Hazards")] public GameObject PitPrefab;
 
-        [Header("UI")]
-        public GameObject SettingsPanelPrefab;
+        [Header("UI")] public GameObject SettingsPanelPrefab;
+
         public GameObject PausePanelPrefab;
     }
 }

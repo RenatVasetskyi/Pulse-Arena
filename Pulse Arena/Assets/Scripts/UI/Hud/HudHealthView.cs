@@ -5,29 +5,29 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    /// HUD health: swaps each heart between the alive/empty sprite based on the player's HP.
-    /// Assign the pre-placed heart Images + the two sprites in the prefab.
+    ///     HUD health: swaps each heart between the alive/empty sprite based on the player's HP.
+    ///     Assign the pre-placed heart Images + the two sprites in the prefab.
     /// </summary>
     public class HudHealthView : MonoBehaviour
     {
         [SerializeField] private Image[] _hearts;
         [SerializeField] private Sprite _aliveSprite;
         [SerializeField] private Sprite _emptySprite;
+        private int _lastHealth = -1;
 
         private PlayerController _player;
-        private int _lastHealth = -1;
+
+        private void OnDestroy()
+        {
+            if (_player != null)
+                _player.HealthChanged -= OnHealthChanged;
+        }
 
         public void Bind(PlayerController player)
         {
             _player = player;
             _player.HealthChanged += OnHealthChanged;
             OnHealthChanged(player.Health, player.MaxHealth);
-        }
-
-        private void OnDestroy()
-        {
-            if (_player != null)
-                _player.HealthChanged -= OnHealthChanged;
         }
 
         private void OnHealthChanged(int health, int maxHealth)

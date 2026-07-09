@@ -6,26 +6,25 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    /// The enemy's collision decision tree, lifted off the controller verbatim: ground-contact memory,
-    /// the "thrown projectile damages enemies / walls" branch, the ground-bounce arc (and its counter),
-    /// and the trajectory sweep. The controller KEEPS the Unity <c>OnCollisionEnter</c>/<c>OnCollisionStay</c>
-    /// magic methods as one-line forwarders into this class — they must stay on the MonoBehaviour or
-    /// Unity stops delivering collisions with no compile error.
-    ///
-    /// Damage is applied by calling back into <c>owner.TakeDamage</c> (the controller still owns health,
-    /// scoring and death). Timers are read/written through <see cref="EnemyTimers"/> so the numbers match
-    /// the old fields exactly; ground contact is remembered via <see cref="GroundRecoveryController"/>.
+    ///     The enemy's collision decision tree, lifted off the controller verbatim: ground-contact memory,
+    ///     the "thrown projectile damages enemies / walls" branch, the ground-bounce arc (and its counter),
+    ///     and the trajectory sweep. The controller KEEPS the Unity <c>OnCollisionEnter</c>/<c>OnCollisionStay</c>
+    ///     magic methods as one-line forwarders into this class — they must stay on the MonoBehaviour or
+    ///     Unity stops delivering collisions with no compile error.
+    ///     Damage is applied by calling back into <c>owner.TakeDamage</c> (the controller still owns health,
+    ///     scoring and death). Timers are read/written through <see cref="EnemyTimers" /> so the numbers match
+    ///     the old fields exactly; ground contact is remembered via <see cref="GroundRecoveryController" />.
     /// </summary>
     public sealed class EnemyCollisionHandler
     {
-        private EnemyController _owner;
-        private Transform _transform;
-        private Rigidbody _rigidbody;
         private EnemyData _data;
-        private EnemyImpact _impact;
-        private EnemyTimers _timers;
-        private GroundRecoveryController _groundRecovery;
         private int _groundBounceCount;
+        private GroundRecoveryController _groundRecovery;
+        private EnemyImpact _impact;
+        private EnemyController _owner;
+        private Rigidbody _rigidbody;
+        private EnemyTimers _timers;
+        private Transform _transform;
 
         public void Initialize(EnemyController owner, Transform transform, Rigidbody rigidbody,
             EnemyData data, EnemyImpact impact, EnemyTimers timers, GroundRecoveryController groundRecovery)
@@ -37,18 +36,6 @@ namespace Game.Enemy
             _impact = impact;
             _timers = timers;
             _groundRecovery = groundRecovery;
-        }
-
-        /// <summary>Resets the ground-bounce counter for a fresh spawn / pool reuse.</summary>
-        public void ResetForSpawn()
-        {
-            _groundBounceCount = 0;
-        }
-
-        /// <summary>Called by Launch to re-arm a fresh flight (old body zeroed _groundBounceCount).</summary>
-        public void ResetGroundBounce()
-        {
-            _groundBounceCount = 0;
         }
 
         public void OnCollisionEnter(Collision collision, bool isImpactProjectile, bool isDead)
@@ -101,6 +88,18 @@ namespace Game.Enemy
         {
             if (IsGroundCollision(collision))
                 _groundRecovery.MarkGroundContact();
+        }
+
+        /// <summary>Resets the ground-bounce counter for a fresh spawn / pool reuse.</summary>
+        public void ResetForSpawn()
+        {
+            _groundBounceCount = 0;
+        }
+
+        /// <summary>Called by Launch to re-arm a fresh flight (old body zeroed _groundBounceCount).</summary>
+        public void ResetGroundBounce()
+        {
+            _groundBounceCount = 0;
         }
 
         /// <summary>The sweep-along-trajectory damage tick (old SweepImpactDamage). Runs from the recovery/knockback states.</summary>

@@ -11,20 +11,19 @@ namespace Game.Enemy
 {
     public class EnemySpawner : IEnemySpawner
     {
-        public event Action<int, int> WaveChanged;
-        public event Action AllWavesCleared;
-
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly IEnemyFactory _enemyFactory;
         private readonly GameSettings _gameSettings;
+        private readonly List<Transform> _spawnCandidates = new();
+        private int _aliveEnemies;
+        private float _spawnHeightOffset;
+        private Transform _spawnParent;
+        private Transform[] _spawnPoints;
 
         private Coroutine _spawnRoutine;
         private Transform _target;
-        private Transform _spawnParent;
-        private Transform[] _spawnPoints;
-        private readonly List<Transform> _spawnCandidates = new();
-        private float _spawnHeightOffset;
-        private int _aliveEnemies;
+        public event Action AllWavesCleared;
+        public event Action<int, int> WaveChanged;
 
         public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings)
         {
@@ -33,7 +32,8 @@ namespace Game.Enemy
             _gameSettings = gameSettings;
         }
 
-        public void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset)
+        public void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent,
+            float spawnHeightOffset)
         {
             _target = target;
             _spawnPoints = spawnPoints;
@@ -48,11 +48,6 @@ namespace Game.Enemy
                 return;
 
             _spawnRoutine = _coroutineRunner.StartCoroutine(HasWaves() ? WaveRoutine() : SpawnLoop());
-        }
-
-        private bool HasWaves()
-        {
-            return _gameSettings.Waves != null && _gameSettings.Waves.Length > 0;
         }
 
         public void StopSpawn()
@@ -72,6 +67,11 @@ namespace Game.Enemy
             {
                 _spawnRoutine = null;
             }
+        }
+
+        private bool HasWaves()
+        {
+            return _gameSettings.Waves != null && _gameSettings.Waves.Length > 0;
         }
 
         private IEnumerator SpawnLoop()
@@ -160,9 +160,9 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        /// Picks a random spawn point that is at least MinPlayerSpawnDistance (horizontal) from the
-        /// player, so enemies never pop up right next to you. If every point is too close (tiny arena),
-        /// falls back to the farthest one.
+        ///     Picks a random spawn point that is at least MinPlayerSpawnDistance (horizontal) from the
+        ///     player, so enemies never pop up right next to you. If every point is too close (tiny arena),
+        ///     falls back to the farthest one.
         /// </summary>
         private Transform PickSpawnPoint()
         {

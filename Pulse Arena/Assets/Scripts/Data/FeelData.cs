@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Data
 {
     /// <summary>
-    /// Shared game-feel values that apply to BOTH actors (player + enemy), so they can never silently drift
-    /// apart. Lives in the cross-actor <c>Combat Config</c> SO and is reached via <c>GameSettings.Feel</c>.
+    ///     Shared game-feel values that apply to BOTH actors (player + enemy), so they can never silently drift
+    ///     apart. Lives in the cross-actor <c>Combat Config</c> SO and is reached via <c>GameSettings.Feel</c>.
     /// </summary>
     [Serializable]
     public class FeelData

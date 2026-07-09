@@ -3,16 +3,16 @@ using UnityEngine;
 namespace UI.Hud
 {
     /// <summary>
-    /// Fits this RectTransform to the device safe area (notch / rounded corners / home indicator)
-    /// so HUD content parented under it is never clipped by a cutout. Re-applies when the safe area,
-    /// orientation or resolution changes.
+    ///     Fits this RectTransform to the device safe area (notch / rounded corners / home indicator)
+    ///     so HUD content parented under it is never clipped by a cutout. Re-applies when the safe area,
+    ///     orientation or resolution changes.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class SafeArea : MonoBehaviour
     {
-        private RectTransform _rect;
-        private Rect _lastSafeArea;
         private Vector2Int _lastResolution;
+        private Rect _lastSafeArea;
+        private RectTransform _rect;
 
         private void Awake()
         {

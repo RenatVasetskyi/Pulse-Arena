@@ -6,22 +6,16 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// Finds the nearest grabbable enemy around the slingshot origin: an <see cref="Physics.OverlapSphereNonAlloc"/>
-    /// query on the enemy layer, filtered by grabbed/dead state and a line-of-sight linecast against obstacles,
-    /// returning the closest survivor. Shared by both the grab attempt and the target-marker highlight.
+    ///     Finds the nearest grabbable enemy around the slingshot origin: an <see cref="Physics.OverlapSphereNonAlloc" />
+    ///     query on the enemy layer, filtered by grabbed/dead state and a line-of-sight linecast against obstacles,
+    ///     returning the closest survivor. Shared by both the grab attempt and the target-marker highlight.
     /// </summary>
     public class EnemyTargetFinder : IEnemyTargetFinder
     {
         private static readonly Collider[] Buffer = new Collider[32];
-
-        private Transform _origin;
         private SlingshotData _data;
 
-        public void Initialize(Transform origin, SlingshotData data)
-        {
-            _origin = origin;
-            _data = data;
-        }
+        private Transform _origin;
 
         public EnemyController FindNearest(float radius)
         {
@@ -52,6 +46,12 @@ namespace Game.Combat
             }
 
             return nearestEnemy;
+        }
+
+        public void Initialize(Transform origin, SlingshotData data)
+        {
+            _origin = origin;
+            _data = data;
         }
 
         private bool HasLineOfSight(EnemyController enemy)

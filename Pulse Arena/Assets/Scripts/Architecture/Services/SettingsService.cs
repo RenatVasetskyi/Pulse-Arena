@@ -6,35 +6,35 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    /// PlayerPrefs-backed user settings. Defaults come from the config (AudioData / CameraData) on first
-    /// run; every setter persists immediately and raises <see cref="Changed"/> so live systems update.
+    ///     PlayerPrefs-backed user settings. Defaults come from the config (AudioData / CameraData) on first
+    ///     run; every setter persists immediately and raises <see cref="Changed" /> so live systems update.
     /// </summary>
     public class SettingsService : ISettingsService
     {
+        private const string CameraFxKey = "settings.camerafx";
         private const string MasterKey = "settings.master";
         private const string MusicKey = "settings.music";
         private const string SfxKey = "settings.sfx";
-        private const string CameraFxKey = "settings.camerafx";
-        private const string ZoomKey = "settings.zoom";
         private const string VibrateKey = "settings.vibrate";
+        private const string ZoomKey = "settings.zoom";
+        private readonly float _maxZoom;
 
         private readonly float _minZoom;
-        private readonly float _maxZoom;
+        private bool _cameraFx;
 
         private float _master;
         private float _music;
         private float _sfx;
-        private bool _cameraFx;
-        private float _zoom;
         private bool _vibrate;
+        private float _zoom;
 
         public event Action Changed;
+        public bool CameraEffectsEnabled => _cameraFx;
+        public float CameraZoom => _zoom;
 
         public float MasterVolume => _master;
         public float MusicVolume => _music;
         public float SfxVolume => _sfx;
-        public bool CameraEffectsEnabled => _cameraFx;
-        public float CameraZoom => _zoom;
         public bool VibrationEnabled => _vibrate;
 
         public SettingsService(GameSettings gameSettings)
@@ -51,6 +51,20 @@ namespace Architecture.Services
             _cameraFx = PlayerPrefs.GetInt(CameraFxKey, 1) == 1;
             _zoom = PlayerPrefs.GetFloat(ZoomKey, camera != null ? camera.DefaultZoom : 1f);
             _vibrate = PlayerPrefs.GetInt(VibrateKey, 1) == 1;
+        }
+
+        public void SetCameraEffectsEnabled(bool enabled)
+        {
+            _cameraFx = enabled;
+            PlayerPrefs.SetInt(CameraFxKey, enabled ? 1 : 0);
+            Commit();
+        }
+
+        public void SetCameraZoom(float value)
+        {
+            _zoom = Mathf.Clamp(value, _minZoom, _maxZoom);
+            PlayerPrefs.SetFloat(ZoomKey, _zoom);
+            Commit();
         }
 
         public void SetMasterVolume(float value)
@@ -71,20 +85,6 @@ namespace Architecture.Services
         {
             _sfx = Mathf.Clamp01(value);
             PlayerPrefs.SetFloat(SfxKey, _sfx);
-            Commit();
-        }
-
-        public void SetCameraEffectsEnabled(bool enabled)
-        {
-            _cameraFx = enabled;
-            PlayerPrefs.SetInt(CameraFxKey, enabled ? 1 : 0);
-            Commit();
-        }
-
-        public void SetCameraZoom(float value)
-        {
-            _zoom = Mathf.Clamp(value, _minZoom, _maxZoom);
-            PlayerPrefs.SetFloat(ZoomKey, _zoom);
             Commit();
         }
 

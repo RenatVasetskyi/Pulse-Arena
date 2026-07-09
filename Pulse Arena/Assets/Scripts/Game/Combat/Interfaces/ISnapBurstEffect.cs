@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Game.Combat.Interfaces
 {
     /// <summary>
-    /// The rope-snap particle burst: lazily builds a procedural <see cref="ParticleSystem"/> from
-    /// <see cref="VfxData"/> and emits it at a world position when the rope breaks.
+    ///     The rope-snap particle burst: lazily builds a procedural <see cref="ParticleSystem" /> from
+    ///     <see cref="VfxData" /> and emits it at a world position when the rope breaks.
     /// </summary>
     public interface ISnapBurstEffect
     {

@@ -5,8 +5,8 @@ using UnityEngine;
 namespace UI
 {
     /// <summary>
-    /// UI-side implementation of <see cref="IScorePopupService"/>: spawns pooled <see cref="FloatingScoreText"/>
-    /// popups. Bound in the composition root, so gameplay depends only on the interface — not on the UI class.
+    ///     UI-side implementation of <see cref="IScorePopupService" />: spawns pooled <see cref="FloatingScoreText" />
+    ///     popups. Bound in the composition root, so gameplay depends only on the interface — not on the UI class.
     /// </summary>
     public class ScorePopupService : IScorePopupService
     {

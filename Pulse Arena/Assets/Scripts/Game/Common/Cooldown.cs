@@ -1,14 +1,13 @@
 namespace Game.Common
 {
     /// <summary>
-    /// A tiny value-type countdown timer. Wraps the "float _t; if (_t > 0f) _t -= dt;" pattern that
-    /// used to be repeated for every enemy cooldown. <see cref="Remaining"/> reads the raw seconds left
-    /// (so callers that used to read a bare float field keep byte-identical behaviour); <see cref="Set"/>
-    /// overwrites it, <see cref="SetMax"/> keeps whichever value is larger (the ground-bounce keep-alive
-    /// used Mathf.Max), and <see cref="Tick"/> subtracts elapsed time only while the timer is running.
-    ///
-    /// It is a struct on purpose: copied by value into helpers, no allocation, and resetting a whole
-    /// bag of them is just field assignment.
+    ///     A tiny value-type countdown timer. Wraps the "float _t; if (_t > 0f) _t -= dt;" pattern that
+    ///     used to be repeated for every enemy cooldown. <see cref="Remaining" /> reads the raw seconds left
+    ///     (so callers that used to read a bare float field keep byte-identical behaviour); <see cref="Set" />
+    ///     overwrites it, <see cref="SetMax" /> keeps whichever value is larger (the ground-bounce keep-alive
+    ///     used Mathf.Max), and <see cref="Tick" /> subtracts elapsed time only while the timer is running.
+    ///     It is a struct on purpose: copied by value into helpers, no allocation, and resetting a whole
+    ///     bag of them is just field assignment.
     /// </summary>
     public struct Cooldown
     {

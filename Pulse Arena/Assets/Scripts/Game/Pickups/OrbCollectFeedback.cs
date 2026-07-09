@@ -6,18 +6,18 @@ using UnityEngine;
 namespace Game.Pickups
 {
     /// <summary>
-    /// The collect payoff: pickup SFX, a bright light flash that snaps to dark, a small "sucked-in" hop, and a
-    /// pop / collapse / spin-away of the visual — then the orb destroys itself. Each beat is its own method the
-    /// <see cref="Play"/> coordinator fires in order.
+    ///     The collect payoff: pickup SFX, a bright light flash that snaps to dark, a small "sucked-in" hop, and a
+    ///     pop / collapse / spin-away of the visual — then the orb destroys itself. Each beat is its own method the
+    ///     <see cref="Play" /> coordinator fires in order.
     /// </summary>
     public class OrbCollectFeedback
     {
+        private IAudioService _audio;
+        private float _baseLightIntensity;
+        private SphereCollider _collider;
+        private Light _light;
         private Transform _self;
         private Transform _visualRoot;
-        private Light _light;
-        private SphereCollider _collider;
-        private float _baseLightIntensity;
-        private IAudioService _audio;
 
         public void Initialize(Transform self, Transform visualRoot, Light light,
             SphereCollider collider, float baseLightIntensity, IAudioService audio)
@@ -83,10 +83,10 @@ namespace Game.Pickups
             _visualRoot.DOKill();
 
             Sequence sequence = DOTween.Sequence().SetLink(self);
-            sequence.Append(_visualRoot.DOScale(baseScale * 1.4f, 0.07f).SetEase(Ease.OutBack));   // quick pop
-            sequence.Append(_visualRoot.DOScale(Vector3.zero, 0.12f).SetEase(Ease.InBack));        // fast collapse
+            sequence.Append(_visualRoot.DOScale(baseScale * 1.4f, 0.07f).SetEase(Ease.OutBack)); // quick pop
+            sequence.Append(_visualRoot.DOScale(Vector3.zero, 0.12f).SetEase(Ease.InBack)); // fast collapse
             sequence.Join(_visualRoot.DOLocalRotate(new Vector3(0f, 260f, 0f), 0.12f,
-                RotateMode.FastBeyond360).SetEase(Ease.InQuad));                                   // spin away
+                RotateMode.FastBeyond360).SetEase(Ease.InQuad)); // spin away
             sequence.OnComplete(() => Object.Destroy(self));
         }
     }
