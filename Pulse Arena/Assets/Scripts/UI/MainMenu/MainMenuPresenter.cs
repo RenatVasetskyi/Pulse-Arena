@@ -22,6 +22,13 @@ namespace UI.MainMenu
             _settingsController = settingsController;
         }
 
+        public void Initialize()
+        {
+            _view.PlayClicked += OnPlayClicked;
+            _view.SettingsClicked += OnSettingsClicked;
+            _view.Show();
+        }
+
         public void Dispose()
         {
             if (_view == null)
@@ -30,13 +37,6 @@ namespace UI.MainMenu
             _view.PlayClicked -= OnPlayClicked;
             _view.SettingsClicked -= OnSettingsClicked;
             _view.Dispose();
-        }
-
-        public void Initialize()
-        {
-            _view.PlayClicked += OnPlayClicked;
-            _view.SettingsClicked += OnSettingsClicked;
-            _view.Show();
         }
 
         private void OnPlayClicked()

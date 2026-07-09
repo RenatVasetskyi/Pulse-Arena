@@ -10,9 +10,9 @@ namespace Game.Player.Interfaces
     /// </summary>
     public interface IPlayerMovement
     {
+        void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data, IInputService input);
         void ApplyExtraGravity();
         void ApplyKnockback(Vector3 sourcePosition, float force);
-        void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data, IInputService input);
         void KillAngularVelocity();
         void MoveByInput();
         void RotateToInput();

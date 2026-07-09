@@ -17,10 +17,10 @@ namespace Game.Common.Interfaces
         bool IsInvulnerable { get; }
         int Max { get; }
 
+        void Initialize(int maxHealth, float hitInvulnerability);
+
         /// <summary>Extends the i-frame window to at least <paramref name="seconds" /> (used by the dash dodge).</summary>
         void GrantInvulnerability(float seconds);
-
-        void Initialize(int maxHealth, float hitInvulnerability);
 
         void Kill();
 

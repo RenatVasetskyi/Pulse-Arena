@@ -29,11 +29,6 @@ namespace Game.Common
         public bool IsInvulnerable => _invulnerabilityTimer > 0f;
         public int Max => _max;
 
-        public void GrantInvulnerability(float seconds)
-        {
-            _invulnerabilityTimer = Mathf.Max(_invulnerabilityTimer, seconds);
-        }
-
         public void Initialize(int maxHealth, float hitInvulnerability = 0f)
         {
             _max = Mathf.Max(1, maxHealth);
@@ -42,6 +37,11 @@ namespace Game.Common
             _invulnerabilityTimer = 0f;
             _isDead = false;
             Changed?.Invoke(_current, _max);
+        }
+
+        public void GrantInvulnerability(float seconds)
+        {
+            _invulnerabilityTimer = Mathf.Max(_invulnerabilityTimer, seconds);
         }
 
         public void Kill()

@@ -77,6 +77,11 @@ namespace Game.Scene
             _gameSettings = gameSettings;
         }
 
+        public void Initialize()
+        {
+            Build();
+        }
+
         public void Build()
         {
             ResetSession();
@@ -100,11 +105,6 @@ namespace Game.Scene
         public void Dispose()
         {
             Teardown();
-        }
-
-        public void Initialize()
-        {
-            Build();
         }
 
         public void Teardown()

@@ -48,6 +48,19 @@ namespace Game.Combat
         public event Action RopeBroke;
         public event Action<float> TensionChanged;
 
+        [Inject]
+        public void Construct(IInputService inputService, GameSettings gameSettings)
+        {
+            _inputService = inputService;
+            _data = gameSettings.SlingshotData;
+            _rope.Initialize(transform, _data);
+            _finder.Initialize(transform, _data);
+            _tension.Initialize(_data);
+            _tension.Changed += OnTensionChanged;
+            _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
+            _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
+        }
+
         private void Update()
         {
             TickCooldown();
@@ -92,19 +105,6 @@ namespace Game.Combat
 
             if (_state == LassoState.Spinning)
                 TickSpin();
-        }
-
-        [Inject]
-        public void Construct(IInputService inputService, GameSettings gameSettings)
-        {
-            _inputService = inputService;
-            _data = gameSettings.SlingshotData;
-            _rope.Initialize(transform, _data);
-            _finder.Initialize(transform, _data);
-            _tension.Initialize(_data);
-            _tension.Changed += OnTensionChanged;
-            _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
-            _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
         }
 
         public void SetLassoOrigin(Transform lassoOrigin)

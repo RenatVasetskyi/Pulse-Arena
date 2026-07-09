@@ -24,6 +24,7 @@ namespace Game.Scene
         private readonly ISlowMoService _slowMoService;
 
         private IBattleCamera _camera;
+
         private int _lastPlayerHealth = -1;
         private float _lastSlowMoTime = -99f;
         private PlayerController _player;

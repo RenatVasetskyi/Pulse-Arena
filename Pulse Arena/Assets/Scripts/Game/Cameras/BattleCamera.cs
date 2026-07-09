@@ -40,6 +40,16 @@ namespace Game.Cameras
 
         private bool CameraEffectsEnabled => _settings == null || _settings.CameraEffectsEnabled;
 
+        [Inject]
+        public void Construct(GameSettings gameSettings, ISettingsService settings)
+        {
+            _settings = settings;
+            _data = gameSettings.CameraData;
+
+            if (_settings != null)
+                _settings.Changed += OnSettingsChanged;
+        }
+
         private void Awake()
         {
             CacheComponents();
@@ -66,16 +76,6 @@ namespace Game.Cameras
         {
             CacheComponents();
             ApplySettings();
-        }
-
-        [Inject]
-        public void Construct(GameSettings gameSettings, ISettingsService settings)
-        {
-            _settings = settings;
-            _data = gameSettings.CameraData;
-
-            if (_settings != null)
-                _settings.Changed += OnSettingsChanged;
         }
 
         public void Follow(Transform target, bool snap = true)

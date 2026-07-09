@@ -17,15 +17,10 @@ namespace Architecture.Services
         private AudioData _data;
         private Dictionary<GameSfx, SfxEntry> _map;
         private AudioSource _musicSource;
+
         private int _next;
         private ISettingsService _settings;
         private AudioSource[] _sources;
-
-        private void OnDestroy()
-        {
-            if (_settings != null)
-                _settings.Changed -= OnSettingsChanged;
-        }
 
         public void Initialize(AudioData data, ISettingsService settings)
         {
@@ -57,6 +52,12 @@ namespace Architecture.Services
 
             if (_settings != null)
                 _settings.Changed += OnSettingsChanged;
+        }
+
+        private void OnDestroy()
+        {
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
         }
 
         public void PlayMusic(AudioClip clip)

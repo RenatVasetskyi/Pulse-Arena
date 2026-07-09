@@ -83,6 +83,35 @@ namespace Game.Enemy
         /// <summary>The primitive visual, exposed so the collision handler can play the ground-bounce squash.</summary>
         public EnemyPrimitiveVisual Visual => _visual;
 
+        [Inject]
+        public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
+            IComboService comboService, IScorePopupService scorePopups, IEnemyRegistry enemyRegistry)
+        {
+            _settings = gameSettings;
+            _data = gameSettings.EnemyData;
+            _scoreService = scoreService;
+            _audioService = audioService;
+            _comboService = comboService;
+            _scorePopups = scorePopups;
+            _registry = enemyRegistry;
+
+            WireHealth();
+            _movement.ConfigureAgent();
+            InitializeRingout();
+            CreateHealthBar();
+        }
+
+        public void Initialize(Transform target, EnemyTypeData typeData = null)
+        {
+            _typeData = typeData ?? EnemyTypeData.Default;
+            ResetForSpawn();
+            _target = target;
+            _playerTarget = target.GetComponentInParent<PlayerController>();
+            _movement.ConfigureAgent();
+            _visual?.ApplyTypeStyle(_typeData);
+            ChangeToChaseState();
+        }
+
         // --- Unity lifecycle -------------------------------------------------------------------
 
         private void Awake()
@@ -135,24 +164,6 @@ namespace Game.Enemy
             _collisions.OnCollisionStay(collision);
         }
 
-        [Inject]
-        public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
-            IComboService comboService, IScorePopupService scorePopups, IEnemyRegistry enemyRegistry)
-        {
-            _settings = gameSettings;
-            _data = gameSettings.EnemyData;
-            _scoreService = scoreService;
-            _audioService = audioService;
-            _comboService = comboService;
-            _scorePopups = scorePopups;
-            _registry = enemyRegistry;
-
-            WireHealth();
-            _movement.ConfigureAgent();
-            InitializeRingout();
-            CreateHealthBar();
-        }
-
         /// <summary>Rings the enemy out on the spot — used by arena pits it gets flung into.</summary>
         public void FallIntoPit()
         {
@@ -168,17 +179,6 @@ namespace Game.Enemy
             _timers.Knockback.Clear();
             ChangeToGrabbedState();
             _rigidbody.linearVelocity = Vector3.zero;
-        }
-
-        public void Initialize(Transform target, EnemyTypeData typeData = null)
-        {
-            _typeData = typeData ?? EnemyTypeData.Default;
-            ResetForSpawn();
-            _target = target;
-            _playerTarget = target.GetComponentInParent<PlayerController>();
-            _movement.ConfigureAgent();
-            _visual?.ApplyTypeStyle(_typeData);
-            ChangeToChaseState();
         }
 
         public bool Kill()
@@ -397,7 +397,7 @@ namespace Game.Enemy
             EnsureStateMachine();
             StopDeathReturn();
             ResetSpawnFlags();
-            _registry.Register(_rigidbody, this);   // live for the span it is out of the pool
+            _registry.Register(_rigidbody, this); // live for the span it is out of the pool
             ResetCollaboratorsForSpawn();
             transform.localScale = Vector3.one;
             _health.Initialize(GetTypeAdjustedMaxHealth()); // fires Changed → HealthChanged + health bar

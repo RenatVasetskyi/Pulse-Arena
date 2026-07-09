@@ -28,6 +28,23 @@ namespace Game.Arena
         /// <summary>Raised once when the pit is about to be destroyed (eaten or timed out), so the spawner can free its slot.</summary>
         public event Action<Pit> Despawned;
 
+        /// <summary>Grow in, stay open for <paramref name="lifetime" />s, then close and despawn if unused.</summary>
+        public void Initialize(float scale, float lifetime, float suckSpeed, float suckDown)
+        {
+            _consumed = false;
+            _suckSpeed = suckSpeed;
+            _suckDown = suckDown;
+            _targetScale = Vector3.one * scale;
+            _trigger.enabled = true;
+            transform.localScale = Vector3.zero;
+
+            _life = DOTween.Sequence().SetLink(gameObject);
+            _life.Append(transform.DOScale(_targetScale, _growDuration).SetEase(Ease.OutBack));
+            _life.AppendInterval(Mathf.Max(0.1f, lifetime));
+            _life.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
+            _life.OnComplete(Despawn);
+        }
+
         private void Awake()
         {
             _trigger = GetComponent<Collider>();
@@ -50,23 +67,6 @@ namespace Game.Arena
 
             if (body.TryGetComponent(out EnemyController enemy))
                 Consume(body, enemy);
-        }
-
-        /// <summary>Grow in, stay open for <paramref name="lifetime" />s, then close and despawn if unused.</summary>
-        public void Initialize(float scale, float lifetime, float suckSpeed, float suckDown)
-        {
-            _consumed = false;
-            _suckSpeed = suckSpeed;
-            _suckDown = suckDown;
-            _targetScale = Vector3.one * scale;
-            _trigger.enabled = true;
-            transform.localScale = Vector3.zero;
-
-            _life = DOTween.Sequence().SetLink(gameObject);
-            _life.Append(transform.DOScale(_targetScale, _growDuration).SetEase(Ease.OutBack));
-            _life.AppendInterval(Mathf.Max(0.1f, lifetime));
-            _life.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
-            _life.OnComplete(Despawn);
         }
 
         private void Consume(Rigidbody body, EnemyController enemy)

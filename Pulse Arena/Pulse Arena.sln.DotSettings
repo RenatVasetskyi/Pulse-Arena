@@ -1,5 +1,5 @@
 <wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/CodeStyle/CSharpFileLayoutPatterns/Pattern/@EntryValue">&lt;Patterns xmlns=&quot;urn:schemas-jetbrains-com:member-reordering-patterns&quot;&gt;
+	<s:String x:Key="/Default/CodeStyle/CSharpFileLayoutPatterns/Pattern/@EntryValue">&lt;Patterns xmlns=&quot;urn:schemas-jetbrains-com:member-reordering-patterns&quot; xmlns:unity=&quot;urn:schemas-jetbrains-com:member-reordering-patterns-unity&quot;&gt;
 
   &lt;!-- Don&#x27;t reorder members of these special types --&gt;
   &lt;TypePattern DisplayName=&quot;Non-reorderable types&quot; Priority=&quot;99999999&quot;&gt;
@@ -19,7 +19,135 @@
     &lt;/TypePattern.Match&gt;
   &lt;/TypePattern&gt;
 
-  &lt;!-- Pulse Arena order (StyleCop-based, events hoisted) --&gt;
+  &lt;!-- Unity (MonoBehaviour) types: serialized fields + event functions, Construct/Initialize pinned first --&gt;
+  &lt;TypePattern DisplayName=&quot;Unity classes&quot; Priority=&quot;100&quot;&gt;
+    &lt;TypePattern.Match&gt;
+      &lt;unity:SerializableClass /&gt;
+    &lt;/TypePattern.Match&gt;
+
+    &lt;Entry DisplayName=&quot;Constants and static fields&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Or&gt;
+          &lt;Kind Is=&quot;Constant&quot; /&gt;
+          &lt;And&gt;
+            &lt;Kind Is=&quot;Field&quot; /&gt;
+            &lt;Static /&gt;
+          &lt;/And&gt;
+        &lt;/Or&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Kind&gt;
+          &lt;Kind.Order&gt;
+            &lt;DeclarationKind&gt;Constant&lt;/DeclarationKind&gt;
+            &lt;DeclarationKind&gt;Field&lt;/DeclarationKind&gt;
+          &lt;/Kind.Order&gt;
+        &lt;/Kind&gt;
+        &lt;Readonly /&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Serialized fields&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Or&gt;
+          &lt;unity:SerializedField /&gt;
+          &lt;unity:AutoPropertyWithSerializedBackingField /&gt;
+        &lt;/Or&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Instance fields&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is=&quot;Field&quot; /&gt;
+          &lt;Not&gt;
+            &lt;Static /&gt;
+          &lt;/Not&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Readonly /&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Events&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is=&quot;Event&quot; /&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Properties and indexers&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Or&gt;
+          &lt;Kind Is=&quot;Property&quot; /&gt;
+          &lt;Kind Is=&quot;Indexer&quot; /&gt;
+        &lt;/Or&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Constructors&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is=&quot;Constructor&quot; /&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Static /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Init methods (Construct / Initialize)&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is=&quot;Method&quot; /&gt;
+          &lt;Or&gt;
+            &lt;HasAttribute Name=&quot;Zenject.InjectAttribute&quot; /&gt;
+            &lt;Name Is=&quot;^(Construct|Initialize|Init)$&quot; /&gt;
+          &lt;/Or&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Unity event functions&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;unity:EventFunction /&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;unity:EventFunctionName /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;Public methods&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is=&quot;Method&quot; /&gt;
+          &lt;Access Is=&quot;Public&quot; /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Static /&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName=&quot;All other members&quot; /&gt;
+
+    &lt;Entry DisplayName=&quot;Nested types&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is=&quot;Type&quot; /&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+  &lt;/TypePattern&gt;
+
+  &lt;!-- Non-Unity types --&gt;
   &lt;TypePattern DisplayName=&quot;Default Pattern&quot;&gt;
 
     &lt;Entry DisplayName=&quot;Constants and static fields&quot;&gt;
@@ -89,6 +217,21 @@
       &lt;/Entry.SortBy&gt;
     &lt;/Entry&gt;
 
+    &lt;Entry DisplayName=&quot;Init methods (Construct / Initialize)&quot;&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is=&quot;Method&quot; /&gt;
+          &lt;Or&gt;
+            &lt;HasAttribute Name=&quot;Zenject.InjectAttribute&quot; /&gt;
+            &lt;Name Is=&quot;^(Construct|Initialize|Init)$&quot; /&gt;
+          &lt;/Or&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
     &lt;Entry DisplayName=&quot;Public methods&quot;&gt;
       &lt;Entry.Match&gt;
         &lt;And&gt;
@@ -112,4 +255,5 @@
 
   &lt;/TypePattern&gt;
 &lt;/Patterns&gt;</s:String>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002EMemberReordering_002EMigrations_002ECSharpFileLayoutPatternRemoveIsAttributeUpgrade/@EntryIndexedValue">True</s:Boolean>
 </wpf:ResourceDictionary>

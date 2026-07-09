@@ -17,6 +17,12 @@ namespace Game.Combat
 
         private Transform _origin;
 
+        public void Initialize(Transform origin, SlingshotData data)
+        {
+            _origin = origin;
+            _data = data;
+        }
+
         public EnemyController FindNearest(float radius)
         {
             int hitCount = Physics.OverlapSphereNonAlloc(_origin.position, radius, Buffer, _data.EnemyLayer);
@@ -46,12 +52,6 @@ namespace Game.Combat
             }
 
             return nearestEnemy;
-        }
-
-        public void Initialize(Transform origin, SlingshotData data)
-        {
-            _origin = origin;
-            _data = data;
         }
 
         private bool HasLineOfSight(EnemyController enemy)

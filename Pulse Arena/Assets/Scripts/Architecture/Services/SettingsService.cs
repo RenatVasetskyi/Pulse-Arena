@@ -18,10 +18,8 @@ namespace Architecture.Services
         private const string VibrateKey = "settings.vibrate";
         private const string ZoomKey = "settings.zoom";
         private readonly float _maxZoom;
-
         private readonly float _minZoom;
         private bool _cameraFx;
-
         private float _master;
         private float _music;
         private float _sfx;
@@ -31,7 +29,6 @@ namespace Architecture.Services
         public event Action Changed;
         public bool CameraEffectsEnabled => _cameraFx;
         public float CameraZoom => _zoom;
-
         public float MasterVolume => _master;
         public float MusicVolume => _music;
         public float SfxVolume => _sfx;

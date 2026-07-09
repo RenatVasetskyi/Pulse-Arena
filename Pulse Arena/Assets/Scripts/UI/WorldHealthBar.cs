@@ -23,6 +23,18 @@ namespace UI
 
         private Image[] _segments;
 
+        public void Initialize(int maxHealth, float height)
+        {
+            transform.localPosition = Vector3.up * height;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+
+            if (_background != null)
+                _background.color = _backgroundColor;
+
+            SetHealth(maxHealth, maxHealth);
+        }
+
         private void LateUpdate()
         {
             if (_camera == null)
@@ -34,18 +46,6 @@ namespace UI
             }
 
             transform.rotation = _camera.transform.rotation;
-        }
-
-        public void Initialize(int maxHealth, float height)
-        {
-            transform.localPosition = Vector3.up * height;
-            transform.localRotation = Quaternion.identity;
-            transform.localScale = Vector3.one;
-
-            if (_background != null)
-                _background.color = _backgroundColor;
-
-            SetHealth(maxHealth, maxHealth);
         }
 
         public void SetHealth(int health, int maxHealth)

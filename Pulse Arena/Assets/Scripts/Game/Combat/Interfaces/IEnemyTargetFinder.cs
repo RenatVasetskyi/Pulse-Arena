@@ -9,7 +9,7 @@ namespace Game.Combat.Interfaces
     /// </summary>
     public interface IEnemyTargetFinder
     {
-        EnemyController FindNearest(float radius);
         void Initialize(Transform origin, Data.SlingshotData data);
+        EnemyController FindNearest(float radius);
     }
 }

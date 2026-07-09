@@ -20,6 +20,12 @@ namespace Game.Combat
 
         public Material Material => GetLineMaterial();
 
+        public void Initialize(Transform owner, SlingshotData data)
+        {
+            _owner = owner;
+            _data = data;
+        }
+
         public void Hide()
         {
             if (_line != null)
@@ -27,12 +33,6 @@ namespace Game.Combat
 
             if (_wrapRing != null)
                 _wrapRing.enabled = false;
-        }
-
-        public void Initialize(Transform owner, SlingshotData data)
-        {
-            _owner = owner;
-            _data = data;
         }
 
         public void Render(RopeFrame frame)

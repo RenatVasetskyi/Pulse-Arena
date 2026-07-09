@@ -37,7 +37,6 @@ namespace Game.Scene
         private bool _isGameOver;
         private PauseController _pauseController;
         private PausePanelView _pausePanel;
-
         private PlayerController _player;
 
         public GameFlowController(IInputService inputService, IScoreService scoreService,
@@ -65,6 +64,7 @@ namespace Game.Scene
             _isGameOver = false;
 
             _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
+
             if (_gameOverView != null)
             {
                 _gameOverView.RestartClicked += RestartScene;
