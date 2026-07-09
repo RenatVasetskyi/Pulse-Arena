@@ -1,6 +1,5 @@
 using Architecture.States.Interfaces;
 using Data;
-using Game.Common;
 using UnityEngine;
 
 namespace Architecture.States
@@ -19,7 +18,6 @@ namespace Architecture.States
         public void Enter()
         {
             Application.targetFrameRate = _gameSettings.TargetFrameRate;
-            ActorGroundingUtility.Configure(_gameSettings.Grounding);
             _stateMachine.Enter<LoadMainMenuState>();
         }
 

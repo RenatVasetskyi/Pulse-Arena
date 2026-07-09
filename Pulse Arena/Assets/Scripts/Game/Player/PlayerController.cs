@@ -3,6 +3,7 @@ using Architecture.Services.Interfaces;
 using Data;
 using Game.Combat;
 using Game.Common;
+using Game.Common.Interfaces;
 using Game.Common.StateMachine;
 using Game.Player.Interfaces;
 using Game.Player.States;
@@ -14,7 +15,7 @@ namespace Game.Player
 {
     /// <summary>
     ///     The player's thin orchestrator. It owns the state machine + Unity lifecycle + the public API + events,
-    ///     and wires three focused collaborators: <see cref="IPlayerHealth" /> (HP + i-frames),
+    ///     and wires three focused collaborators: <see cref="IActorHealth" /> (HP + i-frames),
     ///     <see cref="IPlayerMovement" /> (Rigidbody locomotion + knockback) and <see cref="IPlayerDash" /> (the
     ///     dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
     ///     controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
@@ -25,7 +26,7 @@ namespace Game.Player
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
         private readonly IPlayerDash _dash = new PlayerDash();
-        private readonly IPlayerHealth _health = new PlayerHealth();
+        private readonly IActorHealth _health = new ActorHealth();
         private readonly HitFlash _hitFlash = new();
         private readonly IPlayerMovement _movement = new PlayerMovement();
         private PlayerDashState _dashState;

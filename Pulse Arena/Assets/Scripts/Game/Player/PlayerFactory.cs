@@ -27,7 +27,7 @@ namespace Game.Player
             PlayerController player = _container.InstantiatePrefabForComponent<PlayerController>
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 
-            ActorGroundingUtility.SnapToGround(player.transform);
+            ActorGroundingUtility.SnapToGround(player.transform, _gameSettings.Grounding);
             AddCombatComponents(player);
 
             return player;

@@ -34,6 +34,7 @@ MonoBehaviour:
     DarkColor: {r: 0.08, g: 0.11, b: 0.16, a: 1}
     AccentColor: {r: 1, g: 0.78, b: 0.24, a: 1}
     MoveThreshold: 0.25
+    MoveAnimationMaxSpeed: 4.5
     BobFrequencyIdle: 2.4
     BobFrequencyRun: 9
     BobAmplitudeIdle: 0.025

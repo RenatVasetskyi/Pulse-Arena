@@ -47,7 +47,7 @@ namespace Game.Enemy
             enemy.transform.SetParent(parent, false);
             enemy.transform.SetPositionAndRotation(at, rotation);
 
-            ActorGroundingUtility.SnapToGround(enemy.transform);
+            ActorGroundingUtility.SnapToGround(enemy.transform, _gameSettings.Grounding);
             enemy.Initialize(target, typeData);
 
             return enemy;

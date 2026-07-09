@@ -1,5 +1,6 @@
 using Data;
 using DG.Tweening;
+using Game.Common;
 using UnityEngine;
 
 namespace Game.Visuals
@@ -13,7 +14,31 @@ namespace Game.Visuals
     /// </summary>
     public class EnemyPrimitiveVisual : MonoBehaviour
     {
-        private const float GroundClearance = 0.02f;
+        // Baked animation "feel" constants — the personality of the blob, not per-instance tuning
+        // (the designer-facing knobs live in EnemyVisualData). Named so the numbers read intent, not magic.
+        private const float MoveSpeedSmoothing = 12f;    // how fast the sampled move-speed follows reality
+        private const float SquashLateralRatio = 0.35f;  // x/z counter-stretch vs the vertical squash
+        private const float WobbleTiltAngle = 8f;        // max idle/run Z-tilt
+        private const float WobbleRotationLerp = 12f;    // how fast the tilt eases in
+        private const float SettleLerpSpeed = 14f;       // root eases back to its base position
+        private const float HeadWobbleFrequency = 3f;
+        private const float HeadWobbleAngle = 4f;
+        private const float SpikeWobbleFrequency = 2.4f;
+        private const float SpikeWobbleAngle = 3f;
+        private const float DeathScaleBulge = 1.16f;     // brief bulge before the flatten
+        private const float DeathSinkDepth = 0.28f;      // how far the corpse sinks into the ground
+        private const float DeathPopAmount = 0.08f;      // squash-and-stretch pop over the death arc
+        private const float DeathRollAngle = 82f;        // topple-over angle
+        private const float DeathBodyLerp = 12f;         // position / rotation / part-shrink easing
+        private const float DeathScaleLerp = 18f;        // body flatten easing
+        private const float DeathPartShrink = 0.65f;     // head + face shrink target
+        private const float DeathSpikeShrink = 0.2f;
+        private const float DeathSpikeLerp = 14f;
+
+        private static readonly Vector3 HitSquashScale = new(1.18f, 0.82f, 1.18f);
+        private static readonly Vector3 BounceSquashScale = new(1.22f, 0.74f, 1.22f);
+        private static readonly Vector3 DeathFlattenScale = new(1.25f, 0.08f, 1.25f);
+
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
         private Transform _belly;
@@ -110,7 +135,7 @@ namespace Game.Visuals
             ResetRuntimeState();
             ResetRootTransform();
             ResetPartTransforms();
-            AlignBottomToCollider();
+            ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
             PlaySpawnPop();
         }
 
@@ -247,7 +272,7 @@ namespace Game.Visuals
         private void FinishSetup()
         {
             _bottomRenderers = GetComponentsInChildren<Renderer>();
-            AlignBottomToCollider();
+            ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
             _headBaseScale = _head != null ? _head.localScale : Vector3.one;
@@ -285,53 +310,6 @@ namespace Game.Visuals
             bounds.Encapsulate(partRenderer.bounds);
         }
 
-        private void AlignBottomToCollider()
-        {
-            if (transform.parent == null)
-                return;
-
-            CapsuleCollider capsule = transform.parent.GetComponent<CapsuleCollider>();
-
-            if (capsule == null)
-                return;
-
-            if (!TryGetRendererBottom(out float rendererBottom))
-                return;
-
-            float actorBottom = GetCapsuleBottom(capsule);
-            float worldDelta = actorBottom + GroundClearance - rendererBottom;
-            float parentScaleY = Mathf.Max(0.001f, Mathf.Abs(transform.parent.lossyScale.y));
-
-            transform.localPosition += Vector3.up * (worldDelta / parentScaleY);
-        }
-
-        private bool TryGetRendererBottom(out float bottom)
-        {
-            Renderer[] renderers = _bottomRenderers ?? GetComponentsInChildren<Renderer>();
-            bottom = float.MaxValue;
-            bool hasRenderer = false;
-
-            foreach (Renderer visualRenderer in renderers)
-            {
-                if (visualRenderer == null)
-                    continue;
-
-                bottom = Mathf.Min(bottom, visualRenderer.bounds.min.y);
-                hasRenderer = true;
-            }
-
-            return hasRenderer;
-        }
-
-        private static float GetCapsuleBottom(CapsuleCollider capsule)
-        {
-            Transform capsuleTransform = capsule.transform;
-            float scaledHeight = capsule.height * Mathf.Abs(capsuleTransform.lossyScale.y);
-            float scaledCenterY = capsule.center.y * capsuleTransform.lossyScale.y;
-
-            return capsuleTransform.position.y + scaledCenterY - scaledHeight * 0.5f;
-        }
-
         private void TickMoveSpeed(float deltaTime)
         {
             if (deltaTime <= 0f)
@@ -340,7 +318,7 @@ namespace Game.Visuals
             Vector3 currentPosition = GetMovementReferencePosition();
             Vector3 delta = currentPosition - _lastPosition;
             delta.y = 0f;
-            _moveSpeed = Mathf.Lerp(_moveSpeed, delta.magnitude / deltaTime, deltaTime * 12f);
+            _moveSpeed = Mathf.Lerp(_moveSpeed, delta.magnitude / deltaTime, deltaTime * MoveSpeedSmoothing);
             _lastPosition = currentPosition;
         }
 
@@ -361,16 +339,17 @@ namespace Game.Visuals
 
         private void ApplyIdleWobble(float deltaTime)
         {
-            float moveProgress = Mathf.InverseLerp(0f, 3.8f, _moveSpeed);
+            float moveProgress = Mathf.InverseLerp(0f, _visualData.MoveAnimationMaxSpeed, _moveSpeed);
             float wobble = Mathf.Sin(Time.time * Mathf.Lerp(_visualData.WobbleFrequencyIdle,
                 _visualData.WobbleFrequencyRun, moveProgress));
             float squash = 1f + wobble * Mathf.Lerp(_visualData.SquashAmountIdle,
                 _visualData.SquashAmountRun, moveProgress);
 
             transform.localScale =
-                new Vector3(1f + (1f - squash) * 0.35f, squash, 1f + (1f - squash) * 0.35f) * _typeScale;
+                new Vector3(1f + (1f - squash) * SquashLateralRatio, squash, 1f + (1f - squash) * SquashLateralRatio) *
+                _typeScale;
             transform.localRotation = Quaternion.Lerp(transform.localRotation,
-                Quaternion.Euler(0f, 0f, -wobble * 8f * moveProgress), deltaTime * 12f);
+                Quaternion.Euler(0f, 0f, -wobble * WobbleTiltAngle * moveProgress), deltaTime * WobbleRotationLerp);
         }
 
         private void ApplyHitSquash()
@@ -380,7 +359,7 @@ namespace Game.Visuals
 
             float hit = Mathf.Sin((_hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration)) * Mathf.PI);
             transform.localScale =
-                Vector3.Lerp(transform.localScale, new Vector3(1.18f, 0.82f, 1.18f) * _typeScale, hit);
+                Vector3.Lerp(transform.localScale, HitSquashScale * _typeScale, hit);
         }
 
         private void ApplyBounceSquash()
@@ -390,13 +369,13 @@ namespace Game.Visuals
 
             float bounce = Mathf.Sin((_bounceTimer / Mathf.Max(0.01f, _visualData.BounceSquashDuration)) * Mathf.PI);
             transform.localScale =
-                Vector3.Lerp(transform.localScale, new Vector3(1.22f, 0.74f, 1.22f) * _typeScale, bounce);
+                Vector3.Lerp(transform.localScale, BounceSquashScale * _typeScale, bounce);
         }
 
         private void ApplySpawnAndSettle(float deltaTime)
         {
             transform.localScale *= _spawnScale;
-            transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * 14f);
+            transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * SettleLerpSpeed);
         }
 
         private void AnimateParts(float deltaTime)
@@ -406,30 +385,30 @@ namespace Game.Visuals
             if (_isThrown && !_isGrabbed)
                 _body.Rotate(Vector3.right, _visualData.ThrownSpinSpeed * deltaTime, Space.Self);
 
-            _head.localRotation = Quaternion.Euler(Mathf.Sin(time * 3f) * 4f, 0f, 0f);
+            _head.localRotation = Quaternion.Euler(Mathf.Sin(time * HeadWobbleFrequency) * HeadWobbleAngle, 0f, 0f);
             _faceRoot.localRotation = _head.localRotation;
-            _spikeRoot.localRotation = Quaternion.Euler(Mathf.Sin(time * 2.4f) * 3f, 0f, 0f);
+            _spikeRoot.localRotation = Quaternion.Euler(Mathf.Sin(time * SpikeWobbleFrequency) * SpikeWobbleAngle, 0f, 0f);
 
             if (!_isGrabbed && !_isThrown)
-                AlignBottomToCollider();
+                ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
         }
 
         private void AnimateDeath(float deltaTime)
         {
             float progress = Mathf.Clamp01(_deathTimer / Mathf.Max(0.01f, _visualData.DeathPopDuration));
             float pop = Mathf.Sin(progress * Mathf.PI);
-            Vector3 targetScale = Vector3.Lerp(_baseScale * (1.16f * _typeScale),
-                new Vector3(1.25f, 0.08f, 1.25f) * _typeScale, progress);
+            Vector3 targetScale = Vector3.Lerp(_baseScale * (DeathScaleBulge * _typeScale),
+                DeathFlattenScale * _typeScale, progress);
 
-            transform.localPosition = Vector3.Lerp(transform.localPosition, _baseLocalPosition + Vector3.down * 0.28f,
-                deltaTime * 12f);
-            transform.localScale = Vector3.Lerp(transform.localScale, targetScale + Vector3.one * (pop * 0.08f),
-                deltaTime * 18f);
-            transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.Euler(0f, 0f, 82f),
-                deltaTime * 12f);
-            _head.localScale = Vector3.Lerp(_head.localScale, _headBaseScale * 0.65f, deltaTime * 12f);
-            _faceRoot.localScale = Vector3.Lerp(_faceRoot.localScale, Vector3.one * 0.65f, deltaTime * 12f);
-            _spikeRoot.localScale = Vector3.Lerp(_spikeRoot.localScale, Vector3.one * 0.2f, deltaTime * 14f);
+            transform.localPosition = Vector3.Lerp(transform.localPosition,
+                _baseLocalPosition + Vector3.down * DeathSinkDepth, deltaTime * DeathBodyLerp);
+            transform.localScale = Vector3.Lerp(transform.localScale, targetScale + Vector3.one * (pop * DeathPopAmount),
+                deltaTime * DeathScaleLerp);
+            transform.localRotation = Quaternion.Lerp(transform.localRotation, Quaternion.Euler(0f, 0f, DeathRollAngle),
+                deltaTime * DeathBodyLerp);
+            _head.localScale = Vector3.Lerp(_head.localScale, _headBaseScale * DeathPartShrink, deltaTime * DeathBodyLerp);
+            _faceRoot.localScale = Vector3.Lerp(_faceRoot.localScale, Vector3.one * DeathPartShrink, deltaTime * DeathBodyLerp);
+            _spikeRoot.localScale = Vector3.Lerp(_spikeRoot.localScale, Vector3.one * DeathSpikeShrink, deltaTime * DeathSpikeLerp);
         }
 
         private Vector3 GetMovementReferencePosition()

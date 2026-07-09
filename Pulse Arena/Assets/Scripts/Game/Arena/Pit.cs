@@ -48,9 +48,7 @@ namespace Game.Arena
             if (body == null)
                 return;
 
-            EnemyController enemy = body.GetComponent<EnemyController>();
-
-            if (enemy != null)
+            if (body.TryGetComponent(out EnemyController enemy))
                 Consume(body, enemy);
         }
 

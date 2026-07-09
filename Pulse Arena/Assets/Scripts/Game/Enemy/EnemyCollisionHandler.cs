@@ -50,7 +50,7 @@ namespace Game.Enemy
 
             Rigidbody collisionBody = collision.rigidbody;
 
-            if (collisionBody != null && collisionBody.GetComponent<PlayerController>() != null)
+            if (collisionBody != null && collisionBody.TryGetComponent<PlayerController>(out _))
                 return;
 
             if (isGroundCollision)
@@ -62,7 +62,7 @@ namespace Game.Enemy
             if (_timers.ImpactDamageCooldown.Remaining > 0f)
                 return;
 
-            bool hitEnemy = collisionBody != null && collisionBody.GetComponent<EnemyController>() != null;
+            bool hitEnemy = collisionBody != null && collisionBody.TryGetComponent<EnemyController>(out _);
 
             if (hitEnemy)
             {

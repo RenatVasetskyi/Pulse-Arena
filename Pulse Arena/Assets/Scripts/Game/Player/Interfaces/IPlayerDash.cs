@@ -6,7 +6,7 @@ namespace Game.Player.Interfaces
 {
     /// <summary>
     /// The dash / dodge feature: a short fixed-direction Rigidbody burst on a cooldown. Owns the dash direction,
-    /// cooldown and trail. The controller grants the dodge i-frames (via <see cref="IPlayerHealth"/>) and drives
+    /// cooldown and trail. The controller grants the dodge i-frames (via <see cref="Game.Common.Interfaces.IActorHealth"/>) and drives
     /// the dash state; this class only knows "how to dash".
     /// </summary>
     public interface IPlayerDash

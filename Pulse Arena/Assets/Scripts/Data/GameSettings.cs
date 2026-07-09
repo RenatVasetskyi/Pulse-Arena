@@ -155,6 +155,7 @@ namespace Data
         public Color DarkColor = new(0.08f, 0.11f, 0.16f, 1f);
         public Color AccentColor = new(1f, 0.78f, 0.24f, 1f);
         public float MoveThreshold = 0.25f;
+        public float MoveAnimationMaxSpeed = 4.5f; // planar speed that maps to full run-blend
         public float BobFrequencyIdle = 2.4f;
         public float BobFrequencyRun = 9f;
         public float BobAmplitudeIdle = 0.025f;
@@ -176,6 +177,7 @@ namespace Data
         public Color PupilColor = new(0.04f, 0.02f, 0.08f, 1f);
         public Color SpikeColor = new(0.12f, 0.08f, 0.22f, 1f);
         public float MoveThreshold = 0.2f;
+        public float MoveAnimationMaxSpeed = 3.8f; // planar speed that maps to full run-blend
         public float WobbleFrequencyIdle = 2.6f;
         public float WobbleFrequencyRun = 8.5f;
         public float SquashAmountIdle = 0.025f;

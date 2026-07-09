@@ -1,16 +1,19 @@
 using System;
-using Game.Player.Interfaces;
+using Game.Common.Interfaces;
 using UnityEngine;
 
-namespace Game.Player
+namespace Game.Common
 {
     /// <summary>
-    ///     Owns only the player's hit points + invulnerability window (post-hit i-frames and dash dodge frames).
-    ///     Pure C# — no Rigidbody, no MonoBehaviour — so the rules are unit-testable. Mirrors
-    ///     <see cref="Game.Enemy.EnemyHealth" />; death itself is left to the controller because the player dies from
-    ///     two sources (HP depletion here + ring-out off the arena).
+    ///     Shared hit-point model for both actors — the player and every enemy (replaces the near-identical
+    ///     PlayerHealth + EnemyHealth twins). Pure C# (no Rigidbody, no MonoBehaviour) so the rules are
+    ///     unit-testable in isolation. Invulnerability is opt-in: pass a non-zero <c>hitInvulnerability</c> to
+    ///     <see cref="Initialize" /> (the player's post-hit + dash i-frames); enemies pass 0 and never gain
+    ///     frames. Death is exposed BOTH ways so each owner picks what fits — enemies react to
+    ///     <see cref="Died" />; the player ignores it and drives its own death from <see cref="IsDepleted" />
+    ///     because it also dies from ring-out off the arena.
     /// </summary>
-    public class PlayerHealth : IPlayerHealth
+    public class ActorHealth : IActorHealth
     {
         private int _current;
         private float _hitInvulnerability;
@@ -18,7 +21,8 @@ namespace Game.Player
         private bool _isDead;
         private int _max;
 
-        public event Action<int, int> Changed;
+        public event Action<int, int> Changed; // (current, max)
+        public event Action Died;
 
         public int Current => _current;
         public bool IsDepleted => _current <= 0;
@@ -30,13 +34,14 @@ namespace Game.Player
             _invulnerabilityTimer = Mathf.Max(_invulnerabilityTimer, seconds);
         }
 
-        public void Initialize(int maxHealth, float hitInvulnerability)
+        public void Initialize(int maxHealth, float hitInvulnerability = 0f)
         {
             _max = Mathf.Max(1, maxHealth);
             _hitInvulnerability = hitInvulnerability;
             _current = _max;
             _invulnerabilityTimer = 0f;
             _isDead = false;
+            Changed?.Invoke(_current, _max);
         }
 
         public void Kill()
@@ -47,6 +52,7 @@ namespace Game.Player
             _current = 0;
             _isDead = true;
             Changed?.Invoke(_current, _max);
+            Died?.Invoke();
         }
 
         public bool TakeDamage(int amount)
@@ -57,6 +63,13 @@ namespace Game.Player
             _current = Mathf.Max(0, _current - Mathf.Max(0, amount));
             _invulnerabilityTimer = _hitInvulnerability;
             Changed?.Invoke(_current, _max);
+
+            if (_current <= 0)
+            {
+                _isDead = true;
+                Died?.Invoke();
+            }
+
             return true;
         }
 

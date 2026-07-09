@@ -15,6 +15,7 @@ namespace Game.Enemy
     {
         private NavMeshAgent _agent;
         private EnemyData _data;
+        private GroundingData _grounding;
         private float _destinationUpdateTimer;
         private Func<float> _moveSpeed;
         private Rigidbody _rigidbody;
@@ -57,13 +58,14 @@ namespace Game.Enemy
         }
 
         public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
-            EnemyData data, Func<float> moveSpeedProvider)
+            EnemyData data, Func<float> moveSpeedProvider, GroundingData grounding)
         {
             _transform = transform;
             _rigidbody = rigidbody;
             _agent = agent;
             _data = data;
             _moveSpeed = moveSpeedProvider;
+            _grounding = grounding;
         }
 
         public void MoveDirectlyToTarget(Transform target)
@@ -176,7 +178,7 @@ namespace Game.Enemy
 
         private bool TryPlaceAgentOnNavMesh()
         {
-            if (!ActorGroundingUtility.TryGetGroundedPosition(_transform, _data.GroundRecoveryProbeDistance,
+            if (!ActorGroundingUtility.TryGetGroundedPosition(_transform, _grounding, _data.GroundRecoveryProbeDistance,
                     0.02f, out Vector3 groundedPosition))
             {
                 return false;

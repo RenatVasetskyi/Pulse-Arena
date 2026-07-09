@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Data;
+using Game.Enemy.Interfaces;
 using UnityEngine;
 
 namespace Game.Enemy
@@ -19,6 +20,7 @@ namespace Game.Enemy
         private EnemyData _data;
         private Vector3 _lastPosition;
         private EnemyController _owner;
+        private IEnemyRegistry _registry;
         private Rigidbody _rigidbody;
         private Transform _transform;
         private Func<EnemyTypeData> _type;
@@ -42,13 +44,14 @@ namespace Game.Enemy
         }
 
         public void Initialize(EnemyController owner, Transform transform, Rigidbody rigidbody,
-            EnemyData data, Func<EnemyTypeData> typeProvider)
+            EnemyData data, Func<EnemyTypeData> typeProvider, IEnemyRegistry registry)
         {
             _owner = owner;
             _transform = transform;
             _rigidbody = rigidbody;
             _data = data;
             _type = typeProvider;
+            _registry = registry;
         }
 
         public void ResetSweepOrigin()
@@ -81,8 +84,9 @@ namespace Game.Enemy
         /// <summary>Collision-based hit. Returns true if it damaged another enemy.</summary>
         public bool TryDamageOnCollision(Collision collision)
         {
-            Rigidbody otherBody = collision.rigidbody;
-            EnemyController other = otherBody != null ? otherBody.GetComponent<EnemyController>() : null;
+            EnemyController other = _registry.TryResolve(collision.rigidbody, out EnemyController resolved)
+                ? resolved
+                : null;
             return TryHit(other);
         }
 
@@ -144,10 +148,11 @@ namespace Game.Enemy
             return damaged;
         }
 
-        private static EnemyController ResolveEnemy(Collider hit)
+        // O(1) map lookup instead of a per-hit GetComponent — this runs for every sweep/overlap collider
+        // every FixedUpdate the enemy is a live projectile.
+        private EnemyController ResolveEnemy(Collider hit)
         {
-            Rigidbody body = hit.attachedRigidbody;
-            return body != null ? body.GetComponent<EnemyController>() : null;
+            return _registry.TryResolve(hit, out EnemyController enemy) ? enemy : null;
         }
 
         private bool TryHit(EnemyController other)

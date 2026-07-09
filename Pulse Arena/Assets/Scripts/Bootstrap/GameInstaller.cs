@@ -33,6 +33,13 @@ namespace Bootstrap
 
         private void BindFactories()
         {
+            // Scene-scoped so enemies (instantiated with the SceneContext container) can inject it and
+            // self-register for O(1) resolution in the impact sweep. A fresh registry per match.
+            Container
+                .Bind<IEnemyRegistry>()
+                .To<EnemyRegistry>()
+                .AsSingle();
+
             Container
                 .Bind<IArenaFactory>()
                 .To<ArenaFactory>()

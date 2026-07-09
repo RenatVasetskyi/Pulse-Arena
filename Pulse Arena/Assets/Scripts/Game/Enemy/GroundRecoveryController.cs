@@ -17,6 +17,7 @@ namespace Game.Enemy
     public sealed class GroundRecoveryController
     {
         private EnemyData _data;
+        private GroundingData _grounding;
         private Rigidbody _rigidbody;
         private EnemyTimers _timers;
         private Transform _transform;
@@ -52,15 +53,17 @@ namespace Game.Enemy
             Vector3 velocity = _rigidbody.linearVelocity;
             _rigidbody.linearVelocity = new Vector3(velocity.x, 0f, velocity.z);
             _rigidbody.angularVelocity = Vector3.zero;
-            ActorGroundingUtility.SnapToGround(_transform, _data.GroundRecoveryProbeDistance);
+            ActorGroundingUtility.SnapToGround(_transform, _grounding, _data.GroundRecoveryProbeDistance);
         }
 
-        public void Initialize(Transform transform, Rigidbody rigidbody, EnemyData data, EnemyTimers timers)
+        public void Initialize(Transform transform, Rigidbody rigidbody, EnemyData data, EnemyTimers timers,
+            GroundingData grounding)
         {
             _transform = transform;
             _rigidbody = rigidbody;
             _data = data;
             _timers = timers;
+            _grounding = grounding;
         }
 
         /// <summary>Arms the ground-contact memory. Old body: "_groundContactTimer = _data.GroundContactMemory".</summary>
@@ -71,7 +74,7 @@ namespace Game.Enemy
 
         private bool TrySnapToPhysicalGround()
         {
-            return ActorGroundingUtility.SnapToGround(_transform, _data.GroundRecoveryProbeDistance);
+            return ActorGroundingUtility.SnapToGround(_transform, _grounding, _data.GroundRecoveryProbeDistance);
         }
     }
 }

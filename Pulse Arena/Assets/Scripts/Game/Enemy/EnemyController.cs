@@ -4,6 +4,7 @@ using Data;
 using System;
 using Game.Common;
 using Game.Common.StateMachine;
+using Game.Enemy.Interfaces;
 using Game.Enemy.States;
 using Game.Player;
 using Game.Visuals;
@@ -36,6 +37,7 @@ namespace Game.Enemy
         private IScoreService _scoreService;
         private IAudioService _audioService;
         private IComboService _comboService;
+        private IEnemyRegistry _registry;
         private Transform _target;
         private PlayerController _playerTarget;
         private readonly HitFlash _hitFlash = new();
@@ -62,7 +64,7 @@ namespace Game.Enemy
         private EnemyRingoutState _ringoutState;
         private Coroutine _deathRoutine;
         private bool _isRingout;
-        private readonly EnemyHealth _health = new();
+        private readonly ActorHealth _health = new();
         private bool _isDead;
         private bool _isInPool;
 
@@ -84,7 +86,7 @@ namespace Game.Enemy
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
-            IComboService comboService, IScorePopupService scorePopups)
+            IComboService comboService, IScorePopupService scorePopups, IEnemyRegistry enemyRegistry)
         {
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
@@ -92,6 +94,7 @@ namespace Game.Enemy
             _audioService = audioService;
             _comboService = comboService;
             _scorePopups = scorePopups;
+            _registry = enemyRegistry;
 
             WireHealth();
             _movement.ConfigureAgent();
@@ -103,7 +106,7 @@ namespace Game.Enemy
         {
             _health.Changed += OnHealthChanged;
             _health.Died += OnHealthDepleted;
-            _health.Reset(_data.MaxHealth);
+            _health.Initialize(_data.MaxHealth);
         }
 
         private void InitializeRingout()
@@ -135,6 +138,7 @@ namespace Game.Enemy
 
         public void PrepareForPool()
         {
+            _registry.Unregister(_rigidbody);
             _hitFlash.Restore();
             StopDeathReturn();
             _stateMachine?.Clear();
@@ -323,9 +327,9 @@ namespace Game.Enemy
 
         private void InitializeCollaborators()
         {
-            _movement.Initialize(transform, _rigidbody, _agent, _data, GetMoveSpeed);
-            _impact.Initialize(this, transform, _rigidbody, _data, () => _typeData);
-            _groundRecovery.Initialize(transform, _rigidbody, _data, _timers);
+            _movement.Initialize(transform, _rigidbody, _agent, _data, GetMoveSpeed, _settings.Grounding);
+            _impact.Initialize(this, transform, _rigidbody, _data, () => _typeData, _registry);
+            _groundRecovery.Initialize(transform, _rigidbody, _data, _timers, _settings.Grounding);
             _collisions.Initialize(this, transform, _rigidbody, _data, _impact, _timers, _groundRecovery);
         }
 
@@ -379,6 +383,10 @@ namespace Game.Enemy
 
         private void OnDestroy()
         {
+            // Covers the non-pooled Destroy path (ReturnToPool with no release action) + scene teardown,
+            // neither of which runs PrepareForPool, so the registry never keeps a dangling entry.
+            _registry?.Unregister(_rigidbody);
+
             if (!_isInPool)
                 Destroyed?.Invoke(this);
         }
@@ -390,9 +398,10 @@ namespace Game.Enemy
             EnsureStateMachine();
             StopDeathReturn();
             ResetSpawnFlags();
+            _registry.Register(_rigidbody, this);   // live for the span it is out of the pool
             ResetCollaboratorsForSpawn();
             transform.localScale = Vector3.one;
-            _health.Reset(GetTypeAdjustedMaxHealth());   // fires Changed → HealthChanged + health bar
+            _health.Initialize(GetTypeAdjustedMaxHealth());   // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
             ResetRigidbodyForSpawn();
         }

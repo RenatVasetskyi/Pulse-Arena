@@ -145,6 +145,7 @@ MonoBehaviour:
     PupilColor: {r: 0.04, g: 0.02, b: 0.08, a: 1}
     SpikeColor: {r: 0.12, g: 0.08, b: 0.22, a: 1}
     MoveThreshold: 0.2
+    MoveAnimationMaxSpeed: 3.8
     WobbleFrequencyIdle: 2.6
     WobbleFrequencyRun: 8.5
     SquashAmountIdle: 0.025

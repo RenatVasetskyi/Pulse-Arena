@@ -1,5 +1,6 @@
 using Data;
 using Game.Combat;
+using Game.Common;
 using UnityEngine;
 
 namespace Game.Visuals
@@ -12,7 +13,18 @@ namespace Game.Visuals
     /// </summary>
     public class PlayerPrimitiveVisual : MonoBehaviour
     {
-        private const float GroundClearance = 0.02f;
+        // Baked animation "feel" constants — the personality of the character, not per-instance tuning
+        // (the designer-facing knobs live in PlayerVisualData). Named so the numbers read intent, not magic.
+        private const float ArmRestZAngle = 22f;         // arms' resting Z, mirrored per side
+        private const float ThrowArmPitch = 95f;         // extra X-swing on the throwing arm mid-throw
+        private const float ThrowArmZKick = 18f;         // extra Z-flare on the throwing arm mid-throw
+        private const float HeadWobbleFrequency = 2.2f;
+        private const float HeadWobbleAngle = 3f;
+        private const float DeathRotationLerpSpeed = 8f;
+        private const float UprightLerpSpeed = 10f;
+
+        private static readonly Vector3 HitSquashScale = new(1.12f, 0.9f, 1.12f);
+
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
         private Transform _body;
@@ -102,61 +114,14 @@ namespace Game.Visuals
         private void FinishSetup()
         {
             _bottomRenderers = GetComponentsInChildren<Renderer>();
-            AlignBottomToCollider();
+            ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
         }
 
-        private void AlignBottomToCollider()
-        {
-            if (transform.parent == null)
-                return;
-
-            CapsuleCollider capsule = transform.parent.GetComponent<CapsuleCollider>();
-
-            if (capsule == null)
-                return;
-
-            if (!TryGetRendererBottom(out float rendererBottom))
-                return;
-
-            float actorBottom = GetCapsuleBottom(capsule);
-            float worldDelta = actorBottom + GroundClearance - rendererBottom;
-            float parentScaleY = Mathf.Max(0.001f, Mathf.Abs(transform.parent.lossyScale.y));
-
-            transform.localPosition += Vector3.up * (worldDelta / parentScaleY);
-        }
-
-        private bool TryGetRendererBottom(out float bottom)
-        {
-            Renderer[] renderers = _bottomRenderers ?? GetComponentsInChildren<Renderer>();
-            bottom = float.MaxValue;
-            bool hasRenderer = false;
-
-            foreach (Renderer visualRenderer in renderers)
-            {
-                if (visualRenderer == null)
-                    continue;
-
-                bottom = Mathf.Min(bottom, visualRenderer.bounds.min.y);
-                hasRenderer = true;
-            }
-
-            return hasRenderer;
-        }
-
-        private static float GetCapsuleBottom(CapsuleCollider capsule)
-        {
-            Transform capsuleTransform = capsule.transform;
-            float scaledHeight = capsule.height * Mathf.Abs(capsuleTransform.lossyScale.y);
-            float scaledCenterY = capsule.center.y * capsuleTransform.lossyScale.y;
-
-            return capsuleTransform.position.y + scaledCenterY - scaledHeight * 0.5f;
-        }
-
         private void Animate(float deltaTime)
         {
-            float moveProgress = Mathf.InverseLerp(0f, 4.5f, GetPlanarSpeed());
+            float moveProgress = Mathf.InverseLerp(0f, _visualData.MoveAnimationMaxSpeed, GetPlanarSpeed());
 
             ApplyIdleBob(moveProgress);
             ApplyHitSquash();
@@ -180,7 +145,7 @@ namespace Game.Visuals
                 return;
 
             float hitProgress = _hitTimer / Mathf.Max(0.01f, _visualData.HitSquashDuration);
-            transform.localScale = new Vector3(1.12f, 0.9f, 1.12f) * Mathf.Sin(hitProgress * Mathf.PI) +
+            transform.localScale = HitSquashScale * Mathf.Sin(hitProgress * Mathf.PI) +
                                    _baseScale * (1f - Mathf.Sin(hitProgress * Mathf.PI));
         }
 
@@ -188,27 +153,28 @@ namespace Game.Visuals
         {
             if (_isDead)
                 transform.localRotation = Quaternion.Lerp(transform.localRotation,
-                    Quaternion.Euler(0f, 0f, _visualData.DeathRollAngle), deltaTime * 8f);
+                    Quaternion.Euler(0f, 0f, _visualData.DeathRollAngle), deltaTime * DeathRotationLerpSpeed);
             else
                 transform.localRotation =
-                    Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * 10f);
+                    Quaternion.Lerp(transform.localRotation, Quaternion.identity, deltaTime * UprightLerpSpeed);
         }
 
         private void AnimateArms(float moveProgress)
         {
             float armSwing = Mathf.Sin(Time.time * _visualData.ArmSwingFrequency) * _visualData.ArmSwingAngle *
                              moveProgress;
-            _leftArm.localRotation = Quaternion.Euler(armSwing, 0f, -22f);
+            _leftArm.localRotation = Quaternion.Euler(armSwing, 0f, -ArmRestZAngle);
 
             float throwProgress = _throwTimer > 0f
                 ? Mathf.Sin((_throwTimer / Mathf.Max(0.01f, _visualData.ThrowSwingDuration)) * Mathf.PI)
                 : 0f;
-            _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * 95f, 0f, 22f + throwProgress * 18f);
+            _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * ThrowArmPitch, 0f,
+                ArmRestZAngle + throwProgress * ThrowArmZKick);
         }
 
         private void AnimateHeadAndHat()
         {
-            _head.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * 2.2f) * 3f, 0f, 0f);
+            _head.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * HeadWobbleFrequency) * HeadWobbleAngle, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
         }
 

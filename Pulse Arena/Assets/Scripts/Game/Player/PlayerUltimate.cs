@@ -59,9 +59,10 @@ namespace Game.Player
 
         private static EnemyController ResolveEnemy(Collider hit)
         {
-            return hit.attachedRigidbody != null
-                ? hit.attachedRigidbody.GetComponent<EnemyController>()
-                : hit.GetComponent<EnemyController>();
+            if (hit.attachedRigidbody != null)
+                return hit.attachedRigidbody.TryGetComponent(out EnemyController enemy) ? enemy : null;
+
+            return hit.TryGetComponent(out EnemyController fallback) ? fallback : null;
         }
 
         private void LaunchEnemy(EnemyController enemy, SuperData data)
