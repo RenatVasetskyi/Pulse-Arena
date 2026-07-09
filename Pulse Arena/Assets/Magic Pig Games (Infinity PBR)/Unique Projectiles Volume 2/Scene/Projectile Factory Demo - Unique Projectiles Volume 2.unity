@@ -408,8 +408,8 @@ MonoBehaviour:
   m_text: Want cooler particles? Check out the Asset Store particle package integrations!
     Links in the description of Projectile Factory on Asset Store!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2268,8 +2268,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Points
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2444,8 +2444,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Launched: 123'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3372,8 +3372,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: The Active Projectile Here
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3461,8 +3461,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Toggle Target Motion
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3722,8 +3722,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Toggle Camera Motion
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3811,8 +3811,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Always Show Trajectory: OFF'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4194,8 +4194,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Target Speed
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4422,8 +4422,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Next Camera Spot
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
+  m_sharedMaterial: {fileID: -1098369356168295530, guid: ab90c6ca0b00d42d5af3d235688a4143, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

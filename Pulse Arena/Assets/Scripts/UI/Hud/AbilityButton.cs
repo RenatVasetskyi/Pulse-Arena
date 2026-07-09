@@ -6,9 +6,10 @@ namespace UI.Hud
 {
     /// <summary>
     ///     On-screen ability button (dash / ultimate) for touch. A tap fires the ability (frame-accurate via
-    ///     Time.frameCount); a radial Fill image shows cooldown/charge and the button dims until it's ready.
-    ///     The press is always reported — the ability itself decides whether it can fire — so a not-ready tap
-    ///     is simply a no-op. Assign the radial Fill image and the CanvasGroup (for dimming).
+    ///     Time.frameCount); a radial Fill image is a dark "cooldown shade" that DEPLETES as the button charges
+    ///     (empty = fully shaded, ready = clear), so the ornate button art shows through when ready. The press is
+    ///     always reported — the ability itself decides whether it can fire — so a not-ready tap is simply a
+    ///     no-op. Assign the radial Fill image and the CanvasGroup (for dimming).
     /// </summary>
     public class AbilityButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
@@ -52,7 +53,7 @@ namespace UI.Hud
             charge01 = Mathf.Clamp01(charge01);
 
             if (_fill != null)
-                _fill.fillAmount = charge01;
+                _fill.fillAmount = 1f - charge01; // dark shade recedes as it charges → art shows when ready
 
             if (_canvasGroup != null)
                 _canvasGroup.alpha = charge01 >= 0.999f ? 1f : _chargingAlpha;

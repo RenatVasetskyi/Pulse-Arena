@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 0af5f3d54331f431ca4b10a2622bf545
+guid: f283fd34864fe4712b84092ee888aa3f
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,7 +9,7 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - Google Sans
+  - Goblin One
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

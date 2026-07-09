@@ -23,7 +23,6 @@ namespace UI.Hud
         [SerializeField] private HudToastView _toast;
         [SerializeField] private HudTensionView _tension;
         [SerializeField] private HudComboView _combo;
-        [SerializeField] private HudSuperMeterView _superMeter;
         [SerializeField] private HudDamageFlash _damageFlash;
 
         [Header("Touch controls (mobile)")] [SerializeField]
@@ -112,17 +111,10 @@ namespace UI.Hud
 
         public void SetSuperCharge(float charge01)
         {
-            if (_superMeter != null)
-                _superMeter.SetCharge(charge01);
-
+            // Ultimate charge is shown on the ultimate button's radial fill (the standalone super-meter
+            // slider was removed as redundant).
             if (_ultimateButton != null)
                 _ultimateButton.SetCharge(charge01);
-        }
-
-        public void SetSuperReady(bool ready)
-        {
-            if (_superMeter != null)
-                _superMeter.SetReady(ready);
         }
 
         public void SetWave(int current, int total)

@@ -63,7 +63,6 @@ namespace Game.Scene
 
             _comboService.ComboChanged += OnComboChanged;
             _superMeterService.ChargeChanged += OnSuperChargeChanged;
-            _superMeterService.Ready += OnSuperReady;
             _enemySpawner.WaveChanged += OnWaveChanged;
             _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
 
@@ -74,7 +73,6 @@ namespace Game.Scene
         {
             _comboService.ComboChanged -= OnComboChanged;
             _superMeterService.ChargeChanged -= OnSuperChargeChanged;
-            _superMeterService.Ready -= OnSuperReady;
             _enemySpawner.WaveChanged -= OnWaveChanged;
             _pickupSpawner.RarePickupSpawned -= OnRarePickupSpawned;
             _inputService.SetTouchInput(null);
@@ -85,15 +83,7 @@ namespace Game.Scene
 
         private void OnComboChanged(int combo) => _hud.SetCombo(combo);
 
-        private void OnSuperChargeChanged(float charge01)
-        {
-            _hud.SetSuperCharge(charge01);
-
-            if (charge01 < 1f)
-                _hud.SetSuperReady(false);
-        }
-
-        private void OnSuperReady() => _hud.SetSuperReady(true);
+        private void OnSuperChargeChanged(float charge01) => _hud.SetSuperCharge(charge01);
 
         private void OnWaveChanged(int current, int total) => _hud.SetWave(current, total);
 
