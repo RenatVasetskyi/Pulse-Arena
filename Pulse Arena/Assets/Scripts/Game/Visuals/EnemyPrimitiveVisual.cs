@@ -61,6 +61,7 @@ namespace Game.Visuals
         private bool _paused;
         private Transform _rightEye;
         private Rigidbody _rigidbody;
+        private Material _skinSharedMaterial;
         private float _spawnScale = 1f;
         private Tween _spawnTween;
         private Transform _spikeRoot;
@@ -242,7 +243,7 @@ namespace Game.Visuals
         {
             CacheChildTransforms();
             InstanceTintMaterials();
-            LinkHeadMaterialToBody();
+            LinkSkinMaterialToBody();
         }
 
         private void CacheChildTransforms()
@@ -258,21 +259,33 @@ namespace Game.Visuals
 
         private void InstanceTintMaterials()
         {
+            _skinSharedMaterial = GetSharedMaterial(_body);
             _bodyMaterial = GetInstancedMaterial(_body);
             _bellyMaterial = GetInstancedMaterial(_belly);
         }
 
-        // Body and head share one material asset in the prefab; point the head at the body's
-        // material instance so an enemy-type tint recolours both together.
-        private void LinkHeadMaterialToBody()
+        // The head plus every skin part (ears, nose, limbs, feet…) share the body's one skin material asset in
+        // the prefab; point them all at the single body material instance so an enemy-type tint recolours the
+        // whole creature together, not just the torso.
+        private void LinkSkinMaterialToBody()
         {
-            if (_head == null || _bodyMaterial == null)
+            if (_bodyMaterial == null || _skinSharedMaterial == null)
                 return;
 
-            Renderer headRenderer = _head.GetComponent<Renderer>();
+            foreach (Renderer partRenderer in GetComponentsInChildren<Renderer>(true))
+            {
+                if (partRenderer.sharedMaterial == _skinSharedMaterial)
+                    partRenderer.sharedMaterial = _bodyMaterial;
+            }
+        }
 
-            if (headRenderer != null)
-                headRenderer.sharedMaterial = _bodyMaterial;
+        private static Material GetSharedMaterial(Transform part)
+        {
+            if (part == null)
+                return null;
+
+            Renderer partRenderer = part.GetComponent<Renderer>();
+            return partRenderer != null ? partRenderer.sharedMaterial : null;
         }
 
         private static Material GetInstancedMaterial(Transform part)
