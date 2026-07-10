@@ -22,6 +22,16 @@ namespace Game.Enemy
         private EnemyTimers _timers;
         private Transform _transform;
 
+        public void Initialize(Transform transform, Rigidbody rigidbody, EnemyData data, EnemyTimers timers,
+            GroundingData grounding)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _data = data;
+            _timers = timers;
+            _grounding = grounding;
+        }
+
         /// <summary>
         ///     True once the enemy has touched ground recently AND can snap onto it. Old CanFinishPhysicsRecovery:
         ///     a null rigidbody finishes immediately, no recent ground contact never finishes, otherwise it must
@@ -54,16 +64,6 @@ namespace Game.Enemy
             _rigidbody.linearVelocity = new Vector3(velocity.x, 0f, velocity.z);
             _rigidbody.angularVelocity = Vector3.zero;
             ActorGroundingUtility.SnapToGround(_transform, _grounding, _data.GroundRecoveryProbeDistance);
-        }
-
-        public void Initialize(Transform transform, Rigidbody rigidbody, EnemyData data, EnemyTimers timers,
-            GroundingData grounding)
-        {
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _data = data;
-            _timers = timers;
-            _grounding = grounding;
         }
 
         /// <summary>Arms the ground-contact memory. Old body: "_groundContactTimer = _data.GroundContactMemory".</summary>

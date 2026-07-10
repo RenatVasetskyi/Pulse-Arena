@@ -20,7 +20,7 @@ namespace Game.Player
     ///     dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
     ///     controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
     /// </summary>
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IPausable
     {
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
@@ -29,6 +29,8 @@ namespace Game.Player
         private readonly IActorHealth _health = new ActorHealth();
         private readonly HitFlash _hitFlash = new();
         private readonly IPlayerMovement _movement = new PlayerMovement();
+        private Vector3 _cachedAngularVelocity;
+        private Vector3 _cachedLinearVelocity;
         private PlayerDashState _dashState;
         private PlayerData _data;
         private PlayerDeadState _deadState;
@@ -36,6 +38,8 @@ namespace Game.Player
         private IInputService _inputService;
         private bool _isDead;
         private PlayerMoveState _moveState;
+        private bool _paused;
+        private IPauseService _pauseService;
         private GameSettings _settings;
         private ActorStateMachine _stateMachine;
 
@@ -51,6 +55,56 @@ namespace Game.Player
         /// <summary>Dash readiness for the HUD: 0 just after a dash, filling to 1 when the cooldown is up.</summary>
         public float DashCharge01 => _dash.Charge01;
 
+        [Inject]
+        public void Construct(IInputService inputService, GameSettings gameSettings, IPauseService pauseService)
+        {
+            _inputService = inputService;
+            _settings = gameSettings;
+            _data = gameSettings.PlayerData;
+            _pauseService = pauseService;
+        }
+
+        /// <summary>
+        ///     Mechanical pause: freeze the body (cache velocities, go kinematic so PhysX stops integrating
+        ///     gravity/velocity) and stop the procedural visual. The FSM + all delta-timers freeze for free
+        ///     because Update/FixedUpdate early-return, so Resume continues the exact same state + countdowns.
+        /// </summary>
+        public void Pause()
+        {
+            if (_paused)
+                return;
+
+            _paused = true;
+
+            if (_rigidbody != null)
+            {
+                _cachedLinearVelocity = _rigidbody.linearVelocity;
+                _cachedAngularVelocity = _rigidbody.angularVelocity;
+                _rigidbody.isKinematic = true;
+            }
+
+            _visual?.SetPaused(true);
+        }
+
+        public void Resume()
+        {
+            if (!_paused)
+                return;
+
+            _paused = false;
+
+            // Restore the body BEFORE un-gating the visual — the visual's move-blend reads linearVelocity.
+            if (_rigidbody != null)
+            {
+                _rigidbody.isKinematic = false;
+                _rigidbody.linearVelocity = _cachedLinearVelocity;
+                _rigidbody.angularVelocity = _cachedAngularVelocity;
+                _rigidbody.WakeUp();
+            }
+
+            _visual?.SetPaused(false);
+        }
+
         private void Awake()
         {
             if (_rigidbody == null)
@@ -65,11 +119,16 @@ namespace Game.Player
             _dash.Initialize(transform, _rigidbody, _data, _inputService, _dashTrail);
             _health.Initialize(_data.MaxHealth, _data.HitInvulnerability);
             _health.Changed += OnHealthChanged;
+            _pauseService?.Register(this);
         }
 
         private void Update()
         {
             EnsureStateMachine();
+
+            if (_paused)
+                return;
+
             _health.Tick(Time.deltaTime);
             _dash.Tick(Time.deltaTime);
             TryDash();
@@ -81,6 +140,10 @@ namespace Game.Player
         private void FixedUpdate()
         {
             EnsureStateMachine();
+
+            if (_paused)
+                return;
+
             _stateMachine.FixedTick();
 
             // The Rigidbody leaves Y rotation free (so RotateToInput can turn the player via the
@@ -93,14 +156,7 @@ namespace Game.Player
         private void OnDestroy()
         {
             _health.Changed -= OnHealthChanged;
-        }
-
-        [Inject]
-        public void Construct(IInputService inputService, GameSettings gameSettings)
-        {
-            _inputService = inputService;
-            _settings = gameSettings;
-            _data = gameSettings.PlayerData;
+            _pauseService?.Unregister(this);
         }
 
         public void Kill()

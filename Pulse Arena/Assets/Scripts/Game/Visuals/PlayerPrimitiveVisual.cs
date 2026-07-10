@@ -15,9 +15,9 @@ namespace Game.Visuals
     {
         // Baked animation "feel" constants — the personality of the character, not per-instance tuning
         // (the designer-facing knobs live in PlayerVisualData). Named so the numbers read intent, not magic.
-        private const float ArmRestZAngle = 22f;         // arms' resting Z, mirrored per side
-        private const float ThrowArmPitch = 95f;         // extra X-swing on the throwing arm mid-throw
-        private const float ThrowArmZKick = 18f;         // extra Z-flare on the throwing arm mid-throw
+        private const float ArmRestZAngle = 22f; // arms' resting Z, mirrored per side
+        private const float ThrowArmPitch = 95f; // extra X-swing on the throwing arm mid-throw
+        private const float ThrowArmZKick = 18f; // extra Z-flare on the throwing arm mid-throw
         private const float HeadWobbleFrequency = 2.2f;
         private const float HeadWobbleAngle = 3f;
         private const float DeathRotationLerpSpeed = 8f;
@@ -33,6 +33,7 @@ namespace Game.Visuals
         private Transform _head;
         private float _hitTimer;
         private bool _isDead;
+        private bool _paused;
         private Transform _lassoOrigin;
         private Transform _leftArm;
         private Transform _rightArm;
@@ -43,21 +44,6 @@ namespace Game.Visuals
         private PlayerVisualData _visualData = new();
 
         public Transform LassoOrigin => _lassoOrigin;
-
-        private void Update()
-        {
-            float deltaTime = Time.deltaTime;
-            _throwTimer = Mathf.Max(0f, _throwTimer - deltaTime);
-            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
-
-            Animate(deltaTime);
-        }
-
-        private void OnDestroy()
-        {
-            if (_slingshot != null)
-                _slingshot.LassoThrown -= PlayThrow;
-        }
 
         public void Initialize(Rigidbody rigidbody, EnemySlingshot slingshot, PlayerVisualData visualData = null)
         {
@@ -75,6 +61,30 @@ namespace Game.Visuals
                 _slingshot.LassoThrown += PlayThrow;
 
             EnsureParts();
+        }
+
+        private void Update()
+        {
+            if (_paused)
+                return;
+
+            float deltaTime = Time.deltaTime;
+            _throwTimer = Mathf.Max(0f, _throwTimer - deltaTime);
+            _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
+
+            Animate(deltaTime);
+        }
+
+        /// <summary>Mechanical pause: freeze the procedural animation on the current frame (driven by the controller).</summary>
+        public void SetPaused(bool value)
+        {
+            _paused = value;
+        }
+
+        private void OnDestroy()
+        {
+            if (_slingshot != null)
+                _slingshot.LassoThrown -= PlayThrow;
         }
 
         public void PlayDeath()
@@ -174,7 +184,8 @@ namespace Game.Visuals
 
         private void AnimateHeadAndHat()
         {
-            _head.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * HeadWobbleFrequency) * HeadWobbleAngle, 0f, 0f);
+            _head.localRotation =
+                Quaternion.Euler(Mathf.Sin(Time.time * HeadWobbleFrequency) * HeadWobbleAngle, 0f, 0f);
             _hatRoot.localRotation = _head.localRotation;
         }
 

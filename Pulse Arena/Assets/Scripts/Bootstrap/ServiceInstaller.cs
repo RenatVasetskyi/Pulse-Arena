@@ -26,7 +26,19 @@ namespace Bootstrap
             BindInputService();
             BindScoreService();
             BindSettingsService();
+            BindPauseService();
             BindAudioService();
+        }
+
+        private void BindPauseService()
+        {
+            // ProjectContext-scoped so the global AudioService AND per-scene gameplay objects (player,
+            // enemies, spawners) can all register with the same mechanical pause. Scene pausables unregister
+            // on teardown/pool-return; GameWorldBuilder.Teardown calls Clear() as a safety net.
+            Container
+                .Bind<IPauseService>()
+                .To<PauseService>()
+                .AsSingle();
         }
 
         private void BindGameSettings()
@@ -140,7 +152,8 @@ namespace Bootstrap
             AudioService audioService = new GameObject("AudioService")
                 .AddComponent<AudioService>();
             audioService.transform.SetParent(transform);
-            audioService.Initialize(_gameSettings.AudioData, Container.Resolve<ISettingsService>());
+            audioService.Initialize(_gameSettings.AudioData, Container.Resolve<ISettingsService>(),
+                Container.Resolve<IPauseService>());
 
             Container
                 .Bind<IAudioService>()

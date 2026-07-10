@@ -30,6 +30,20 @@ namespace Game.Enemy
         private Func<EnemyTypeData> _type;
         private VfxData _vfx;
 
+        public void Initialize(Transform transform, EnemyData data, VfxData vfx,
+            IScoreService scoreService, IComboService comboService, IScorePopupService scorePopups,
+            IAudioService audioService, Func<EnemyTypeData> typeProvider)
+        {
+            _transform = transform;
+            _data = data;
+            _vfx = vfx;
+            _scoreService = scoreService;
+            _comboService = comboService;
+            _scorePopups = scorePopups;
+            _audioService = audioService;
+            _type = typeProvider;
+        }
+
         // Registers the kill with the combo chain and awards score × multiplier ONCE (guarded so an enemy that
         // dies by damage AND rings out in the same physics step can't double-score). Returns the awarded amount
         // so callers don't recompute it; the current multiplier comes back via out (for the ringout SFX pitch).
@@ -46,20 +60,6 @@ namespace Game.Enemy
             int awarded = GetScoreReward() * multiplier;
             _scoreService.Add(awarded);
             return awarded;
-        }
-
-        public void Initialize(Transform transform, EnemyData data, VfxData vfx,
-            IScoreService scoreService, IComboService comboService, IScorePopupService scorePopups,
-            IAudioService audioService, Func<EnemyTypeData> typeProvider)
-        {
-            _transform = transform;
-            _data = data;
-            _vfx = vfx;
-            _scoreService = scoreService;
-            _comboService = comboService;
-            _scorePopups = scorePopups;
-            _audioService = audioService;
-            _type = typeProvider;
         }
 
         /// <summary>Clears the once-only kill guard for a fresh spawn / pool reuse.</summary>
@@ -94,6 +94,19 @@ namespace Game.Enemy
             EnsureRingoutBurst();
             _ringoutBurst.transform.position = position;
             _ringoutBurst.Emit(_vfx.RingoutBurstCount);
+        }
+
+        /// <summary>Mechanical pause: freeze a mid-flight ringout burst in place (particles ignore a script gate).</summary>
+        public void PauseEffect()
+        {
+            if (_ringoutBurst != null)
+                _ringoutBurst.Pause(true);
+        }
+
+        public void ResumeEffect()
+        {
+            if (_ringoutBurst != null)
+                _ringoutBurst.Play(true);
         }
 
         private void EnsureRingoutBurst()

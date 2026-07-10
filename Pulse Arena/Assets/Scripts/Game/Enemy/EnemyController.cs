@@ -24,10 +24,17 @@ namespace Game.Enemy
     ///     coroutines need the MonoBehaviour. Each lifecycle step (spawn reset / pool teardown / wiring) is a
     ///     small single-purpose method the coordinator calls in order.
     /// </summary>
-    public class EnemyController : MonoBehaviour
+    public class EnemyController : MonoBehaviour, IPausable
     {
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
+        private Vector3 _cachedAngularVelocity;
+        private bool _cachedIsKinematic;
+        private Vector3 _cachedLinearVelocity;
+        private bool _cachedUseGravity;
+        private bool _deathReturnPending;
+        private bool _paused;
+        private IPauseService _pauseService;
         private readonly EnemyCollisionHandler _collisions = new();
         private readonly GroundRecoveryController _groundRecovery = new();
         private readonly ActorHealth _health = new();
@@ -85,7 +92,8 @@ namespace Game.Enemy
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
-            IComboService comboService, IScorePopupService scorePopups, IEnemyRegistry enemyRegistry)
+            IComboService comboService, IScorePopupService scorePopups, IEnemyRegistry enemyRegistry,
+            IPauseService pauseService)
         {
             _settings = gameSettings;
             _data = gameSettings.EnemyData;
@@ -94,6 +102,7 @@ namespace Game.Enemy
             _comboService = comboService;
             _scorePopups = scorePopups;
             _registry = enemyRegistry;
+            _pauseService = pauseService;
 
             WireHealth();
             _movement.ConfigureAgent();
@@ -124,12 +133,18 @@ namespace Game.Enemy
 
         private void Update()
         {
+            if (_paused)
+                return;
+
             _hitFlash.Tick(Time.deltaTime);
         }
 
         private void FixedUpdate()
         {
             EnsureStateMachine();
+
+            if (_paused)
+                return;
 
             if (!_isDead && !_isInPool)
                 HandleOutOfBounds();
@@ -149,9 +164,71 @@ namespace Game.Enemy
             // Covers the non-pooled Destroy path (ReturnToPool with no release action) + scene teardown,
             // neither of which runs PrepareForPool, so the registry never keeps a dangling entry.
             _registry?.Unregister(_rigidbody);
+            _pauseService?.Unregister(this);
 
             if (!_isInPool)
                 Destroyed?.Invoke(this);
+        }
+
+        /// <summary>
+        ///     Mechanical pause: freeze the body (cache velocity + gravity/kinematic, then zero + kinematic so
+        ///     PhysX stops), stop the agent, freeze the visual + its spawn tween, and suspend the death-return
+        ///     coroutine (WaitForSeconds keeps counting under a mechanical pause). FSM + timers freeze because
+        ///     FixedUpdate early-returns, so Resume continues the exact state at the exact countdowns.
+        /// </summary>
+        public void Pause()
+        {
+            if (_paused)
+                return;
+
+            _paused = true;
+
+            if (_rigidbody != null)
+            {
+                _cachedLinearVelocity = _rigidbody.linearVelocity;
+                _cachedAngularVelocity = _rigidbody.angularVelocity;
+                _cachedIsKinematic = _rigidbody.isKinematic;
+                _cachedUseGravity = _rigidbody.useGravity;
+                _rigidbody.linearVelocity = Vector3.zero;
+                _rigidbody.angularVelocity = Vector3.zero;
+                _rigidbody.isKinematic = true;
+            }
+
+            _movement.Pause();
+            _visual?.SetPaused(true);
+            _ringout.PauseEffect();
+
+            _deathReturnPending = _deathRoutine != null;
+            StopDeathReturn();
+        }
+
+        public void Resume()
+        {
+            if (!_paused)
+                return;
+
+            _paused = false;
+
+            if (_deathReturnPending)
+            {
+                _deathReturnPending = false;
+                StartDeathReturn();
+            }
+
+            _visual?.SetPaused(false);
+            _ringout.ResumeEffect();
+            _movement.Resume();
+
+            if (_rigidbody != null)
+            {
+                _rigidbody.isKinematic = _cachedIsKinematic;
+                _rigidbody.useGravity = _cachedUseGravity;
+                _rigidbody.linearVelocity = _cachedLinearVelocity;
+                _rigidbody.angularVelocity = _cachedAngularVelocity;
+
+                if (!_rigidbody.isKinematic)
+                    _rigidbody.WakeUp();
+            }
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -231,6 +308,7 @@ namespace Game.Enemy
         public void PrepareForPool()
         {
             _registry.Unregister(_rigidbody);
+            _pauseService.Unregister(this); // no longer pausable once back in the pool
             _hitFlash.Restore();
             StopDeathReturn();
             _stateMachine?.Clear();
@@ -398,6 +476,7 @@ namespace Game.Enemy
             StopDeathReturn();
             ResetSpawnFlags();
             _registry.Register(_rigidbody, this); // live for the span it is out of the pool
+            _pauseService.Register(this);          // pausable only while out of the pool
             ResetCollaboratorsForSpawn();
             transform.localScale = Vector3.one;
             _health.Initialize(GetTypeAdjustedMaxHealth()); // fires Changed → HealthChanged + health bar
@@ -410,6 +489,8 @@ namespace Game.Enemy
             _isInPool = false;
             _isDead = false;
             _isRingout = false;
+            _paused = false; // a pooled enemy reused while the flag lingered would spawn frozen
+            _deathReturnPending = false;
             ClearContextFlags();
         }
 

@@ -20,6 +20,14 @@ namespace Game.Player
         private ISuperMeterService _superMeter;
         public event Action Activated;
 
+        [Inject]
+        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings)
+        {
+            _superMeter = superMeter;
+            _input = input;
+            _settings = settings;
+        }
+
         private void Update()
         {
             if (!_input.IsUltimatePressedThisFrame || !_superMeter.IsFull)
@@ -27,14 +35,6 @@ namespace Game.Player
 
             if (_superMeter.TryConsume())
                 Unleash();
-        }
-
-        [Inject]
-        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings)
-        {
-            _superMeter = superMeter;
-            _input = input;
-            _settings = settings;
         }
 
         private void Unleash()

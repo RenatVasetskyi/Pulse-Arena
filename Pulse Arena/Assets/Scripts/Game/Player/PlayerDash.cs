@@ -25,6 +25,17 @@ namespace Game.Player
 
         public bool IsReady => _cooldownTimer <= 0f;
 
+        public void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data,
+            IInputService input, TrailRenderer trail)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _data = data;
+            _input = input;
+            _trail = trail;
+            SetTrail(false);
+        }
+
         public void ApplyDashVelocity()
         {
             _rigidbody.linearVelocity = new Vector3(
@@ -49,17 +60,6 @@ namespace Game.Player
         {
             if (_direction.sqrMagnitude > 0.01f)
                 _transform.rotation = Quaternion.LookRotation(_direction);
-        }
-
-        public void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data,
-            IInputService input, TrailRenderer trail)
-        {
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _data = data;
-            _input = input;
-            _trail = trail;
-            SetTrail(false);
         }
 
         public void SetTrail(bool active)

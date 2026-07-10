@@ -6,12 +6,14 @@ using UnityEngine;
 namespace Game.Scene
 {
     /// <summary>
-    ///     Drives the in-game pause: freezes time, mutes gameplay input, shows the pause panel. Buttons are
-    ///     wired to resume, open settings, restart and quit-to-menu (the last two supplied as callbacks).
+    ///     Drives the in-game pause: mechanically freezes gameplay via <see cref="IPauseService" /> (each system
+    ///     caches + restores its own state — NOT Time.timeScale=0), mutes gameplay input, and shows the pause
+    ///     panel. Buttons are wired to resume, open settings, restart and quit-to-menu (the last two as callbacks).
     /// </summary>
     public class PauseController
     {
         private readonly IInputService _inputService;
+        private readonly IPauseService _pauseService;
         private readonly Action _quitToMenu;
         private readonly Action _restart;
         private readonly ISettingsController _settingsController;
@@ -21,12 +23,14 @@ namespace Game.Scene
         private bool _paused;
 
         public PauseController(PausePanelView view, IInputService inputService,
-            ISettingsController settingsController, ISlowMoService slowMoService, Action restart, Action quitToMenu)
+            ISettingsController settingsController, ISlowMoService slowMoService, IPauseService pauseService,
+            Action restart, Action quitToMenu)
         {
             _view = view;
             _inputService = inputService;
             _settingsController = settingsController;
             _slowMoService = slowMoService;
+            _pauseService = pauseService;
             _restart = restart;
             _quitToMenu = quitToMenu;
 
@@ -54,8 +58,8 @@ namespace Game.Scene
                 return;
 
             _paused = true;
-            _slowMoService?.Stop();
-            Time.timeScale = 0f;
+            _slowMoService?.Pause();  // suspend an in-progress bullet-time (do NOT lose it)
+            _pauseService.Pause();    // mechanically freeze every gameplay system at its current state
             _inputService.Disable();
             _view.Show();
         }
@@ -66,7 +70,8 @@ namespace Game.Scene
                 return;
 
             _paused = false;
-            Time.timeScale = 1f;
+            _pauseService.Unpause();  // continue every system from exactly where it froze
+            _slowMoService?.Resume(); // continue any suspended bullet-time
             _inputService.Enable();
             _view.Close();
         }

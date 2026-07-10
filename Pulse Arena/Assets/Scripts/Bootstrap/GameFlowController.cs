@@ -26,6 +26,7 @@ namespace Game.Scene
         private readonly IEnemySpawner _enemySpawner;
         private readonly GameSettings _gameSettings;
         private readonly IInputService _inputService;
+        private readonly IPauseService _pauseService;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
         private readonly IScoreService _scoreService;
@@ -42,7 +43,7 @@ namespace Game.Scene
         public GameFlowController(IInputService inputService, IScoreService scoreService,
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
-            IPitSpawner pitSpawner, GameSettings gameSettings)
+            IPitSpawner pitSpawner, IPauseService pauseService, GameSettings gameSettings)
         {
             _inputService = inputService;
             _scoreService = scoreService;
@@ -53,6 +54,7 @@ namespace Game.Scene
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _pitSpawner = pitSpawner;
+            _pauseService = pauseService;
             _gameSettings = gameSettings;
         }
 
@@ -112,6 +114,7 @@ namespace Game.Scene
                 return;
 
             _isGameOver = true;
+            _pauseService.Unpause(); // if somehow ended while paused, restore state before the game-over freeze
             _slowMoService.Stop();
             _inputService.Disable();
             _enemySpawner.StopSpawn();
@@ -127,7 +130,7 @@ namespace Game.Scene
 
             if (_pausePanel != null)
                 _pauseController = new PauseController(_pausePanel, _inputService, _settingsController,
-                    _slowMoService, RestartScene, QuitToMenu);
+                    _slowMoService, _pauseService, RestartScene, QuitToMenu);
 
             if (_gameHud != null)
                 _gameHud.PauseRequested += OnPauseRequested;
@@ -143,6 +146,7 @@ namespace Game.Scene
 
         private void QuitToMenu()
         {
+            _pauseService.Unpause(); // never carry a paused state across a scene change (next scene must be live)
             Time.timeScale = 1f;
             _stateMachine.Enter<LoadMainMenuState>();
         }
@@ -150,6 +154,7 @@ namespace Game.Scene
         private void RestartScene()
         {
             _audioService.PlaySfx(GameSfx.UiClick);
+            _pauseService.Unpause();
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }

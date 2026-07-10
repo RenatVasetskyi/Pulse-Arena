@@ -9,12 +9,14 @@ using Random = System.Random;
 
 namespace Game.Spawning
 {
-    public class PickupSpawner : IPickupSpawner
+    public class PickupSpawner : IPickupSpawner, IPausable
     {
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly GameSettings _gameSettings;
+        private readonly IPauseService _pauseService;
         private readonly IPickupFactory _pickupFactory;
         private int _alivePickups;
+        private bool _paused;
         private float _spawnHeightOffset;
         private Transform _spawnParent;
         private Transform[] _spawnPoints;
@@ -23,11 +25,37 @@ namespace Game.Spawning
 
         public event Action<string, float> RarePickupSpawned;
 
-        public PickupSpawner(ICoroutineRunner coroutineRunner, IPickupFactory pickupFactory, GameSettings gameSettings)
+        public PickupSpawner(ICoroutineRunner coroutineRunner, IPickupFactory pickupFactory, GameSettings gameSettings,
+            IPauseService pauseService)
         {
             _coroutineRunner = coroutineRunner;
             _pickupFactory = pickupFactory;
             _gameSettings = gameSettings;
+            _pauseService = pauseService;
+        }
+
+        public void Pause()
+        {
+            _paused = true;
+        }
+
+        public void Resume()
+        {
+            _paused = false;
+        }
+
+        // WaitForSeconds that holds its remaining time while paused instead of restarting the interval.
+        private IEnumerator PausableWait(float seconds)
+        {
+            float remaining = seconds;
+
+            while (remaining > 0f)
+            {
+                if (!_paused)
+                    remaining -= Time.deltaTime;
+
+                yield return null;
+            }
         }
 
         public void Initialize(Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset)
@@ -44,10 +72,13 @@ namespace Game.Spawning
                 return;
 
             _spawnRoutine = _coroutineRunner.StartCoroutine(SpawnLoop());
+            _pauseService.Register(this);
         }
 
         public void StopSpawn()
         {
+            _pauseService?.Unregister(this);
+
             if (_spawnRoutine == null)
                 return;
 
@@ -69,7 +100,7 @@ namespace Game.Spawning
         {
             while (true)
             {
-                yield return new WaitForSeconds(_gameSettings.SpawnData.PickupSpawnDelay);
+                yield return PausableWait(_gameSettings.SpawnData.PickupSpawnDelay);
 
                 if (_alivePickups < _gameSettings.SpawnData.MaxPickups)
                     Spawn();

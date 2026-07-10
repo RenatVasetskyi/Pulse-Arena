@@ -10,7 +10,7 @@ namespace Architecture.Services
     ///     <see cref="AudioData" />; a small round-robin pool of AudioSources lets sounds overlap and
     ///     carry independent pitch. Missing/unassigned clips are silently ignored so partial audio works.
     /// </summary>
-    public class AudioService : MonoBehaviour, IAudioService
+    public class AudioService : MonoBehaviour, IAudioService, IPausable
     {
         private const int SourceCount = 8;
 
@@ -19,13 +19,16 @@ namespace Architecture.Services
         private AudioSource _musicSource;
 
         private int _next;
+        private bool _paused;
+        private IPauseService _pauseService;
         private ISettingsService _settings;
         private AudioSource[] _sources;
 
-        public void Initialize(AudioData data, ISettingsService settings)
+        public void Initialize(AudioData data, ISettingsService settings, IPauseService pauseService)
         {
             _data = data;
             _settings = settings;
+            _pauseService = pauseService;
             _map = new Dictionary<GameSfx, SfxEntry>();
 
             if (_data?.Sfx != null)
@@ -52,17 +55,48 @@ namespace Architecture.Services
 
             if (_settings != null)
                 _settings.Changed += OnSettingsChanged;
+
+            _pauseService?.Register(this);
         }
 
         private void OnDestroy()
         {
             if (_settings != null)
                 _settings.Changed -= OnSettingsChanged;
+
+            _pauseService?.Unregister(this);
+        }
+
+        /// <summary>Pauses music + any in-flight SFX at their current sample (Pause, NOT Stop → resumes exactly).</summary>
+        public void Pause()
+        {
+            if (_paused)
+                return;
+
+            _paused = true;
+            _musicSource?.Pause();
+
+            if (_sources != null)
+                foreach (AudioSource source in _sources)
+                    source?.Pause();
+        }
+
+        public void Resume()
+        {
+            if (!_paused)
+                return;
+
+            _paused = false;
+            _musicSource?.UnPause();
+
+            if (_sources != null)
+                foreach (AudioSource source in _sources)
+                    source?.UnPause();
         }
 
         public void PlayMusic(AudioClip clip)
         {
-            if (_data == null || _musicSource == null || clip == null)
+            if (_paused || _data == null || _musicSource == null || clip == null)
                 return;
 
             // Already looping this track (e.g. re-entering the game scene) — keep it seamless.
@@ -107,7 +141,7 @@ namespace Architecture.Services
 
         private void PlayInternal(GameSfx sfx, float? pitch)
         {
-            if (_data == null || _map == null || _sources == null)
+            if (_paused || _data == null || _map == null || _sources == null)
                 return;
 
             if (!_map.TryGetValue(sfx, out SfxEntry entry) || entry.Clip == null)

@@ -15,7 +15,7 @@ namespace Game.Combat
     ///     (grab target search), <see cref="ISnapBurstEffect" /> (break VFX) and <see cref="IHookTargetMarkerPresenter" />
     ///     (target highlight) — leaving only the core combat-feel logic here.
     /// </summary>
-    public class EnemySlingshot : MonoBehaviour
+    public class EnemySlingshot : MonoBehaviour, IPausable
     {
         [SerializeField] private Transform _lassoOrigin;
         private readonly IEnemyTargetFinder _finder = new EnemyTargetFinder();
@@ -30,6 +30,8 @@ namespace Game.Combat
         private float _holdAngle;
 
         private IInputService _inputService;
+        private bool _paused;
+        private IPauseService _pauseService;
         private Vector3 _lassoEnd;
         private Vector3 _lassoStart;
         private Vector3 _pullStartPosition;
@@ -49,9 +51,10 @@ namespace Game.Combat
         public event Action<float> TensionChanged;
 
         [Inject]
-        public void Construct(IInputService inputService, GameSettings gameSettings)
+        public void Construct(IInputService inputService, GameSettings gameSettings, IPauseService pauseService)
         {
             _inputService = inputService;
+            _pauseService = pauseService;
             _data = gameSettings.SlingshotData;
             _rope.Initialize(transform, _data);
             _finder.Initialize(transform, _data);
@@ -59,10 +62,38 @@ namespace Game.Combat
             _tension.Changed += OnTensionChanged;
             _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
             _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
+            _pauseService?.Register(this);
+        }
+
+        private void OnDestroy()
+        {
+            _pauseService?.Unregister(this);
+        }
+
+        /// <summary>Mechanical pause: freeze the lasso state machine + physics (Update/FixedUpdate gate) and the snap burst.</summary>
+        public void Pause()
+        {
+            if (_paused)
+                return;
+
+            _paused = true;
+            _snapBurst.PauseEffect();
+        }
+
+        public void Resume()
+        {
+            if (!_paused)
+                return;
+
+            _paused = false;
+            _snapBurst.ResumeEffect();
         }
 
         private void Update()
         {
+            if (_paused)
+                return;
+
             TickCooldown();
 
             if (_state == LassoState.Idle && _inputService.IsSlingshotPressedThisFrame)
@@ -94,7 +125,7 @@ namespace Game.Combat
 
         private void FixedUpdate()
         {
-            if (_grabbedEnemy == null)
+            if (_paused || _grabbedEnemy == null)
                 return;
 
             if (_state == LassoState.Pulling)

@@ -12,22 +12,50 @@ namespace Game.Spawning
     ///     cap. Owns the spawn cadence + active-pit bookkeeping; the placement geometry lives in
     ///     <see cref="IPitPlacementFinder" />. Each pit frees its slot when it despawns (eaten or timed out).
     /// </summary>
-    public class PitSpawner : IPitSpawner
+    public class PitSpawner : IPitSpawner, IPausable
     {
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly GameSettings _gameSettings;
+        private readonly IPauseService _pauseService;
         private readonly IPitFactory _pitFactory;
         private readonly IPitPlacementFinder _placementFinder = new PitPlacementFinder();
         private int _activePits;
         private Transform _parent;
+        private bool _paused;
 
         private Coroutine _spawnRoutine;
 
-        public PitSpawner(ICoroutineRunner coroutineRunner, IPitFactory pitFactory, GameSettings gameSettings)
+        public PitSpawner(ICoroutineRunner coroutineRunner, IPitFactory pitFactory, GameSettings gameSettings,
+            IPauseService pauseService)
         {
             _coroutineRunner = coroutineRunner;
             _pitFactory = pitFactory;
             _gameSettings = gameSettings;
+            _pauseService = pauseService;
+        }
+
+        public void Pause()
+        {
+            _paused = true;
+        }
+
+        public void Resume()
+        {
+            _paused = false;
+        }
+
+        // WaitForSeconds that holds its remaining time while paused instead of restarting the interval.
+        private IEnumerator PausableWait(float seconds)
+        {
+            float remaining = seconds;
+
+            while (remaining > 0f)
+            {
+                if (!_paused)
+                    remaining -= Time.deltaTime;
+
+                yield return null;
+            }
         }
 
         public void Initialize(Vector3 center, Transform player, Transform parent)
@@ -44,10 +72,13 @@ namespace Game.Spawning
                 return;
 
             _spawnRoutine = _coroutineRunner.StartCoroutine(SpawnLoop());
+            _pauseService.Register(this);
         }
 
         public void StopSpawn()
         {
+            _pauseService?.Unregister(this);
+
             if (_spawnRoutine == null)
                 return;
 
@@ -69,7 +100,7 @@ namespace Game.Spawning
         {
             while (true)
             {
-                yield return new WaitForSeconds(_gameSettings.PitData.SpawnInterval);
+                yield return PausableWait(_gameSettings.PitData.SpawnInterval);
 
                 if (_activePits < _gameSettings.PitData.MaxActive)
                     TrySpawn();

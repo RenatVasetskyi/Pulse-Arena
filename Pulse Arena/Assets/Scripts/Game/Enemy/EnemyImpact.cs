@@ -25,6 +25,17 @@ namespace Game.Enemy
         private Transform _transform;
         private Func<EnemyTypeData> _type;
 
+        public void Initialize(EnemyController owner, Transform transform, Rigidbody rigidbody,
+            EnemyData data, Func<EnemyTypeData> typeProvider, IEnemyRegistry registry)
+        {
+            _owner = owner;
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _data = data;
+            _type = typeProvider;
+            _registry = registry;
+        }
+
         public void Clear()
         {
             _hitTimers.Clear();
@@ -41,17 +52,6 @@ namespace Game.Enemy
 
             _lastPosition = currentPosition;
             return damagedBySweep || damagedByOverlap;
-        }
-
-        public void Initialize(EnemyController owner, Transform transform, Rigidbody rigidbody,
-            EnemyData data, Func<EnemyTypeData> typeProvider, IEnemyRegistry registry)
-        {
-            _owner = owner;
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _data = data;
-            _type = typeProvider;
-            _registry = registry;
         }
 
         public void ResetSweepOrigin()

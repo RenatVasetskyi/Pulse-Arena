@@ -17,6 +17,14 @@ namespace Game.Player
         private Rigidbody _rigidbody;
         private Transform _transform;
 
+        public void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data, IInputService input)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _data = data;
+            _input = input;
+        }
+
         public void ApplyExtraGravity()
         {
             ActorPhysicsUtility.ApplyExtraGravity(_rigidbody, _data.ExtraGravity);
@@ -31,14 +39,6 @@ namespace Game.Player
                 direction = -_transform.forward;
 
             _rigidbody.AddForce(direction.normalized * force, ForceMode.VelocityChange);
-        }
-
-        public void Initialize(Transform transform, Rigidbody rigidbody, PlayerData data, IInputService input)
-        {
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _data = data;
-            _input = input;
         }
 
         public void KillAngularVelocity()

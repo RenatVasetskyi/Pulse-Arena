@@ -1,7 +1,9 @@
 using System;
+using Architecture.Services.Interfaces;
 using DG.Tweening;
 using Game.Enemy;
 using UnityEngine;
+using Zenject;
 
 namespace Game.Arena
 {
@@ -13,12 +15,14 @@ namespace Game.Arena
     ///     cross safely. Spawned/pooled by <see cref="Game.Spawning.PitSpawner" /> via the pit factory.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class Pit : MonoBehaviour
+    public class Pit : MonoBehaviour, IPausable
     {
         [SerializeField] private float _growDuration = 0.35f;
         [SerializeField] private float _closeDuration = 0.4f;
         private bool _consumed;
+        private Sequence _gulp;
         private Sequence _life;
+        private IPauseService _pauseService;
         private float _suckDown = 4f;
         private float _suckSpeed = 12f;
         private Vector3 _targetScale;
@@ -28,10 +32,30 @@ namespace Game.Arena
         /// <summary>Raised once when the pit is about to be destroyed (eaten or timed out), so the spawner can free its slot.</summary>
         public event Action<Pit> Despawned;
 
+        [Inject]
+        public void Construct(IPauseService pauseService)
+        {
+            _pauseService = pauseService;
+        }
+
+        /// <summary>Mechanical pause: freeze the grow/close (and gulp) tweens at their exact position.</summary>
+        public void Pause()
+        {
+            _life?.Pause();
+            _gulp?.Pause();
+        }
+
+        public void Resume()
+        {
+            _life?.Play();
+            _gulp?.Play();
+        }
+
         /// <summary>Grow in, stay open for <paramref name="lifetime" />s, then close and despawn if unused.</summary>
         public void Initialize(float scale, float lifetime, float suckSpeed, float suckDown)
         {
             _consumed = false;
+            _pauseService?.Register(this);
             _suckSpeed = suckSpeed;
             _suckDown = suckDown;
             _targetScale = Vector3.one * scale;
@@ -52,6 +76,7 @@ namespace Game.Arena
 
         private void OnDestroy()
         {
+            _pauseService?.Unregister(this);
             _life?.Kill();
         }
 
@@ -79,10 +104,10 @@ namespace Game.Arena
 
             _life?.Kill();
 
-            Sequence gulp = DOTween.Sequence().SetLink(gameObject);
-            gulp.Append(transform.DOScale(_targetScale * 1.12f, 0.1f).SetEase(Ease.OutQuad));
-            gulp.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
-            gulp.OnComplete(Despawn);
+            _gulp = DOTween.Sequence().SetLink(gameObject);
+            _gulp.Append(transform.DOScale(_targetScale * 1.12f, 0.1f).SetEase(Ease.OutQuad));
+            _gulp.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
+            _gulp.OnComplete(Despawn);
         }
 
         // Yank the enemy toward the pit center (and down), so it visibly gets sucked in as it shrinks.

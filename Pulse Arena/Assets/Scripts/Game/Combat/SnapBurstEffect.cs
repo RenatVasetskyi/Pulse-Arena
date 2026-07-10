@@ -32,6 +32,18 @@ namespace Game.Combat
             _burst.Emit(_vfx.SnapBurstCount);
         }
 
+        public void PauseEffect()
+        {
+            if (_burst != null)
+                _burst.Pause(true);
+        }
+
+        public void ResumeEffect()
+        {
+            if (_burst != null)
+                _burst.Play(true);
+        }
+
         private void EnsureBurst()
         {
             if (_burst != null)

@@ -14,14 +14,52 @@ namespace Game.Enemy
     public class EnemyMovement
     {
         private NavMeshAgent _agent;
+        private bool _agentWasStopped;
         private EnemyData _data;
-        private GroundingData _grounding;
         private float _destinationUpdateTimer;
+        private GroundingData _grounding;
         private Func<float> _moveSpeed;
+        private Vector3 _pausedAgentVelocity;
         private Rigidbody _rigidbody;
         private Transform _transform;
 
         public bool UsesAgent { get; private set; }
+
+        /// <summary>
+        ///     Mechanical pause: halt the NavMeshAgent in place. We use isStopped + cached velocity rather than
+        ///     disabling it — disabling forces a Warp/re-place on re-enable (a position snap), so the enemy
+        ///     would not resume from the same spot.
+        /// </summary>
+        public void Pause()
+        {
+            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh)
+                return;
+
+            _pausedAgentVelocity = _agent.velocity;
+            _agentWasStopped = _agent.isStopped;
+            _agent.velocity = Vector3.zero;
+            _agent.isStopped = true;
+        }
+
+        public void Resume()
+        {
+            if (_agent == null || !_agent.enabled || !_agent.isOnNavMesh)
+                return;
+
+            _agent.isStopped = _agentWasStopped;
+            _agent.velocity = _pausedAgentVelocity;
+        }
+
+        public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
+            EnemyData data, Func<float> moveSpeedProvider, GroundingData grounding)
+        {
+            _transform = transform;
+            _rigidbody = rigidbody;
+            _agent = agent;
+            _data = data;
+            _moveSpeed = moveSpeedProvider;
+            _grounding = grounding;
+        }
 
         public void ConfigureAgent()
         {
@@ -55,17 +93,6 @@ namespace Game.Enemy
 
             if (_rigidbody != null)
                 _rigidbody.isKinematic = false;
-        }
-
-        public void Initialize(Transform transform, Rigidbody rigidbody, NavMeshAgent agent,
-            EnemyData data, Func<float> moveSpeedProvider, GroundingData grounding)
-        {
-            _transform = transform;
-            _rigidbody = rigidbody;
-            _agent = agent;
-            _data = data;
-            _moveSpeed = moveSpeedProvider;
-            _grounding = grounding;
         }
 
         public void MoveDirectlyToTarget(Transform target)

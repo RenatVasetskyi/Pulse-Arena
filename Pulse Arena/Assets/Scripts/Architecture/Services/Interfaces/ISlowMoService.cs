@@ -8,5 +8,9 @@ namespace Architecture.Services.Interfaces
     {
         void Stop();
         void Trigger(float scale, float duration);
+
+        // Mechanical pause: suspend an in-progress dip and continue it from the exact same point on resume.
+        void Pause();
+        void Resume();
     }
 }

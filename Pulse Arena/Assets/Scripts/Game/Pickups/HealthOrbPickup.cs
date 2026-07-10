@@ -12,7 +12,7 @@ namespace Game.Pickups
     ///     and is editable by hand; this component only wires the two presentation helpers and owns the collect
     ///     gameplay decision (heal the player on touch). Assign the visual references on the prefab.
     /// </summary>
-    public class HealthOrbPickup : MonoBehaviour
+    public class HealthOrbPickup : MonoBehaviour, IPausable
     {
         [Header("Visual (assigned on the prefab)")] [SerializeField]
         private Transform _visualRoot;
@@ -26,13 +26,47 @@ namespace Game.Pickups
         private readonly OrbIdleAnimator _idle = new();
         private IAudioService _audioService;
         private bool _collected;
+        private bool _paused;
 
         private PickupData _pickupData;
+        private IPauseService _pauseService;
         public event Action<HealthOrbPickup> Collected;
+
+        [Inject]
+        public void Construct(GameSettings gameSettings, IAudioService audioService, IPauseService pauseService)
+        {
+            _pickupData = gameSettings.PickupData;
+            _audioService = audioService;
+            _pauseService = pauseService;
+        }
+
+        public void Initialize()
+        {
+            _idle.Initialize(transform, _visualRoot, _innerGlow, _innerRing, _outerRing, _light, _pickupData);
+            _collect.Initialize(transform, _visualRoot, _light, _collider,
+                _light != null ? _light.intensity : 0f, _audioService);
+            _pauseService?.Register(this);
+        }
+
+        private void OnDestroy()
+        {
+            _pauseService?.Unregister(this);
+        }
+
+        /// <summary>Mechanical pause: freeze the orb's idle bob/glow on the current frame.</summary>
+        public void Pause()
+        {
+            _paused = true;
+        }
+
+        public void Resume()
+        {
+            _paused = false;
+        }
 
         private void Update()
         {
-            if (_pickupData == null || _collected)
+            if (_paused || _pickupData == null || _collected)
                 return;
 
             _idle.Tick();
@@ -54,20 +88,6 @@ namespace Game.Pickups
             _collected = true;
             Collected?.Invoke(this);
             _collect.Play();
-        }
-
-        [Inject]
-        public void Construct(GameSettings gameSettings, IAudioService audioService)
-        {
-            _pickupData = gameSettings.PickupData;
-            _audioService = audioService;
-        }
-
-        public void Initialize()
-        {
-            _idle.Initialize(transform, _visualRoot, _innerGlow, _innerRing, _outerRing, _light, _pickupData);
-            _collect.Initialize(transform, _visualRoot, _light, _collider,
-                _light != null ? _light.intensity : 0f, _audioService);
         }
     }
 }

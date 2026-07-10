@@ -12,5 +12,9 @@ namespace Game.Combat.Interfaces
     {
         void Initialize(Transform parent, VfxData vfx, SlingshotData data, Func<Material> materialProvider);
         void Play(Vector3 position);
+
+        // Mechanical pause: freeze / resume a mid-flight burst.
+        void PauseEffect();
+        void ResumeEffect();
     }
 }

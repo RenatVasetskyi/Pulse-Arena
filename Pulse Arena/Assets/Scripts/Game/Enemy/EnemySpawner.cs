@@ -9,13 +9,15 @@ using Random = UnityEngine.Random;
 
 namespace Game.Enemy
 {
-    public class EnemySpawner : IEnemySpawner
+    public class EnemySpawner : IEnemySpawner, IPausable
     {
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly IEnemyFactory _enemyFactory;
         private readonly GameSettings _gameSettings;
+        private readonly IPauseService _pauseService;
         private readonly List<Transform> _spawnCandidates = new();
         private int _aliveEnemies;
+        private bool _paused;
         private float _spawnHeightOffset;
         private Transform _spawnParent;
         private Transform[] _spawnPoints;
@@ -25,11 +27,39 @@ namespace Game.Enemy
         public event Action AllWavesCleared;
         public event Action<int, int> WaveChanged;
 
-        public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings)
+        public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings,
+            IPauseService pauseService)
         {
             _coroutineRunner = coroutineRunner;
             _enemyFactory = enemyFactory;
             _gameSettings = gameSettings;
+            _pauseService = pauseService;
+        }
+
+        /// <summary>Mechanical pause: stop the spawn timer accumulating (PausableWait holds), so no spawns fire while paused.</summary>
+        public void Pause()
+        {
+            _paused = true;
+        }
+
+        public void Resume()
+        {
+            _paused = false;
+        }
+
+        // A WaitForSeconds that freezes while paused — it holds its remaining time instead of restarting the
+        // interval on resume (StopCoroutine would lose the elapsed time WaitForSeconds hides).
+        private IEnumerator PausableWait(float seconds)
+        {
+            float remaining = seconds;
+
+            while (remaining > 0f)
+            {
+                if (!_paused)
+                    remaining -= Time.deltaTime;
+
+                yield return null;
+            }
         }
 
         public void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent,
@@ -48,10 +78,13 @@ namespace Game.Enemy
                 return;
 
             _spawnRoutine = _coroutineRunner.StartCoroutine(HasWaves() ? WaveRoutine() : SpawnLoop());
+            _pauseService.Register(this);
         }
 
         public void StopSpawn()
         {
+            _pauseService?.Unregister(this);
+
             if (_spawnRoutine == null)
                 return;
 
@@ -81,7 +114,7 @@ namespace Game.Enemy
                 if (_aliveEnemies < _gameSettings.SpawnData.MaxEnemies)
                     Spawn(PickEnemyType());
 
-                yield return new WaitForSeconds(_gameSettings.SpawnData.EnemySpawnDelay);
+                yield return PausableWait(_gameSettings.SpawnData.EnemySpawnDelay);
             }
         }
 
@@ -97,7 +130,7 @@ namespace Game.Enemy
                     continue;
 
                 WaveChanged?.Invoke(waveIndex + 1, waves.Length);
-                yield return new WaitForSeconds(Mathf.Max(0f, wave.DelayBeforeWave));
+                yield return PausableWait(Mathf.Max(0f, wave.DelayBeforeWave));
 
                 List<EnemyTypeData> spawnQueue = BuildWaveQueue(wave);
 
@@ -106,14 +139,14 @@ namespace Game.Enemy
                 foreach (EnemyTypeData type in spawnQueue)
                 {
                     while (_aliveEnemies >= _gameSettings.SpawnData.MaxEnemies)
-                        yield return new WaitForSeconds(pollInterval);
+                        yield return PausableWait(pollInterval);
 
                     Spawn(type);
-                    yield return new WaitForSeconds(Mathf.Max(0.05f, wave.SpawnInterval));
+                    yield return PausableWait(Mathf.Max(0.05f, wave.SpawnInterval));
                 }
 
                 while (_aliveEnemies > 0)
-                    yield return new WaitForSeconds(pollInterval);
+                    yield return PausableWait(pollInterval);
             }
 
             _spawnRoutine = null;
