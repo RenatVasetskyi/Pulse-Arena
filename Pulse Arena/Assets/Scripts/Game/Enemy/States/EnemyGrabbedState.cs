@@ -14,6 +14,7 @@ namespace Game.Enemy.States
     public class EnemyGrabbedState : ActorState
     {
         private readonly EnemyContext _context;
+        private RigidbodyConstraints _cachedConstraints;
 
         public EnemyGrabbedState(EnemyContext context)
         {
@@ -35,7 +36,20 @@ namespace Game.Enemy.States
 
             _context.Rigidbody.useGravity = true;
             _context.Rigidbody.isKinematic = false;
+
+            // Freeze ALL rotation while held: the lasso drives the body's POSITION directly, so bumping into
+            // another enemy must not spin it. The struggle animation is purely visual (a child transform), so the
+            // physics body stays steady. The pre-grab constraints are restored on Exit (launch / drop / death).
+            _cachedConstraints = _context.Rigidbody.constraints;
+            _context.Rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+            _context.Rigidbody.angularVelocity = Vector3.zero;
             _context.Rigidbody.WakeUp();
+        }
+
+        public override void Exit()
+        {
+            if (_context.Rigidbody != null)
+                _context.Rigidbody.constraints = _cachedConstraints;
         }
 
         public override void FixedTick()

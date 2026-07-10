@@ -51,6 +51,7 @@ namespace Game.Enemy.States
             _context.IsGrabbed = false;
             _context.IsImpactProjectile = false;
             _context.NeedsGroundRecovery = false;
+            _context.Visual?.SetGrabbed(false); // an enemy rung out WHILE held must tumble, not keep the struggle anim
             _context.Timers.Knockback.Clear();
             _context.Timers.Stasis.Clear();
             _context.Timers.RingoutElapsed = 0f;

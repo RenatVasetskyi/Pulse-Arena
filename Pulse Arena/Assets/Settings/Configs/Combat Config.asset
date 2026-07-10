@@ -106,3 +106,13 @@ MonoBehaviour:
     ShakeStrength: 0.7
     SlowMoScale: 0.35
     SlowMoDuration: 0.4
+    ShockwaveParticleCount: 64
+    ShockwaveLifetime: 0.5
+    ShockwaveSpeed: 22
+    ShockwaveStartSize: 0.55
+    ShockwaveStartRadius: 0.6
+    ShockwaveColor: {r: 1, g: 0.82, b: 0.35, a: 1}
+  Feel:
+    RingoutHeight: -2.5
+    HitFlashDuration: 0.12
+    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}

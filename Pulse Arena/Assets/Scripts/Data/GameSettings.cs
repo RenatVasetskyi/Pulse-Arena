@@ -191,7 +191,6 @@ namespace Data
         public float HitSquashDuration = 0.16f;
         public float BounceSquashDuration = 0.22f;
         public float DeathPopDuration = 0.38f;
-        public float ThrownSpinSpeed = 540f;
     }
 
     [Serializable]
@@ -344,6 +343,19 @@ namespace Data
         public float ShakeStrength = 0.7f;
         [Range(0.05f, 1f)] public float SlowMoScale = 0.35f;
         public float SlowMoDuration = 0.4f;
+
+        [Header("Ultimate — Shockwave VFX")] [Tooltip("Particles in the expanding ground ring.")]
+        public int ShockwaveParticleCount = 64;
+
+        [Tooltip("How long the ring particles live (also how long the ring keeps expanding).")]
+        public float ShockwaveLifetime = 0.5f;
+
+        [Tooltip("Outward speed of the ring — tuned so the ring reaches roughly the fling Radius.")]
+        public float ShockwaveSpeed = 22f;
+
+        public float ShockwaveStartSize = 0.55f;
+        public float ShockwaveStartRadius = 0.6f;
+        public Color ShockwaveColor = new(1f, 0.82f, 0.35f, 1f);
     }
 
     [Serializable]

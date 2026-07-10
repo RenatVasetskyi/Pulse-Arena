@@ -39,6 +39,16 @@ namespace Game.Visuals
         private const float StepStride = 0.05f; // forward/back foot shuffle per step (small — avoids a forward lean)
         private const float AttackDuration = 0.3f; // length of the melee lunge telegraph
         private const float AttackLungeDistance = 0.25f; // how far the enemy pounces toward the player on attack
+        private const float GrabbedRockFrequency = 10f; // held-struggle body rock cadence
+        private const float GrabbedRockAngle = 15f; // side-to-side rock while flailing
+        private const float GrabbedRockLerp = 14f; // how fast the rock eases in
+        private const float GrabbedTiltBack = -12f; // slight backward hoist tilt while dangling
+        private const float FlailKickFrequency = 15f; // frantic leg-kick cadence (grabbed + thrown share it)
+        private const float FlailKickHeight = 0.16f; // how high each leg kicks
+        private const float FlailKickStride = 0.11f; // how far each leg swings fore/aft
+        private const float FlailHeadShakeFrequency = 12f; // panicked head-shake cadence
+        private const float FlailHeadShakeAngle = 12f; // head-shake yaw amplitude
+        private const float ThrownTiltBack = -22f; // how far a flung enemy leans back as it sails through the air
 
         private static readonly Vector3 HitSquashScale = new(1.18f, 0.82f, 1.18f);
         private static readonly Vector3 BounceSquashScale = new(1.22f, 0.74f, 1.22f);
@@ -392,12 +402,91 @@ namespace Game.Visuals
                 return;
             }
 
+            if (_isGrabbed)
+            {
+                AnimateGrabbed(deltaTime);
+                return;
+            }
+
+            if (_isThrown)
+            {
+                AnimateThrown(deltaTime);
+                return;
+            }
+
             ApplyIdleWobble(deltaTime);
             ApplyHitSquash();
             ApplyBounceSquash();
             ApplySpawnAndSettle(deltaTime);
-            AnimateParts(deltaTime);
+            AnimateParts();
             ApplyAttackLunge();
+        }
+
+        // A held enemy flails helplessly: it holds the hold pose (no whirl-driven run squash), tilts back and
+        // rocks side to side, kicks its legs and shakes its head — "caught, struggling to break free". Replaces
+        // the ground idle/walk animation for the whole held sequence (wrap → pull → spin).
+        private void AnimateGrabbed(float deltaTime)
+        {
+            transform.localPosition =
+                Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * SettleLerpSpeed);
+            transform.localScale = _baseScale * _typeScale;
+
+            float rock = Mathf.Sin(Time.time * GrabbedRockFrequency) * GrabbedRockAngle;
+            transform.localRotation = Quaternion.Lerp(transform.localRotation,
+                Quaternion.Euler(GrabbedTiltBack, 0f, rock), deltaTime * GrabbedRockLerp);
+
+            FlailLegs();
+            ShakeHead();
+        }
+
+        // A flung enemy sails through the air flailing: neutral scale, leans well back and rocks (blown off its
+        // feet), legs bicycle-kicking and head shaking. The feet stay BELOW the body so they always read as legs —
+        // unlike the old continuous forward body-tumble, which swung them up behind the belly and looked "legless".
+        private void AnimateThrown(float deltaTime)
+        {
+            transform.localPosition =
+                Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * SettleLerpSpeed);
+            transform.localScale = _baseScale * _typeScale;
+
+            float rock = Mathf.Sin(Time.time * GrabbedRockFrequency) * GrabbedRockAngle;
+            transform.localRotation = Quaternion.Lerp(transform.localRotation,
+                Quaternion.Euler(ThrownTiltBack, 0f, rock), deltaTime * GrabbedRockLerp);
+
+            FlailLegs();
+            ShakeHead();
+        }
+
+        // Frantic bicycle-kick: both legs kick out of phase, always at full amplitude (grabbed + thrown share it).
+        private void FlailLegs()
+        {
+            if (_footL == null || _footR == null)
+                return;
+
+            float phase = Time.time * FlailKickFrequency;
+            _footL.localPosition = _footLBase + FlailKickOffset(phase);
+            _footR.localPosition = _footRBase + FlailKickOffset(phase + Mathf.PI);
+        }
+
+        private static Vector3 FlailKickOffset(float phase)
+        {
+            float lift = Mathf.Max(0f, Mathf.Sin(phase)) * FlailKickHeight;
+            float swing = Mathf.Cos(phase) * FlailKickStride;
+            return new Vector3(0f, lift, swing);
+        }
+
+        // The head shakes and the spikes rattle in the opposite direction as it panics (grabbed + thrown share it).
+        private void ShakeHead()
+        {
+            float shake = Mathf.Sin(Time.time * FlailHeadShakeFrequency) * FlailHeadShakeAngle;
+
+            if (_head != null)
+                _head.localRotation = Quaternion.Euler(0f, shake, 0f);
+
+            if (_faceRoot != null)
+                _faceRoot.localRotation = _head != null ? _head.localRotation : Quaternion.identity;
+
+            if (_spikeRoot != null)
+                _spikeRoot.localRotation = Quaternion.Euler(0f, 0f, -shake * 0.6f);
         }
 
         // Melee attack: a quick wind-up back then a forward pounce toward the player (the enemy faces the player,
@@ -461,23 +550,19 @@ namespace Game.Visuals
                 Vector3.Lerp(transform.localPosition, _baseLocalPosition, deltaTime * SettleLerpSpeed);
         }
 
-        private void AnimateParts(float deltaTime)
+        // Only the grounded enemy reaches here (dead / grabbed / thrown all branch out earlier in Animate), so the
+        // head/spike wobble and the walk-step run unconditionally.
+        private void AnimateParts()
         {
             float time = Time.time;
-
-            if (_isThrown && !_isGrabbed)
-                _body.Rotate(Vector3.right, _visualData.ThrownSpinSpeed * deltaTime, Space.Self);
 
             _head.localRotation = Quaternion.Euler(Mathf.Sin(time * HeadWobbleFrequency) * HeadWobbleAngle, 0f, 0f);
             _faceRoot.localRotation = _head.localRotation;
             _spikeRoot.localRotation =
                 Quaternion.Euler(Mathf.Sin(time * SpikeWobbleFrequency) * SpikeWobbleAngle, 0f, 0f);
 
-            if (!_isGrabbed && !_isThrown)
-            {
-                AnimateWalkFeet();
-                ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
-            }
+            AnimateWalkFeet();
+            ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
         }
 
         // Alternate foot-step: each foot lifts + shuffles on opposite half-cycles, scaled by move speed (still

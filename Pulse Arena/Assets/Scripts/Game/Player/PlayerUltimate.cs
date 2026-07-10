@@ -2,6 +2,7 @@ using System;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy;
+using Game.Player.Interfaces;
 using UnityEngine;
 using Zenject;
 
@@ -9,11 +10,13 @@ namespace Game.Player
 {
     /// <summary>
     ///     The player's ultimate. When the super meter is full and the ultimate key is pressed, a shockwave
-    ///     flings every enemy in range violently outward (and up) — most sail off the edge and ring out. Fires
-    ///     <see cref="Activated" /> so the scene can add camera shake / slow-mo / sound on top.
+    ///     flings every enemy in range violently outward (and up) — most sail off the edge and ring out. Emits a
+    ///     ground shockwave VFX at the player and fires <see cref="Activated" /> so the scene can add camera
+    ///     shake / slow-mo / sound on top.
     /// </summary>
     public class PlayerUltimate : MonoBehaviour
     {
+        private readonly IShockwaveEffect _shockwave = new ShockwaveEffect();
         private IInputService _input;
         private GameSettings _settings;
 
@@ -26,6 +29,7 @@ namespace Game.Player
             _superMeter = superMeter;
             _input = input;
             _settings = settings;
+            _shockwave.Initialize(transform, settings.SuperData);
         }
 
         private void Update()
@@ -40,6 +44,7 @@ namespace Game.Player
         private void Unleash()
         {
             SuperData data = _settings.SuperData;
+            _shockwave.Play(transform.position);
 
             foreach (Collider hit in FindEnemiesInRadius(data.Radius))
             {
