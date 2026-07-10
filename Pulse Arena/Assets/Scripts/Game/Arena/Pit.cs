@@ -28,6 +28,8 @@ namespace Game.Arena
         private Vector3 _targetScale;
 
         private Collider _trigger;
+        private Transform _vortex;
+        private Tween _vortexSpin;
 
         /// <summary>Raised once when the pit is about to be destroyed (eaten or timed out), so the spawner can free its slot.</summary>
         public event Action<Pit> Despawned;
@@ -43,12 +45,14 @@ namespace Game.Arena
         {
             _life?.Pause();
             _gulp?.Pause();
+            _vortexSpin?.Pause();
         }
 
         public void Resume()
         {
             _life?.Play();
             _gulp?.Play();
+            _vortexSpin?.Play();
         }
 
         /// <summary>Grow in, stay open for <paramref name="lifetime" />s, then close and despawn if unused.</summary>
@@ -67,17 +71,32 @@ namespace Game.Arena
             _life.AppendInterval(Mathf.Max(0.1f, lifetime));
             _life.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
             _life.OnComplete(Despawn);
+
+            StartVortexSpin();
+        }
+
+        // Endlessly rotate the glowing vortex so the pit reads as actively sucking (paused with the pit).
+        private void StartVortexSpin()
+        {
+            if (_vortex == null)
+                return;
+
+            _vortexSpin?.Kill();
+            _vortexSpin = _vortex.DOLocalRotate(new Vector3(0f, 360f, 0f), 3f, RotateMode.FastBeyond360)
+                .SetEase(Ease.Linear).SetLoops(-1).SetLink(gameObject);
         }
 
         private void Awake()
         {
             _trigger = GetComponent<Collider>();
+            _vortex = transform.Find("vortex");
         }
 
         private void OnDestroy()
         {
             _pauseService?.Unregister(this);
             _life?.Kill();
+            _vortexSpin?.Kill();
         }
 
         private void OnTriggerEnter(Collider other)

@@ -7,6 +7,7 @@ namespace Data
     {
         public SpawnData Spawn;
         public SpawnAreaData SpawnArea = new();
+        public TurretData Turret = new();
         public WaveData[] Waves;
         public PickupData Pickup;
         public PoolData Pool = new();

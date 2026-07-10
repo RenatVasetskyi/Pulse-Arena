@@ -34,11 +34,17 @@ namespace Game.Visuals
         private const float DeathPartShrink = 0.65f; // head + face shrink target
         private const float DeathSpikeShrink = 0.2f;
         private const float DeathSpikeLerp = 14f;
+        private const float StepFrequency = 15f; // foot-step cadence while moving
+        private const float StepHeight = 0.13f; // how high each foot lifts mid-step
+        private const float StepStride = 0.05f; // forward/back foot shuffle per step (small — avoids a forward lean)
+        private const float AttackDuration = 0.3f; // length of the melee lunge telegraph
+        private const float AttackLungeDistance = 0.25f; // how far the enemy pounces toward the player on attack
 
         private static readonly Vector3 HitSquashScale = new(1.18f, 0.82f, 1.18f);
         private static readonly Vector3 BounceSquashScale = new(1.22f, 0.74f, 1.22f);
         private static readonly Vector3 DeathFlattenScale = new(1.25f, 0.08f, 1.25f);
 
+        private float _attackTimer;
         private Vector3 _baseLocalPosition;
         private Vector3 _baseScale;
         private Transform _belly;
@@ -49,6 +55,10 @@ namespace Game.Visuals
         private float _bounceTimer;
         private float _deathTimer;
         private Transform _faceRoot;
+        private Transform _footL;
+        private Vector3 _footLBase;
+        private Transform _footR;
+        private Vector3 _footRBase;
         private Transform _head;
         private Vector3 _headBaseScale;
         private float _hitTimer;
@@ -88,6 +98,7 @@ namespace Game.Visuals
             float deltaTime = Time.deltaTime;
             _hitTimer = Mathf.Max(0f, _hitTimer - deltaTime);
             _bounceTimer = Mathf.Max(0f, _bounceTimer - deltaTime);
+            _attackTimer = Mathf.Max(0f, _attackTimer - deltaTime);
             _deathTimer += _isDead ? deltaTime : 0f;
             TickMoveSpeed(deltaTime);
             Animate(deltaTime);
@@ -144,6 +155,15 @@ namespace Game.Visuals
                 return;
 
             _hitTimer = _visualData.HitSquashDuration;
+        }
+
+        /// <summary>A short melee-lunge telegraph: the enemy winds up, then pounces toward the player.</summary>
+        public void PlayAttack()
+        {
+            if (_isDead)
+                return;
+
+            _attackTimer = AttackDuration;
         }
 
         public void ResetState()
@@ -220,6 +240,12 @@ namespace Game.Visuals
                 _spikeRoot.localRotation = Quaternion.identity;
                 _spikeRoot.localScale = Vector3.one;
             }
+
+            if (_footL != null)
+                _footL.localPosition = _footLBase;
+
+            if (_footR != null)
+                _footR.localPosition = _footRBase;
         }
 
         private void PlaySpawnPop()
@@ -255,6 +281,8 @@ namespace Game.Visuals
             _leftEye = _faceRoot != null ? _faceRoot.Find("LeftEye") : null;
             _rightEye = _faceRoot != null ? _faceRoot.Find("RightEye") : null;
             _spikeRoot = transform.Find("SpikeRoot");
+            _footL = _body != null ? _body.Find("FootL") : null;
+            _footR = _body != null ? _body.Find("FootR") : null;
         }
 
         private void InstanceTintMaterials()
@@ -304,6 +332,12 @@ namespace Game.Visuals
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
             _headBaseScale = _head != null ? _head.localScale : Vector3.one;
+
+            if (_footL != null)
+                _footLBase = _footL.localPosition;
+
+            if (_footR != null)
+                _footRBase = _footR.localPosition;
         }
 
         private static void ApplyMaterialColor(Material material, Color color)
@@ -363,6 +397,26 @@ namespace Game.Visuals
             ApplyBounceSquash();
             ApplySpawnAndSettle(deltaTime);
             AnimateParts(deltaTime);
+            ApplyAttackLunge();
+        }
+
+        // Melee attack: a quick wind-up back then a forward pounce toward the player (the enemy faces the player,
+        // so local +Z is toward it), with a forward stretch for punch. Applied last so it offsets the settled pose.
+        private void ApplyAttackLunge()
+        {
+            if (_attackTimer <= 0f || _isGrabbed || _isThrown)
+                return;
+
+            float progress = 1f - _attackTimer / Mathf.Max(0.01f, AttackDuration);
+            float lunge = progress < 0.3f
+                ? -Mathf.Sin(progress / 0.3f * Mathf.PI) * 0.35f
+                : Mathf.Sin((progress - 0.3f) / 0.7f * Mathf.PI);
+
+            transform.localPosition += Vector3.forward * (lunge * AttackLungeDistance * _typeScale);
+
+            float stretch = Mathf.Max(0f, lunge) * 0.18f;
+            transform.localScale = Vector3.Scale(transform.localScale,
+                new Vector3(1f - stretch * 0.6f, 1f - stretch * 0.6f, 1f + stretch));
         }
 
         private void ApplyIdleWobble(float deltaTime)
@@ -420,7 +474,31 @@ namespace Game.Visuals
                 Quaternion.Euler(Mathf.Sin(time * SpikeWobbleFrequency) * SpikeWobbleAngle, 0f, 0f);
 
             if (!_isGrabbed && !_isThrown)
+            {
+                AnimateWalkFeet();
                 ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
+            }
+        }
+
+        // Alternate foot-step: each foot lifts + shuffles on opposite half-cycles, scaled by move speed (still
+        // when idle). One foot is always planted, so the bottom-align keeps the enemy grounded on that foot.
+        private void AnimateWalkFeet()
+        {
+            if (_footL == null || _footR == null)
+                return;
+
+            float moveProgress = Mathf.InverseLerp(0f, _visualData.MoveAnimationMaxSpeed, _moveSpeed);
+            float phase = Time.time * StepFrequency;
+
+            StepFoot(_footL, _footLBase, phase, moveProgress);
+            StepFoot(_footR, _footRBase, phase + Mathf.PI, moveProgress);
+        }
+
+        private static void StepFoot(Transform foot, Vector3 basePosition, float phase, float moveProgress)
+        {
+            float lift = Mathf.Max(0f, Mathf.Sin(phase)) * StepHeight * moveProgress;
+            float shuffle = -Mathf.Cos(phase) * StepStride * moveProgress;
+            foot.localPosition = basePosition + new Vector3(0f, lift, shuffle);
         }
 
         private void AnimateDeath(float deltaTime)

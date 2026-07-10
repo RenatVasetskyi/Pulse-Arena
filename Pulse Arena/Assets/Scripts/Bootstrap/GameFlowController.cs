@@ -1,7 +1,9 @@
+using System.Collections;
 using Architecture.Services.Interfaces;
 using Architecture.States;
 using Architecture.States.Interfaces;
 using Data;
+using Game.Cameras;
 using Game.Enemy;
 using Game.Player;
 using Game.Spawning;
@@ -22,7 +24,10 @@ namespace Game.Scene
     /// </summary>
     public class GameFlowController
     {
+        private const float DeathScreenDelay = 2f; // let the death animation + camera zoom play before the screen
+
         private readonly IAudioService _audioService;
+        private readonly ICoroutineRunner _coroutineRunner;
         private readonly IEnemySpawner _enemySpawner;
         private readonly GameSettings _gameSettings;
         private readonly IInputService _inputService;
@@ -33,6 +38,7 @@ namespace Game.Scene
         private readonly ISettingsController _settingsController;
         private readonly ISlowMoService _slowMoService;
         private readonly IStateMachine _stateMachine;
+        private IBattleCamera _battleCamera;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
         private bool _isGameOver;
@@ -43,7 +49,8 @@ namespace Game.Scene
         public GameFlowController(IInputService inputService, IScoreService scoreService,
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
-            IPitSpawner pitSpawner, IPauseService pauseService, GameSettings gameSettings)
+            IPitSpawner pitSpawner, IPauseService pauseService, ICoroutineRunner coroutineRunner,
+            GameSettings gameSettings)
         {
             _inputService = inputService;
             _scoreService = scoreService;
@@ -55,14 +62,16 @@ namespace Game.Scene
             _pickupSpawner = pickupSpawner;
             _pitSpawner = pitSpawner;
             _pauseService = pauseService;
+            _coroutineRunner = coroutineRunner;
             _gameSettings = gameSettings;
         }
 
         /// <summary>Builds the game-over screen + pause and starts listening for win/lose. Call once the world is built.</summary>
-        public void Bind(PlayerController player, GameHud gameHud)
+        public void Bind(PlayerController player, GameHud gameHud, IBattleCamera battleCamera)
         {
             _player = player;
             _gameHud = gameHud;
+            _battleCamera = battleCamera;
             _isGameOver = false;
 
             _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
@@ -104,22 +113,49 @@ namespace Game.Scene
                 Object.Destroy(_pausePanel.gameObject);
         }
 
-        private void OnPlayerDied() => EndGame("GAME OVER");
-
-        private void OnAllWavesCleared() => EndGame("YOU WIN!");
-
-        private void EndGame(string title)
+        // Player death: stop the run, punch a dramatic camera zoom, and let the death animation play for a beat
+        // before the screen drops (so it isn't hidden by the instant freeze).
+        private void OnPlayerDied()
         {
             if (_isGameOver)
                 return;
 
             _isGameOver = true;
+            StopRun();
+            _battleCamera?.PlayDeathZoom();
+            _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
+        }
+
+        private void OnAllWavesCleared()
+        {
+            if (_isGameOver)
+                return;
+
+            _isGameOver = true;
+            StopRun();
+            ShowGameOver("YOU WIN!");
+        }
+
+        // Stops the live run but does NOT freeze — so the death/win beat can still animate before the screen appears.
+        private void StopRun()
+        {
             _pauseService.Unpause(); // if somehow ended while paused, restore state before the game-over freeze
             _slowMoService.Stop();
             _inputService.Disable();
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
             _pitSpawner.StopSpawn();
+        }
+
+        // Let the death animation + camera zoom play (real-time, not frozen), THEN show the screen and freeze.
+        private IEnumerator ShowGameOverAfterDelay(string title, float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            ShowGameOver(title);
+        }
+
+        private void ShowGameOver(string title)
+        {
             _gameOverView?.Show(_scoreService.Score, title);
             Time.timeScale = 0f;
         }

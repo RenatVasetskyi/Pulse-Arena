@@ -42,6 +42,7 @@ namespace Data
         public FeelData Feel => _combat.Feel;
         public SpawnData SpawnData => _level.Spawn;
         public SpawnAreaData SpawnAreaData => _level.SpawnArea;
+        public TurretData TurretData => _level.Turret;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
         public PoolData PoolData => _level.Pool;
@@ -113,6 +114,10 @@ namespace Data
         public int ScoreReward = 1;
         public float AttackRange = 1.35f;
         public float AttackCooldown = 0.9f;
+
+        [Tooltip("Delay from the attack telegraph starting to the damage landing — set to the mid-point of the lunge.")]
+        public float AttackHitDelay = 0.15f;
+
         public int ContactDamage = 1;
         public float ImpactDamageMinSpeed = 3.5f;
         public float ImpactDamageRadius = 1.6f;
@@ -507,6 +512,34 @@ namespace Data
         public int MaxTries = 24;
     }
 
+    /// <summary>
+    ///     Config for the stationary turrets that spawn on the map and shoot the player (not enemies).
+    ///     Consumed by <see cref="Game.Turrets.TurretSpawner" /> / <see cref="Game.Turrets.Turret" />.
+    /// </summary>
+    [Serializable]
+    public class TurretData
+    {
+        [Header("Spawn")] [Tooltip("Seconds between turret spawn attempts.")]
+        public float SpawnInterval = 10f;
+
+        [Tooltip("Max turrets alive at once.")] public int MaxActive = 1;
+
+        [Tooltip("Seconds a turret lives before it self-destructs (with a collapse animation).")]
+        public float Lifetime = 7f;
+
+        [Header("Fire")] [Tooltip("Seconds between shots.")]
+        public float FireInterval = 1.5f;
+
+        [Tooltip("How fast the head swivels to track the player (lerp speed).")]
+        public float AimSpeed = 4f;
+
+        [Header("Bullet")] public float BulletSpeed = 11f;
+        public int BulletDamage = 1;
+
+        [Tooltip("Seconds a bullet lives before it despawns if it hits nothing.")]
+        public float BulletLifetime = 4f;
+    }
+
     [Serializable]
     public class WaveEnemyData
     {
@@ -547,6 +580,8 @@ namespace Data
         [Header("Pickups")] public GameObject HealthOrbPrefab;
 
         [Header("Hazards")] public GameObject PitPrefab;
+        public GameObject TurretPrefab;
+        public GameObject TurretBulletPrefab;
 
         [Header("UI")] public GameObject SettingsPanelPrefab;
 

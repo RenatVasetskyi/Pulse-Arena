@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using UnityEngine;
+using Zenject;
 
 namespace Architecture.Services
 {
@@ -24,9 +25,11 @@ namespace Architecture.Services
         private ISettingsService _settings;
         private AudioSource[] _sources;
 
-        public void Initialize(AudioData data, ISettingsService settings, IPauseService pauseService)
+        // Zenject-injected after all installers complete (NonLazy), so it never resolves during InstallBindings.
+        [Inject]
+        public void Construct(GameSettings gameSettings, ISettingsService settings, IPauseService pauseService)
         {
-            _data = data;
+            _data = gameSettings.AudioData;
             _settings = settings;
             _pauseService = pauseService;
             _map = new Dictionary<GameSfx, SfxEntry>();

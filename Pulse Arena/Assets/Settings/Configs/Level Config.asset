@@ -26,6 +26,15 @@ MonoBehaviour:
     SpawnClearance: 1.1
     ProbeHeight: 0.6
     MaxTries: 24
+  Turret:
+    SpawnInterval: 10
+    MaxActive: 1
+    Lifetime: 7
+    FireInterval: 1.5
+    AimSpeed: 4
+    BulletSpeed: 11
+    BulletDamage: 1
+    BulletLifetime: 4
   Waves:
   - DelayBeforeWave: 2.5
     SpawnInterval: 1

@@ -7,6 +7,7 @@ using Game.Enemy.Interfaces;
 using Game.Player;
 using Game.Player.Interfaces;
 using Game.Spawning;
+using Game.Turrets;
 using UI.Hud;
 using UnityEngine;
 using Zenject;
@@ -38,6 +39,7 @@ namespace Game.Scene
         private readonly IPlayerFactory _playerFactory;
         private readonly IScoreService _scoreService;
         private readonly ISuperMeterService _superMeterService;
+        private readonly ITurretSpawner _turretSpawner;
         private GameObject _arena;
         private IBattleCamera _battleCamera;
         private PlayerController _player;
@@ -50,6 +52,7 @@ namespace Game.Scene
             IEnemySpawner enemySpawner,
             IPickupSpawner pickupSpawner,
             IPitSpawner pitSpawner,
+            ITurretSpawner turretSpawner,
             IInputService inputService,
             IScoreService scoreService,
             IComboService comboService,
@@ -66,6 +69,7 @@ namespace Game.Scene
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _pitSpawner = pitSpawner;
+            _turretSpawner = turretSpawner;
             _inputService = inputService;
             _scoreService = scoreService;
             _comboService = comboService;
@@ -97,7 +101,7 @@ namespace Game.Scene
 
             GameHud gameHud = _hudPresenter.Bind(_player, _battleCamera);
             _feedback.Bind(_player, _battleCamera);
-            _gameFlow.Bind(_player, gameHud);
+            _gameFlow.Bind(_player, gameHud, _battleCamera);
 
             StartSpawners();
         }
@@ -118,6 +122,7 @@ namespace Game.Scene
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
             _pitSpawner.StopSpawn();
+            _turretSpawner.StopSpawn();
 
             _enemyFactory.Clear();
 
@@ -173,10 +178,12 @@ namespace Game.Scene
                 _sceneReferences.PickupSpawnHeightOffset);
             _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
                 _player.transform, _arena.transform);
+            _turretSpawner.Initialize(center, _player.transform, _arena.transform);
 
             _enemySpawner.StartSpawn();
             _pickupSpawner.StartSpawn();
             _pitSpawner.StartSpawn();
+            _turretSpawner.StartSpawn();
         }
     }
 }

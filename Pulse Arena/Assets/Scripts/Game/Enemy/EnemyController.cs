@@ -26,6 +26,8 @@ namespace Game.Enemy
     /// </summary>
     public class EnemyController : MonoBehaviour, IPausable
     {
+        private const float EnemyBodyScale = 0.7f; // shrink all enemies a bit (scales visual + collider together)
+
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
         private Vector3 _cachedAngularVelocity;
@@ -319,7 +321,7 @@ namespace Game.Enemy
             _timers.Knockback.Clear();
             _timers.Stasis.Clear();
             _impact.Clear();
-            transform.localScale = Vector3.one;
+            transform.localScale = Vector3.one * EnemyBodyScale;
             ParkRigidbody();
         }
 
@@ -463,9 +465,17 @@ namespace Game.Enemy
         {
             _context = new EnemyContext(
                 _rigidbody, transform, _data, _movement, _visual, _timers, _groundRecovery, _impact, _collisions,
-                () => _target, () => _playerTarget, () => _isDead, () => _typeData,
+                () => IsPlayerAlive() ? _target : null, () => IsPlayerAlive() ? _playerTarget : null,
+                () => _isDead, () => _typeData,
                 ChangeToChaseState, ChangeToGroundRecoveryState, ReturnToPool, StartDeathReturn,
                 StopForDeath, ResolveRingout);
+        }
+
+        // Ignore the player once they die — the chase/attack states early-return on a null target, so enemies
+        // stop hunting + hitting a corpse and idle in place.
+        private bool IsPlayerAlive()
+        {
+            return _playerTarget != null && !_playerTarget.IsDead;
         }
 
         // --- pool lifecycle --------------------------------------------------------------------
@@ -478,7 +488,7 @@ namespace Game.Enemy
             _registry.Register(_rigidbody, this); // live for the span it is out of the pool
             _pauseService.Register(this);          // pausable only while out of the pool
             ResetCollaboratorsForSpawn();
-            transform.localScale = Vector3.one;
+            transform.localScale = Vector3.one * EnemyBodyScale;
             _health.Initialize(GetTypeAdjustedMaxHealth()); // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
             ResetRigidbodyForSpawn();

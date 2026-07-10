@@ -5,58 +5,44 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    ///     On-screen ability button (dash / ultimate) for touch. A tap fires the ability (frame-accurate via
-    ///     Time.frameCount); a radial Fill image is a dark "cooldown shade" that DEPLETES as the button charges
-    ///     (empty = fully shaded, ready = clear), so the ornate button art shows through when ready. The press is
-    ///     always reported — the ability itself decides whether it can fire — so a not-ready tap is simply a
-    ///     no-op. Assign the radial Fill image and the CanvasGroup (for dimming).
+    ///     On-screen ability button (dash / ultimate) for touch. The ability's charge maps straight onto the
+    ///     <see cref="Button" /> component's <c>interactable</c> flag — greyed + non-responsive while charging,
+    ///     active (and tappable) once ready — so the button's own disabled/pressed transition carries the whole
+    ///     visual state (no custom fill or dim). A tap on an active button is reported frame-accurately
+    ///     (Time.frameCount) for the input layer to poll; a tap while inactive is ignored.
     /// </summary>
-    public class AbilityButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
+    public class AbilityButton : MonoBehaviour, IPointerDownHandler
     {
-        [SerializeField] private Image _fill;
-        [SerializeField] private CanvasGroup _canvasGroup;
-        [SerializeField, Range(0.7f, 1f)] private float _pressedScale = 0.9f;
-        [SerializeField, Range(0.1f, 1f)] private float _chargingAlpha = 0.5f;
-        [SerializeField] private float _feedbackSpeed = 18f;
-        private Vector3 _baseScale = Vector3.one;
+        private const float ReadyThreshold = 0.999f; // float charge rarely lands exactly on 1 — treat near-full as ready
+
+        [SerializeField] private Button _button;
 
         private int _pressedFrame = -1;
-        private float _targetScale = 1f;
 
         public bool PressedThisFrame => _pressedFrame == Time.frameCount;
 
         private void Awake()
         {
-            _baseScale = transform.localScale;
-            SetCharge(1f);
-        }
+            if (_button == null)
+                _button = GetComponent<Button>();
 
-        private void Update()
-        {
-            float t = 1f - Mathf.Exp(-_feedbackSpeed * Time.unscaledDeltaTime);
-            transform.localScale = Vector3.Lerp(transform.localScale, _baseScale * _targetScale, t);
+            if (_button != null)
+                _button.interactable = false; // start inactive until the first charge update flips it
         }
 
         public void OnPointerDown(PointerEventData eventData)
         {
+            if (_button != null && !_button.interactable)
+                return;
+
             _pressedFrame = Time.frameCount;
-            _targetScale = _pressedScale;
         }
 
-        public void OnPointerUp(PointerEventData eventData)
-        {
-            _targetScale = 1f;
-        }
-
+        /// <summary>Ready (near-full) → interactable; still charging → disabled. Keeps the raw 0..1 charge so the HUD call sites stay unchanged.</summary>
         public void SetCharge(float charge01)
         {
-            charge01 = Mathf.Clamp01(charge01);
-
-            if (_fill != null)
-                _fill.fillAmount = 1f - charge01; // dark shade recedes as it charges → art shows when ready
-
-            if (_canvasGroup != null)
-                _canvasGroup.alpha = charge01 >= 0.999f ? 1f : _chargingAlpha;
+            if (_button != null)
+                _button.interactable = charge01 >= ReadyThreshold;
         }
     }
 }

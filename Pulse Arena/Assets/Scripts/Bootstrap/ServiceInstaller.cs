@@ -147,17 +147,16 @@ namespace Bootstrap
                 .AsSingle();
         }
 
+        // Let Zenject build + inject AudioService (its [Inject] Construct runs after all installers complete),
+        // instead of resolving ISettingsService/IPauseService during InstallBindings — which Zenject warns on.
         private void BindAudioService()
         {
-            AudioService audioService = new GameObject("AudioService")
-                .AddComponent<AudioService>();
-            audioService.transform.SetParent(transform);
-            audioService.Initialize(_gameSettings.AudioData, Container.Resolve<ISettingsService>(),
-                Container.Resolve<IPauseService>());
-
             Container
                 .Bind<IAudioService>()
-                .FromInstance(audioService)
+                .To<AudioService>()
+                .FromNewComponentOnNewGameObject()
+                .WithGameObjectName("AudioService")
+                .UnderTransform(transform)
                 .AsSingle()
                 .NonLazy();
         }

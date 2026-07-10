@@ -8,6 +8,7 @@ using Game.Player;
 using Game.Player.Interfaces;
 using Game.Scene;
 using Game.Spawning;
+using Game.Turrets;
 using Zenject;
 
 namespace Bootstrap
@@ -59,6 +60,11 @@ namespace Bootstrap
                 .Bind<IPickupFactory>()
                 .To<PickupFactory>()
                 .AsSingle();
+
+            Container
+                .Bind<ITurretFactory>()
+                .To<TurretFactory>()
+                .AsSingle();
         }
 
         private void BindSpawners()
@@ -81,6 +87,11 @@ namespace Bootstrap
             Container
                 .Bind<IPitSpawner>()
                 .To<PitSpawner>()
+                .AsSingle();
+
+            Container
+                .Bind<ITurretSpawner>()
+                .To<TurretSpawner>()
                 .AsSingle();
         }
 

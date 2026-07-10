@@ -95,6 +95,29 @@ namespace Game.Enemy
                 _rigidbody.isKinematic = false;
         }
 
+        /// <summary>
+        ///     Halts the enemy where it stands when the target is lost (the player died): stops the agent and
+        ///     clears its path so it does not keep walking to the player's last position, and zeroes horizontal
+        ///     rigidbody velocity for the physics-fallback case (vertical is kept so gravity still applies).
+        ///     Idempotent — safe to call every FixedTick. The <c>isStopped</c> flag it sets is cleared again by
+        ///     <see cref="TryEnableAgent" /> the next time the agent takes over, so a re-used pooled enemy (or a
+        ///     re-acquired target) never spawns frozen.
+        /// </summary>
+        public void StopInPlace()
+        {
+            if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
+            {
+                if (_agent.hasPath)
+                    _agent.ResetPath();
+
+                _agent.velocity = Vector3.zero; // crisp halt — no autoBraking glide toward the dead player's last spot
+                _agent.isStopped = true;
+            }
+
+            if (_rigidbody != null && !_rigidbody.isKinematic)
+                _rigidbody.linearVelocity = new Vector3(0f, _rigidbody.linearVelocity.y, 0f);
+        }
+
         public void MoveDirectlyToTarget(Transform target)
         {
             Vector3 offset = target.position - _transform.position;
@@ -178,6 +201,7 @@ namespace Game.Enemy
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
             _rigidbody.isKinematic = true;
+            _agent.isStopped = false; // clear any halt left by a lost-target StopInPlace before the agent drives again
             UsesAgent = true;
             _destinationUpdateTimer = 0f;
 

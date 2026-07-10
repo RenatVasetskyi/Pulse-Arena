@@ -27,10 +27,9 @@ MonoBehaviour:
     MaxHealth: 3
     HealthBarHeight: 2.15
     ScoreReward: 1
-    HitFlashDuration: 0.12
-    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
     AttackRange: 1.35
     AttackCooldown: 0.9
+    AttackHitDelay: 0.15
     ContactDamage: 1
     ImpactDamageMinSpeed: 3.5
     ImpactDamageRadius: 1.6
@@ -50,7 +49,6 @@ MonoBehaviour:
     GroundRecoveryMaxVerticalOffset: 1.35
     GroundRecoveryMaxUpwardSpeed: 0.1
     GroundRecoveryForceAfter: 1.1
-    RingoutHeight: -2.5
     RingoutDuration: 1.1
     RingoutTextHeight: 1.2
     RingoutShrinkScale: 0.15

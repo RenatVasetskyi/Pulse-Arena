@@ -164,13 +164,14 @@ namespace Game.Player
             Die();
         }
 
+        public bool IsDead => _isDead;
+
         public bool TakeDamage(int damage, Vector3 sourcePosition)
         {
-            if (!_health.TakeDamage(damage))
+            if (_isDead || !_health.TakeDamage(damage))
                 return false;
 
             _movement.ApplyKnockback(sourcePosition, _data.HitKnockbackForce);
-            Debug.Log($"Player hit. Health: {_health.Current}");
             _hitFlash.Play();
             _visual?.PlayHit();
 
@@ -261,12 +262,31 @@ namespace Game.Player
             _isDead = true;
             _health.Kill();
             _movement.Stop();
+            FreezeBodyOnDeath();
+            ReleaseSlingshotGrab();
             _hitFlash.Restore();
-            Debug.Log("Player died.");
             _visual?.PlayDeath();
             EnsureStateMachine();
             _stateMachine.ChangeState(_deadState);
             Died?.Invoke();
+        }
+
+        // Drop any enemy still held on the lasso when the player dies, so the rope doesn't keep spinning it.
+        private void ReleaseSlingshotGrab()
+        {
+            GetComponent<EnemySlingshot>()?.ForceRelease();
+        }
+
+        // Kill all momentum and freeze the body so the corpse doesn't slide or get shoved around while the death
+        // animation plays. The visual topple lives on the child visual, so it is unaffected by isKinematic.
+        private void FreezeBodyOnDeath()
+        {
+            if (_rigidbody == null)
+                return;
+
+            _rigidbody.linearVelocity = Vector3.zero;
+            _rigidbody.angularVelocity = Vector3.zero;
+            _rigidbody.isKinematic = true;
         }
 
         private void EnsureStateMachine()

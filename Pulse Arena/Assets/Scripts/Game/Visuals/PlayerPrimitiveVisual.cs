@@ -22,6 +22,11 @@ namespace Game.Visuals
         private const float HeadWobbleAngle = 3f;
         private const float DeathRotationLerpSpeed = 8f;
         private const float UprightLerpSpeed = 10f;
+        private const float LegSwingAngle = 26f; // forward/back leg swing from the hip while moving
+        private const float HatPopVelocity = 3.4f; // initial upward speed the hat pops off with on death
+        private const float HatGravity = 9f; // pulls the flung hat back down
+        private const float HatDrift = 0.7f; // sideways drift of the flung hat
+        private const float HatTumbleSpeed = 520f; // hat spin (deg/s) while it flies off
 
         private static readonly Vector3 HitSquashScale = new(1.12f, 0.9f, 1.12f);
 
@@ -29,6 +34,9 @@ namespace Game.Visuals
         private Vector3 _baseScale;
         private Transform _body;
         private Renderer[] _bottomRenderers;
+        private float _deathTimer;
+        private Vector3 _hatBaseLocalPos;
+        private Quaternion _hatBaseLocalRot;
         private Transform _hatRoot;
         private Transform _head;
         private float _hitTimer;
@@ -36,6 +44,8 @@ namespace Game.Visuals
         private bool _paused;
         private Transform _lassoOrigin;
         private Transform _leftArm;
+        private Transform _legL;
+        private Transform _legR;
         private Transform _rightArm;
         private Rigidbody _rigidbody;
         private EnemySlingshot _slingshot;
@@ -90,6 +100,7 @@ namespace Game.Visuals
         public void PlayDeath()
         {
             _isDead = true;
+            _deathTimer = 0f;
         }
 
         public void PlayHit()
@@ -119,6 +130,8 @@ namespace Game.Visuals
             _rightArm = transform.Find("RightArm");
             _hatRoot = transform.Find("HatRoot");
             _lassoOrigin = _rightArm != null ? _rightArm.Find("LassoOrigin") : null;
+            _legL = _body != null ? _body.Find("LegL") : null;
+            _legR = _body != null ? _body.Find("LegR") : null;
         }
 
         private void FinishSetup()
@@ -127,17 +140,51 @@ namespace Game.Visuals
             ActorPhysicsUtility.AlignVisualBottomToCollider(transform, _bottomRenderers);
             _baseLocalPosition = transform.localPosition;
             _baseScale = transform.localScale;
+
+            if (_hatRoot != null)
+            {
+                _hatBaseLocalPos = _hatRoot.localPosition;
+                _hatBaseLocalRot = _hatRoot.localRotation;
+            }
         }
 
         private void Animate(float deltaTime)
         {
+            if (_isDead)
+            {
+                AnimateDeath(deltaTime);
+                return;
+            }
+
             float moveProgress = Mathf.InverseLerp(0f, _visualData.MoveAnimationMaxSpeed, GetPlanarSpeed());
 
             ApplyIdleBob(moveProgress);
             ApplyHitSquash();
             ApplyBodyRotation(deltaTime);
             AnimateArms(moveProgress);
+            AnimateLegs(moveProgress);
             AnimateHeadAndHat();
+        }
+
+        // Death: the body topples (roll) while the hat pops off in a spinning ballistic arc.
+        private void AnimateDeath(float deltaTime)
+        {
+            _deathTimer += deltaTime;
+            transform.localScale = _baseScale;
+            ApplyBodyRotation(deltaTime);
+            AnimateHatFlyOff();
+        }
+
+        private void AnimateHatFlyOff()
+        {
+            if (_hatRoot == null)
+                return;
+
+            float t = _deathTimer;
+            float hop = HatPopVelocity * t - 0.5f * HatGravity * t * t;
+            _hatRoot.localPosition = _hatBaseLocalPos + new Vector3(HatDrift * t, hop, 0f);
+            _hatRoot.localRotation =
+                _hatBaseLocalRot * Quaternion.Euler(HatTumbleSpeed * t, HatTumbleSpeed * 0.4f * t, 0f);
         }
 
         private void ApplyIdleBob(float moveProgress)
@@ -180,6 +227,18 @@ namespace Game.Visuals
                 : 0f;
             _rightArm.localRotation = Quaternion.Euler(-armSwing - throwProgress * ThrowArmPitch, 0f,
                 ArmRestZAngle + throwProgress * ThrowArmZKick);
+        }
+
+        // Legs swing forward/back from the hip, opposite each other and counter to the same-side arm (natural
+        // gait), synced to the arm-swing frequency and scaled by move speed — so the player stands still when idle.
+        private void AnimateLegs(float moveProgress)
+        {
+            if (_legL == null || _legR == null)
+                return;
+
+            float swing = Mathf.Sin(Time.time * _visualData.ArmSwingFrequency) * LegSwingAngle * moveProgress;
+            _legL.localRotation = Quaternion.Euler(-swing, 0f, 0f);
+            _legR.localRotation = Quaternion.Euler(swing, 0f, 0f);
         }
 
         private void AnimateHeadAndHat()

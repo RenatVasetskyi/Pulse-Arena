@@ -135,6 +135,16 @@ namespace Game.Cameras
             _zoom.ZoomOut();
         }
 
+        // A dramatic, transient close-up on the player's death — a tight zoom (not persisted to settings) plus a
+        // shake. The scene reload after game-over re-reads the saved zoom, so this never sticks.
+        public void PlayDeathZoom()
+        {
+            _zoom.SetTargetZoom(Mathf.Lerp(_data.DefaultZoom, _data.MinZoom, 0.7f));
+
+            if (CameraEffectsEnabled)
+                _shaker.Shake(_data.PlayerHitShakeDuration, _data.PlayerHitShakeStrength);
+        }
+
         private void OnSettingsChanged()
         {
             _zoom.SyncTargetFromSettings();

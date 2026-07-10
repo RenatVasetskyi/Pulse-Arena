@@ -10,5 +10,6 @@ namespace Game.Cameras
         void Shake(float duration, float strength);
         void ZoomIn();
         void ZoomOut();
+        void PlayDeathZoom();
     }
 }

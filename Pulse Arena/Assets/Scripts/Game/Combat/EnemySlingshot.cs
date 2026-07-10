@@ -96,6 +96,12 @@ namespace Game.Combat
 
             TickCooldown();
 
+            if (HasLostGrab())
+            {
+                ResetLasso();
+                return;
+            }
+
             if (_state == LassoState.Idle && _inputService.IsSlingshotPressedThisFrame)
                 TryThrowLasso();
 
@@ -138,9 +144,29 @@ namespace Game.Combat
                 TickSpin();
         }
 
+        // The grabbed enemy can be freed by something other than the lasso — the ultimate's launch, a pit, or a
+        // death all clear its IsGrabbed flag. When that happens the rope must let go at once instead of dangling
+        // from the departing enemy (it stayed attached before).
+        private bool HasLostGrab()
+        {
+            return _grabbedEnemy != null
+                   && (_state == LassoState.Wrapping || _state == LassoState.Pulling || _state == LassoState.Spinning)
+                   && !_grabbedEnemy.IsGrabbed;
+        }
+
         public void SetLassoOrigin(Transform lassoOrigin)
         {
             _lassoOrigin = lassoOrigin;
+        }
+
+        /// <summary>Externally drop the held enemy + reset the lasso — e.g. the player died while holding one, so
+        /// the rope must let go instead of spinning the enemy on a dead player.</summary>
+        public void ForceRelease()
+        {
+            if (_grabbedEnemy != null)
+                _grabbedEnemy.Launch(Vector3.zero, _data.LaunchDuration);
+
+            ResetLasso();
         }
 
         private void OnTensionChanged(float value)
