@@ -7,7 +7,7 @@ namespace Game.Spawning
     {
         event Action<string, float> RarePickupSpawned;
 
-        void Initialize(Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset);
+        void Initialize(Vector3 center, Transform player, Transform spawnParent, float spawnHeightOffset);
         void StartSpawn();
         void StopSpawn();
     }

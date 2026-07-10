@@ -10,8 +10,6 @@ namespace Game.Scene
         [SerializeField] private Transform _playerParent;
         [SerializeField] private Transform _enemySpawnParent;
         [SerializeField] private Transform _pickupSpawnParent;
-        [SerializeField] private Transform[] _enemySpawnPoints;
-        [SerializeField] private Transform[] _pickupSpawnPoints;
         [SerializeField] private float _playerSpawnHeightOffset = 1f;
         [SerializeField] private float _enemySpawnHeightOffset = 1f;
         [SerializeField] private float _pickupSpawnHeightOffset = 0.5f;
@@ -20,8 +18,6 @@ namespace Game.Scene
         public Transform PlayerParent => _playerParent;
         public Transform EnemySpawnParent => _enemySpawnParent;
         public Transform PickupSpawnParent => _pickupSpawnParent;
-        public Transform[] EnemySpawnPoints => _enemySpawnPoints;
-        public Transform[] PickupSpawnPoints => _pickupSpawnPoints;
         public float EnemySpawnHeightOffset => ResolveOffset(_enemySpawnHeightOffset, 1f);
         public float PickupSpawnHeightOffset => ResolveOffset(_pickupSpawnHeightOffset, 0.5f);
 
@@ -35,12 +31,6 @@ namespace Game.Scene
 
             if (_playerSpawnPoint == null)
                 throw new MissingReferenceException($"{nameof(GameSceneReferences)} requires player spawn point.");
-
-            if (_enemySpawnPoints == null || _enemySpawnPoints.Length == 0)
-                throw new MissingReferenceException($"{nameof(GameSceneReferences)} requires enemy spawn points.");
-
-            if (_pickupSpawnPoints == null || _pickupSpawnPoints.Length == 0)
-                throw new MissingReferenceException($"{nameof(GameSceneReferences)} requires pickup spawn points.");
         }
 
         private static Vector3 AddHeightOffset(Vector3 position, float offset)

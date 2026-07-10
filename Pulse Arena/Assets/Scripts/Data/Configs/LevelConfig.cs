@@ -6,6 +6,7 @@ namespace Data
     public class LevelConfig : ScriptableObject
     {
         public SpawnData Spawn;
+        public SpawnAreaData SpawnArea = new();
         public WaveData[] Waves;
         public PickupData Pickup;
         public PoolData Pool = new();

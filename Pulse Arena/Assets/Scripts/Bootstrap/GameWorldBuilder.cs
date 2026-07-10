@@ -165,9 +165,11 @@ namespace Game.Scene
 
         private void StartSpawners()
         {
-            _enemySpawner.Initialize(_player.transform, _sceneReferences.EnemySpawnPoints,
-                _sceneReferences.EnemySpawnParent, _sceneReferences.EnemySpawnHeightOffset);
-            _pickupSpawner.Initialize(_sceneReferences.PickupSpawnPoints, _sceneReferences.PickupSpawnParent,
+            Vector3 center = _arena.transform.position;
+
+            _enemySpawner.Initialize(_player.transform, center, _sceneReferences.EnemySpawnParent,
+                _sceneReferences.EnemySpawnHeightOffset);
+            _pickupSpawner.Initialize(center, _player.transform, _sceneReferences.PickupSpawnParent,
                 _sceneReferences.PickupSpawnHeightOffset);
             _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
                 _player.transform, _arena.transform);

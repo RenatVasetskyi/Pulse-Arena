@@ -15,11 +15,11 @@ namespace Game.Spawning
         private readonly GameSettings _gameSettings;
         private readonly IPauseService _pauseService;
         private readonly IPickupFactory _pickupFactory;
+        private readonly ISafeSpawnFinder _placementFinder = new SafeSpawnFinder();
         private int _alivePickups;
         private bool _paused;
         private float _spawnHeightOffset;
         private Transform _spawnParent;
-        private Transform[] _spawnPoints;
 
         private Coroutine _spawnRoutine;
 
@@ -58,12 +58,19 @@ namespace Game.Spawning
             }
         }
 
-        public void Initialize(Transform[] spawnPoints, Transform spawnParent, float spawnHeightOffset)
+        public void Initialize(Vector3 center, Transform player, Transform spawnParent, float spawnHeightOffset)
         {
-            _spawnPoints = spawnPoints;
             _spawnParent = spawnParent;
             _spawnHeightOffset = spawnHeightOffset;
             _alivePickups = 0;
+            _placementFinder.Initialize(center, player, _gameSettings.SpawnAreaData, BlockerMask());
+        }
+
+        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
+        // so one clearance test keeps a fresh orb out of walls, off pits, and off other spawns.
+        private LayerMask BlockerMask()
+        {
+            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
         }
 
         public void StartSpawn()
@@ -109,13 +116,13 @@ namespace Game.Spawning
 
         private void Spawn()
         {
-            if (_spawnPoints == null || _spawnPoints.Length == 0)
+            if (!_placementFinder.TryFind(out Vector3 position))
                 return;
 
-            Transform point = _spawnPoints[UnityEngine.Random.Range(0, _spawnPoints.Length)];
-            Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
+            Vector3 spawnPosition = position + Vector3.up * _spawnHeightOffset;
+            Quaternion rotation = Quaternion.Euler(0f, UnityEngine.Random.value * 360f, 0f);
 
-            HealthOrbPickup pickup = _pickupFactory.CreateHealthOrb(spawnPosition, point.rotation, _spawnParent);
+            HealthOrbPickup pickup = _pickupFactory.CreateHealthOrb(spawnPosition, rotation, _spawnParent);
 
             if (pickup == null)
                 return;

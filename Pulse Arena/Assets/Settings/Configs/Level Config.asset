@@ -19,6 +19,13 @@ MonoBehaviour:
     MaxPickups: 1
     WavePollInterval: 0.25
     MinPlayerSpawnDistance: 5
+  SpawnArea:
+    MinRadius: 5
+    MaxRadius: 17
+    PlayerClearance: 5
+    SpawnClearance: 1.1
+    ProbeHeight: 0.6
+    MaxTries: 24
   Waves:
   - DelayBeforeWave: 2.5
     SpawnInterval: 1

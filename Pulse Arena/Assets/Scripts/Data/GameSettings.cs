@@ -41,6 +41,7 @@ namespace Data
         public SuperData SuperData => _combat.Super;
         public FeelData Feel => _combat.Feel;
         public SpawnData SpawnData => _level.Spawn;
+        public SpawnAreaData SpawnAreaData => _level.SpawnArea;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
         public PoolData PoolData => _level.Pool;
@@ -475,6 +476,35 @@ namespace Data
         [Tooltip(
             "Enemies won't spawn at points closer than this (horizontal) to the player, so they never pop up right on top of you.")]
         public float MinPlayerSpawnDistance = 5f;
+    }
+
+    /// <summary>
+    ///     Geometry for the random safe-zone spawns (enemies + pickups): a ring around the arena center, kept clear
+    ///     of the player and of any wall/box, suck-hole pit, or other spawn. Consumed by
+    ///     <see cref="Game.Spawning.ISafeSpawnFinder" />.
+    /// </summary>
+    [Serializable]
+    public class SpawnAreaData
+    {
+        [Header("Ring (from arena center)")]
+        [Tooltip("Inner radius of the ring where enemies & pickups can appear.")]
+        public float MinRadius = 5f;
+
+        [Tooltip("Outer radius of the ring where enemies & pickups can appear.")]
+        public float MaxRadius = 17f;
+
+        [Tooltip("Nothing spawns closer than this (horizontal) to the player.")]
+        public float PlayerClearance = 5f;
+
+        [Tooltip(
+            "Clearance-sphere radius: a spot is rejected if this sphere overlaps a wall/box, pit, pickup or enemy.")]
+        public float SpawnClearance = 1.1f;
+
+        [Tooltip("Height above the floor the clearance sphere is cast from, so it clears the ground plane.")]
+        public float ProbeHeight = 0.6f;
+
+        [Tooltip("How many random spots to try before giving up for this spawn tick.")]
+        public int MaxTries = 24;
     }
 
     [Serializable]

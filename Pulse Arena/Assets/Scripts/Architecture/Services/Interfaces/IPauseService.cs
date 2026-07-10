@@ -1,5 +1,3 @@
-using System;
-
 namespace Architecture.Services.Interfaces
 {
     /// <summary>
@@ -9,7 +7,6 @@ namespace Architecture.Services.Interfaces
     public interface IPauseService
     {
         bool IsPaused { get; }
-        event Action<bool> PausedChanged;
         void Register(IPausable pausable);
         void Unregister(IPausable pausable);
         void Pause();

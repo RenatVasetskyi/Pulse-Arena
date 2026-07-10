@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Enemy.Interfaces;
+using Game.Spawning;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -15,12 +16,11 @@ namespace Game.Enemy
         private readonly IEnemyFactory _enemyFactory;
         private readonly GameSettings _gameSettings;
         private readonly IPauseService _pauseService;
-        private readonly List<Transform> _spawnCandidates = new();
+        private readonly ISafeSpawnFinder _placementFinder = new SafeSpawnFinder();
         private int _aliveEnemies;
         private bool _paused;
         private float _spawnHeightOffset;
         private Transform _spawnParent;
-        private Transform[] _spawnPoints;
 
         private Coroutine _spawnRoutine;
         private Transform _target;
@@ -62,14 +62,20 @@ namespace Game.Enemy
             }
         }
 
-        public void Initialize(Transform target, Transform[] spawnPoints, Transform spawnParent,
-            float spawnHeightOffset)
+        public void Initialize(Transform target, Vector3 center, Transform spawnParent, float spawnHeightOffset)
         {
             _target = target;
-            _spawnPoints = spawnPoints;
             _spawnParent = spawnParent;
             _spawnHeightOffset = spawnHeightOffset;
             _aliveEnemies = 0;
+            _placementFinder.Initialize(center, target, _gameSettings.SpawnAreaData, BlockerMask());
+        }
+
+        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
+        // so one clearance test keeps a fresh spawn out of all of them.
+        private LayerMask BlockerMask()
+        {
+            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
         }
 
         public void StartSpawn()
@@ -179,60 +185,15 @@ namespace Game.Enemy
 
         private void Spawn(EnemyTypeData type)
         {
-            Transform point = PickSpawnPoint();
-
-            if (point == null)
+            if (!_placementFinder.TryFind(out Vector3 position))
                 return;
 
-            Vector3 spawnPosition = point.position + Vector3.up * _spawnHeightOffset;
+            Vector3 spawnPosition = position + Vector3.up * _spawnHeightOffset;
+            Quaternion rotation = Quaternion.Euler(0f, Random.value * 360f, 0f);
 
-            EnemyController enemy = _enemyFactory.Create(spawnPosition, point.rotation, _spawnParent, _target,
-                type);
+            EnemyController enemy = _enemyFactory.Create(spawnPosition, rotation, _spawnParent, _target, type);
             enemy.Destroyed += OnEnemyDestroyed;
             _aliveEnemies++;
-        }
-
-        /// <summary>
-        ///     Picks a random spawn point that is at least MinPlayerSpawnDistance (horizontal) from the
-        ///     player, so enemies never pop up right next to you. If every point is too close (tiny arena),
-        ///     falls back to the farthest one.
-        /// </summary>
-        private Transform PickSpawnPoint()
-        {
-            if (_spawnPoints == null || _spawnPoints.Length == 0)
-                return null;
-
-            Vector3 playerPosition = _target != null ? _target.position : Vector3.zero;
-            float minDistance = Mathf.Max(0f, _gameSettings.SpawnData.MinPlayerSpawnDistance);
-            float minDistanceSqr = minDistance * minDistance;
-
-            _spawnCandidates.Clear();
-            Transform farthest = null;
-            float farthestSqr = -1f;
-
-            foreach (Transform point in _spawnPoints)
-            {
-                if (point == null)
-                    continue;
-
-                Vector3 delta = point.position - playerPosition;
-                delta.y = 0f;
-                float distanceSqr = delta.sqrMagnitude;
-
-                if (distanceSqr >= minDistanceSqr)
-                    _spawnCandidates.Add(point);
-
-                if (distanceSqr > farthestSqr)
-                {
-                    farthestSqr = distanceSqr;
-                    farthest = point;
-                }
-            }
-
-            if (_spawnCandidates.Count > 0)
-                return _spawnCandidates[Random.Range(0, _spawnCandidates.Count)];
-
-            return farthest;
         }
 
         private EnemyTypeData PickEnemyType()

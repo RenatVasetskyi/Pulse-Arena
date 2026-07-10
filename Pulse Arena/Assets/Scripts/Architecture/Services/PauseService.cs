@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 
@@ -20,8 +19,6 @@ namespace Architecture.Services
         private readonly List<IPausable> _snapshot = new();
 
         public bool IsPaused { get; private set; }
-
-        public event Action<bool> PausedChanged;
 
         public void Register(IPausable pausable)
         {
@@ -47,7 +44,6 @@ namespace Architecture.Services
 
             IsPaused = true;
             ForEachPausable(true);
-            PausedChanged?.Invoke(true);
         }
 
         public void Unpause()
@@ -57,7 +53,6 @@ namespace Architecture.Services
 
             IsPaused = false;
             ForEachPausable(false);
-            PausedChanged?.Invoke(false);
         }
 
         public void Clear()
