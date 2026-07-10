@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using UI.Hud;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -37,9 +38,23 @@ namespace UI.Pause
             gameObject.SetActive(false);
         }
 
+        /// <summary>Animated close (quick shrink + fade), then deactivates. Used when the player resumes.</summary>
+        public void Close()
+        {
+            UiTween.CloseWindow(_window, _canvasGroup, () =>
+            {
+                SetVisible(false);
+                gameObject.SetActive(false);
+            });
+        }
+
         public void Show()
         {
             gameObject.SetActive(true);
+
+            if (_canvasGroup != null)
+                _canvasGroup.DOKill();
+
             SetVisible(true);
 
             if (_window != null)

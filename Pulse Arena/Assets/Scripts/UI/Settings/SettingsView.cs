@@ -87,8 +87,12 @@ namespace UI.Settings
 
         private void RaiseClosed()
         {
-            Hide();
             Closed?.Invoke();
+            UiTween.CloseWindow(_window, _canvasGroup, () =>
+            {
+                SetVisible(false);
+                gameObject.SetActive(false);
+            });
         }
 
         private void AddSlider(Slider slider, Action<float> apply)

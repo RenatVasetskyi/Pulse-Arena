@@ -68,7 +68,7 @@ namespace Game.Scene
             _paused = false;
             Time.timeScale = 1f;
             _inputService.Enable();
-            _view.Hide();
+            _view.Close();
         }
 
         public void Toggle()

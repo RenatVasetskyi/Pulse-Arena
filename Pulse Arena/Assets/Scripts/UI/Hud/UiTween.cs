@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 
@@ -10,6 +11,8 @@ namespace UI.Hud
     /// </summary>
     public static class UiTween
     {
+        private const float CloseDuration = 0.14f;
+
         /// <summary>
         ///     Reusable "window opens" animation for any popup: the window bounces up from a smaller scale
         ///     while the group fades in. Runs on unscaled time so it plays even when the game is paused.
@@ -29,6 +32,43 @@ namespace UI.Hud
                 group.alpha = 0f;
                 group.DOFade(1f, 0.18f).SetUpdate(true).SetLink(group.gameObject);
             }
+        }
+
+        /// <summary>
+        ///     Reusable "window closes" animation — the quick mirror of <see cref="OpenWindow" />: the window
+        ///     shrinks with a short anticipation while the group fades out, then <paramref name="onComplete" />
+        ///     runs (deactivate / destroy). Fast and on unscaled time so it plays while the game is paused.
+        /// </summary>
+        public static void CloseWindow(RectTransform window, CanvasGroup group, Action onComplete = null)
+        {
+            Tween driver = null;
+
+            if (window != null)
+            {
+                window.DOKill();
+                driver = window.DOScale(window.localScale * 0.7f, CloseDuration)
+                    .SetEase(Ease.InBack).SetUpdate(true).SetLink(window.gameObject);
+            }
+
+            if (group != null)
+            {
+                group.DOKill();
+                group.interactable = false;
+                group.blocksRaycasts = false;
+                Tween fade = group.DOFade(0f, CloseDuration).SetEase(Ease.InQuad)
+                    .SetUpdate(true).SetLink(group.gameObject);
+
+                if (driver == null)
+                    driver = fade;
+            }
+
+            if (onComplete == null)
+                return;
+
+            if (driver != null)
+                driver.OnComplete(() => onComplete());
+            else
+                onComplete();
         }
 
         public static void Pop(Transform target, float duration = 0.35f)
