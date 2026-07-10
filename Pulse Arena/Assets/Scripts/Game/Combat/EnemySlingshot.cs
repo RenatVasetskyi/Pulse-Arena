@@ -71,7 +71,7 @@ namespace Game.Combat
             if (_state == LassoState.Throwing || _state == LassoState.Wrapping ||
                 _state == LassoState.Pulling)
             {
-                if (_inputService.IsSlingshotReleasedThisFrame)
+                if (SlingshotReleased())
                     _releaseRequested = true;
             }
 
@@ -82,7 +82,7 @@ namespace Game.Combat
                 TickWrap();
 
             if (_state == LassoState.Spinning &&
-                (_releaseRequested || _inputService.IsSlingshotReleasedThisFrame ||
+                (_releaseRequested || SlingshotReleased() ||
                  _inputService.IsOrbitBurstPressedThisFrame))
             {
                 LaunchGrabbedEnemy();
@@ -280,7 +280,7 @@ namespace Game.Combat
         {
             _chargeTimer = 0f;
             _state = LassoState.Spinning;
-            _releaseRequested = _releaseRequested || !_inputService.IsSlingshotHeld;
+            _releaseRequested = _releaseRequested || SlingshotReleased();
             EnemyGrabbed?.Invoke();
         }
 
@@ -399,6 +399,15 @@ namespace Game.Combat
         private float GetGrabbedLaunchMultiplier()
         {
             return _grabbedEnemy != null ? _grabbedEnemy.TypeData.LaunchVelocityMultiplier : 1f;
+        }
+
+        // A release we should act on: while input is live, the hold button simply not being held.
+        // Level-based (not the release EDGE) on purpose — an edge fired while paused is swallowed
+        // (input is muted), so an edge-only check would leave the enemy stuck in hand after resume.
+        // This picks the release up on the first live frame instead, and stays false during the pause.
+        private bool SlingshotReleased()
+        {
+            return _inputService.IsEnabled && !_inputService.IsSlingshotHeld;
         }
 
         private void TickCooldown()

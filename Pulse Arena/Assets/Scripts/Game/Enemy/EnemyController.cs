@@ -131,8 +131,8 @@ namespace Game.Enemy
         {
             EnsureStateMachine();
 
-            if (!_isDead && !_isInPool && transform.position.y < _settings.Feel.RingoutHeight)
-                StartRingout();
+            if (!_isDead && !_isInPool)
+                HandleOutOfBounds();
 
             if (_isDead)
             {
@@ -565,6 +565,28 @@ namespace Game.Enemy
         {
             EnsureStateMachine();
             _stateMachine.ChangeState(_deadState);
+        }
+
+        // ~1000 units from origin — far past any legit arena spot. Catches an enemy flung to infinity
+        // (hard launch / physics blow-up) so it rings out instead of drifting forever (invisible) and
+        // spamming Renderer "Invalid worldAABB" from its visual.
+        private const float MaxArenaSqrDistance = 1_000_000f;
+
+        private void HandleOutOfBounds()
+        {
+            Vector3 position = transform.position;
+
+            if (!ActorPhysicsUtility.IsFinite(position))
+            {
+                ReturnToPool(); // physics blew up (NaN/Inf) — drop it silently, no score/feedback at NaN
+                return;
+            }
+
+            bool belowFloor = position.y < _settings.Feel.RingoutHeight;
+            bool tooFarOut = new Vector2(position.x, position.z).sqrMagnitude > MaxArenaSqrDistance;
+
+            if (belowFloor || tooFarOut)
+                StartRingout();
         }
 
         private void StartRingout()

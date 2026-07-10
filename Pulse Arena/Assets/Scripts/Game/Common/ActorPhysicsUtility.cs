@@ -8,6 +8,9 @@ namespace Game.Common
     /// </summary>
     public static class ActorPhysicsUtility
     {
+        private const float MaxSaneSqrDistance = 100_000_000f; // ~10 000 units from origin
+        private const float MaxSaneSqrScale = 10_000f;         // ~100x normal scale
+
         /// <summary>
         ///     Shifts a child visual up/down so its rendered bottom sits on the parent capsule's feet (plus a
         ///     small ground clearance). Shared by PlayerPrimitiveVisual and EnemyPrimitiveVisual.
@@ -16,6 +19,11 @@ namespace Game.Common
             float groundClearance = 0.02f)
         {
             if (visual.parent == null)
+                return;
+
+            // A blown-up transform (physics NaN) or one flung absurdly far from the origin makes
+            // Renderer.bounds log "Invalid worldAABB" every frame; skip alignment until it's cleaned up.
+            if (!HasSaneTransform(visual))
                 return;
 
             CapsuleCollider capsule = visual.parent.GetComponent<CapsuleCollider>();
@@ -58,6 +66,21 @@ namespace Game.Common
             capsule.center = center;
 
             return capsule;
+        }
+
+        /// <summary>True if every component of the vector is a real, finite number (no NaN / Infinity).</summary>
+        public static bool IsFinite(Vector3 v)
+        {
+            return float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z);
+        }
+
+        private static bool HasSaneTransform(Transform visual)
+        {
+            Vector3 position = visual.position;
+            Vector3 scale = visual.lossyScale;
+
+            return IsFinite(position) && IsFinite(scale) &&
+                   position.sqrMagnitude < MaxSaneSqrDistance && scale.sqrMagnitude < MaxSaneSqrScale;
         }
 
         private static float GetCapsuleBottom(CapsuleCollider capsule)
