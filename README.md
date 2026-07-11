@@ -1,10 +1,8 @@
 # Pulse Arena
 
-[![Tests](https://github.com/RenatVasetskyi/Pulse-Arena/actions/workflows/tests.yml/badge.svg)](https://github.com/RenatVasetskyi/Pulse-Arena/actions/workflows/tests.yml)
-
 > A mobile-first 3D arena brawler where you fight with a **rope**, not a gun: lasso an enemy, wind up the
 > spin, and fling them out of the ring or down a pit. Built in **Unity 6** to showcase a clean, fully-tested,
-> DI-driven game architecture — and an end-to-end solo pipeline (code, 3D, UI, CI).
+> DI-driven game architecture — and an end-to-end solo pipeline (code, 3D models, UI art).
 
 ---
 
@@ -17,11 +15,11 @@ Specifically, it demonstrates:
   an actor pattern that cleanly separates *coordination / logic / per-frame behaviour*, and config-driven
   design with **zero gameplay magic numbers in code**.
 - **My end-to-end workflow** — I build it largely solo and procedurally: gameplay code, 3D models, UI art,
-  and a test + CI pipeline.
+  and a unit-test suite.
 - **My usual toolset** — the packages and patterns I reach for on real Unity projects.
 
 If you're reviewing this, the parts worth your time are **[Architecture](#architecture)** and
-**[Testing & CI](#testing--ci)** — that's the point of the repo.
+**[Testing](#testing)** — that's the point of the repo.
 
 ## The game
 
@@ -51,7 +49,6 @@ Physics-driven and built to feel juicy — camera kick, bullet-time on big launc
 | **3D models** | **ProBuilder** — every actor & prop modeled procedurally, in-editor |
 | **UI / 2D art** | Generated via the **fal.ai** image-generation API |
 | Testing | **Unity Test Framework** (NUnit) · **NSubstitute** for mocking |
-| CI | **GitHub Actions** + **GameCI** — the full suite runs on every push |
 
 ## Art & assets
 
@@ -86,17 +83,16 @@ touching unrelated systems**.
 - **Config-driven.** All feel/balance lives in ScriptableObjects behind a single `GameSettings` facade — there
   are no gameplay magic numbers in code. Swapping an `.asset` re-tunes the game without recompiling.
 
-## Testing & CI
+## Testing
 
-**177 automated tests**, green on every push:
+**177 automated tests** covering the pure-logic layer:
 
 - **EditMode (176)** — the pure-logic layer in isolation: health/damage rules, cooldowns, rope-tension math,
   the object pool, the pause / score / combo / super-meter services, the actor FSM, enemy timers & registry,
   and camera FX. Uses **NSubstitute** to fake interface dependencies.
 - **PlayMode (1)** — a physics smoke test confirming the runtime loop is live.
 
-Tests mirror the code layout (`Assets/Tests/EditMode/<System>/`) and run **headlessly in CI** via GameCI on
-GitHub Actions — the badge at the top of this file reflects the latest run.
+Tests mirror the code layout (`Assets/Tests/EditMode/<System>/`).
 
 Run locally: **Window → General → Test Runner → Run All**.
 
@@ -122,11 +118,10 @@ Run locally: **Window → General → Test Runner → Run All**.
 
 ```
 Pulse Arena/
-├─ Assets/
-│  ├─ Scripts/         Data · Architecture (Core) · Game · UI · Bootstrap   (one asmdef per layer)
-│  ├─ Tests/           EditMode (176) + PlayMode (1)  — mirrors the code layout
-│  ├─ Prefabs/         ProBuilder-built actors, arena, pits, turrets, orbs, HUD
-│  ├─ Settings/        ScriptableObject configs (player / enemy / combat / level / presentation)
-│  └─ Scenes/          Boot · MainMenu · Game
-└─ .github/workflows/  Unity test CI (GameCI)
+└─ Assets/
+   ├─ Scripts/         Data · Architecture (Core) · Game · UI · Bootstrap   (one asmdef per layer)
+   ├─ Tests/           EditMode (176) + PlayMode (1)  — mirrors the code layout
+   ├─ Prefabs/         ProBuilder-built actors, arena, pits, turrets, orbs, HUD
+   ├─ Settings/        ScriptableObject configs (player / enemy / combat / level / presentation)
+   └─ Scenes/          Boot · MainMenu · Game
 ```
