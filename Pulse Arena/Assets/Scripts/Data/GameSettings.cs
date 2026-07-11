@@ -4,6 +4,13 @@ using UnityEngine;
 
 namespace Data
 {
+    /// <summary>
+    ///     The single config facade injected into virtually every gameplay system. Holds five swappable
+    ///     sub-config assets (player / enemy / combat / level / presentation) and re-exposes their contents
+    ///     through read-only pass-through properties, so consumers keep one dependency and never know the
+    ///     data is split across assets. Values live in the .asset files — changing a C# field default only
+    ///     affects newly created assets.
+    /// </summary>
     [CreateAssetMenu(fileName = "Game Settings", menuName = "Pulse Arena/Game Settings")]
     public class GameSettings : ScriptableObject
     {
@@ -400,6 +407,11 @@ namespace Data
         public Color WorldHealthBackgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
     }
 
+    /// <summary>
+    ///     All lasso/slingshot feel and balance: grab range and layers, spin/pull/launch physics, rope
+    ///     tension accrual (break time, charge influence, warning threshold) and break feedback. Lives on
+    ///     <see cref="CombatConfig" />; consumed by the slingshot and its collaborators via GameSettings.
+    /// </summary>
     [Serializable]
     public class SlingshotData
     {
