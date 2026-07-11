@@ -16,7 +16,7 @@ namespace Game.Enemy
         private static readonly Collider[] OverlapBuffer = new Collider[32];
         private static readonly RaycastHit[] SweepBuffer = new RaycastHit[32];
 
-        private readonly Dictionary<EnemyController, float> _hitTimers = new();
+        private readonly HashSet<EnemyController> _hitEnemies = new();
         private EnemyData _data;
         private Vector3 _lastPosition;
         private EnemyController _owner;
@@ -38,7 +38,7 @@ namespace Game.Enemy
 
         public void Clear()
         {
-            _hitTimers.Clear();
+            _hitEnemies.Clear();
         }
 
         /// <summary>Sweep along the current velocity. Returns true if it damaged any enemy this tick.</summary>
@@ -57,28 +57,6 @@ namespace Game.Enemy
         public void ResetSweepOrigin()
         {
             _lastPosition = _transform.position;
-        }
-
-        public void Tick(float deltaTime)
-        {
-            if (_hitTimers.Count == 0)
-                return;
-
-            List<EnemyController> enemies = new(_hitTimers.Keys);
-
-            foreach (EnemyController enemy in enemies)
-            {
-                if (enemy == null)
-                {
-                    _hitTimers.Remove(enemy);
-                    continue;
-                }
-
-                _hitTimers[enemy] -= deltaTime;
-
-                if (_hitTimers[enemy] <= 0f)
-                    _hitTimers.Remove(enemy);
-            }
         }
 
         /// <summary>Collision-based hit. Returns true if it damaged another enemy.</summary>
@@ -157,16 +135,16 @@ namespace Game.Enemy
 
         private bool TryHit(EnemyController other)
         {
-            if (other == null || other == _owner || _hitTimers.ContainsKey(other))
+            if (other == null || other == _owner || _hitEnemies.Contains(other))
                 return false;
 
             ApplyKnockback(other);
             other.TakeDamage(GetImpactDamage());
 
-            // Flag the target for the WHOLE flight (the set is cleared on the next throw) so a
-            // thrown enemy damages each enemy exactly once — no rapid re-hits every cooldown when
-            // it lingers in contact (e.g. pinning a target against a wall).
-            _hitTimers[other] = float.MaxValue;
+            // Flag the target for the WHOLE flight (the set is cleared on the next throw) so a thrown enemy
+            // damages each enemy exactly once — no rapid re-hits when it lingers in contact (e.g. pinning a
+            // target against a wall).
+            _hitEnemies.Add(other);
             return true;
         }
 

@@ -18,6 +18,10 @@ namespace Game.Enemy
     /// </summary>
     public sealed class RingoutHandler
     {
+        // One shared burst material for every ringout across every enemy — building it per instance (once per
+        // pooled enemy per match) leaked a runtime Material each time; a single static one never does.
+        private static Material _sharedBurstMaterial;
+
         private IAudioService _audioService;
         private IComboService _comboService;
         private EnemyData _data;
@@ -138,11 +142,16 @@ namespace Game.Enemy
             shape.radius = 0.2f;
 
             ParticleSystemRenderer particleRenderer = burstObject.GetComponent<ParticleSystemRenderer>();
-            Shader shader = Shader.Find("Sprites/Default");
-            particleRenderer.material = new Material(shader)
-            {
-                name = "Ringout Burst"
-            };
+            particleRenderer.sharedMaterial = GetBurstMaterial();
+        }
+
+        private static Material GetBurstMaterial()
+        {
+            if (_sharedBurstMaterial != null)
+                return _sharedBurstMaterial;
+
+            _sharedBurstMaterial = new Material(Shader.Find("Sprites/Default")) { name = "Ringout Burst" };
+            return _sharedBurstMaterial;
         }
 
         private int GetScoreReward()

@@ -70,6 +70,11 @@ namespace Architecture.Services
 
             foreach (IPausable pausable in _snapshot)
             {
+                // A scene/pooled pausable destroyed without unregistering leaves a Unity fake-null here; skip it so a
+                // stale reference can't throw MissingReferenceException mid-broadcast.
+                if (pausable is UnityEngine.Object unityObject && unityObject == null)
+                    continue;
+
                 if (pause)
                     pausable.Pause();
                 else

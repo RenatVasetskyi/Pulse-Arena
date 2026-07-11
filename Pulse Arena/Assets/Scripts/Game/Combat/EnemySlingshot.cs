@@ -351,7 +351,7 @@ namespace Game.Combat
                                 GetGrabbedLaunchMultiplier();
             Vector3 velocity = launchDirection.normalized * launchForce;
             velocity.y = -Mathf.Lerp(_data.LaunchDownwardVelocity,
-                _data.LaunchDownwardVelocity * 1.25f, launchProgress);
+                _data.LaunchDownwardVelocity * _data.LaunchDownwardMaxChargeMultiplier, launchProgress);
 
             _grabbedEnemy.Launch(velocity, _data.LaunchDuration);
             ResetLasso();
@@ -435,7 +435,7 @@ namespace Game.Combat
             {
                 Vector3 dropDirection = GetPlanarDirectionTo(enemy.transform.position);
                 enemy.Knockback(dropDirection * _data.BreakDropForce +
-                                Vector3.up * (_data.BreakDropForce * 0.25f));
+                                Vector3.up * (_data.BreakDropForce * _data.BreakUpwardRatio));
             }
 
             ResetLasso();

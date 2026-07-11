@@ -303,10 +303,8 @@ namespace Data
 
         public float MaxLifetime = 11f;
 
-        [Header("Suck-In")] [Tooltip("Horizontal speed the eaten enemy is yanked toward the pit center.")]
-        public float SuckSpeed = 12f;
-
-        [Tooltip("Downward speed added as the enemy is swallowed.")]
+        [Header("Suck-In")]
+        [Tooltip("Speed the swallowed enemy is drawn to the pit center and sinks straight down into the maw.")]
         public float SuckDown = 4f;
     }
 
@@ -415,6 +413,7 @@ namespace Data
         public float LaunchForce = 18f;
         public float LaunchUpwardRatio = 0.12f;
         public float LaunchDownwardVelocity = 8f;
+        public float LaunchDownwardMaxChargeMultiplier = 1.25f; // extra downward boost at full charge
         public float LaunchDuration = 0.9f;
         public float ChargeDuration = 4f;
         public float MaxChargeLaunchMultiplier = 1.6f;
@@ -464,6 +463,7 @@ namespace Data
         public float TensionPulseSpeed = 26f;
         public float TensionPulseAmplitude = 0.18f;
         public float BreakDropForce = 6f;
+        public float BreakUpwardRatio = 0.25f; // fraction of BreakDropForce applied upward on a rope snap
         public float BreakCooldownMultiplier = 1.6f;
         public Color TensionColor = new(1f, 0.25f, 0.15f, 1f);
         public LayerMask EnemyLayer;

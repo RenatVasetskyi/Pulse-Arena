@@ -34,7 +34,6 @@ namespace UI.Hud
 
         [Header("Pause")] [SerializeField] private Button _pauseButton;
 
-        private IBattleCamera _camera;
         private int _lastHealth = -1;
 
         private PlayerController _player;
@@ -82,7 +81,6 @@ namespace UI.Hud
             if (_zoom != null)
                 _zoom.Bind(camera);
 
-            _camera = camera;
             _player = player;
 
             if (_player != null)
@@ -129,15 +127,12 @@ namespace UI.Hud
                 _toast.Show(message, duration);
         }
 
+        // HUD-visual only: the full-screen damage flash. The camera hit-kick + SFX + haptics for the same event
+        // live in GameplayFeedbackDirector (which also subscribes to HealthChanged) — the HUD stays passive.
         private void OnPlayerHealthChanged(int health, int maxHealth)
         {
-            if (_lastHealth >= 0 && health < _lastHealth)
-            {
-                if (_damageFlash != null)
-                    _damageFlash.Flash();
-
-                _camera?.PlayPlayerHit();
-            }
+            if (_lastHealth >= 0 && health < _lastHealth && _damageFlash != null)
+                _damageFlash.Flash();
 
             _lastHealth = health;
         }

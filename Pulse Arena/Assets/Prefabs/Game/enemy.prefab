@@ -20136,6 +20136,7 @@ GameObject:
   - component: {fileID: 9147969120405590603}
   - component: {fileID: 4289127048939256766}
   - component: {fileID: 6542245714130828808}
+  - component: {fileID: 2256318195650660110}
   m_Layer: 6
   m_Name: enemy
   m_TagString: Untagged
@@ -20222,7 +20223,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Enemy.EnemyController
   _rigidbody: {fileID: 9147969120405590603}
-  _agent: {fileID: 0}
+  _agent: {fileID: 2256318195650660110}
+  _visual: {fileID: 2521991531091710849}
+--- !u!195 &2256318195650660110
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3034675120685911586}
+  m_Enabled: 0
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &3470309365033907967
 GameObject:
   m_ObjectHideFlags: 0

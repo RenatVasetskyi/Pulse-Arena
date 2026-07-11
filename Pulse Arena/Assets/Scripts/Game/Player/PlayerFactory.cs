@@ -1,6 +1,5 @@
 using System;
 using Data;
-using Game.Combat;
 using Game.Common;
 using Game.Player.Interfaces;
 using UnityEngine;
@@ -24,20 +23,14 @@ namespace Game.Player
             if (_gameSettings.Prefabs.PlayerPrefab == null)
                 throw new InvalidOperationException("Player prefab is not assigned in GameSettings.");
 
+            // EnemySlingshot + PlayerUltimate are baked on the prefab (inspector-wired), so InstantiatePrefabForComponent
+            // instantiates AND Zenject-injects them — nothing combat-related is assembled at runtime any more.
             PlayerController player = _container.InstantiatePrefabForComponent<PlayerController>
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 
             ActorGroundingUtility.SnapToGround(player.transform, _gameSettings.Grounding);
-            AddCombatComponents(player);
 
             return player;
-        }
-
-        private void AddCombatComponents(PlayerController player)
-        {
-            EnemySlingshot enemySlingshot = player.GetComponent<EnemySlingshot>();
-            enemySlingshot ??= player.gameObject.AddComponent<EnemySlingshot>();
-            _container.Inject(enemySlingshot);
         }
     }
 }

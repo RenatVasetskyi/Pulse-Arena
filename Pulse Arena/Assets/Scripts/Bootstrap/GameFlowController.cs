@@ -7,6 +7,7 @@ using Game.Cameras;
 using Game.Enemy;
 using Game.Player;
 using Game.Spawning;
+using Game.Turrets;
 using UI;
 using UI.Hud;
 using UI.Pause;
@@ -38,7 +39,9 @@ namespace Game.Scene
         private readonly ISettingsController _settingsController;
         private readonly ISlowMoService _slowMoService;
         private readonly IStateMachine _stateMachine;
+        private readonly ITurretSpawner _turretSpawner;
         private IBattleCamera _battleCamera;
+        private Coroutine _gameOverRoutine;
         private GameHud _gameHud;
         private GameOverView _gameOverView;
         private bool _isGameOver;
@@ -49,8 +52,8 @@ namespace Game.Scene
         public GameFlowController(IInputService inputService, IScoreService scoreService,
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
-            IPitSpawner pitSpawner, IPauseService pauseService, ICoroutineRunner coroutineRunner,
-            GameSettings gameSettings)
+            IPitSpawner pitSpawner, ITurretSpawner turretSpawner, IPauseService pauseService,
+            ICoroutineRunner coroutineRunner, GameSettings gameSettings)
         {
             _inputService = inputService;
             _scoreService = scoreService;
@@ -61,6 +64,7 @@ namespace Game.Scene
             _enemySpawner = enemySpawner;
             _pickupSpawner = pickupSpawner;
             _pitSpawner = pitSpawner;
+            _turretSpawner = turretSpawner;
             _pauseService = pauseService;
             _coroutineRunner = coroutineRunner;
             _gameSettings = gameSettings;
@@ -92,6 +96,14 @@ namespace Game.Scene
 
         public void Unbind()
         {
+            // The delay coroutine lives on the persistent (ProjectContext) runner, so an unfinished one would
+            // outlive this match and call ShowGameOver on a destroyed view — stop it on teardown.
+            if (_gameOverRoutine != null)
+            {
+                _coroutineRunner.StopCoroutine(_gameOverRoutine);
+                _gameOverRoutine = null;
+            }
+
             if (_player != null)
                 _player.Died -= OnPlayerDied;
 
@@ -123,7 +135,7 @@ namespace Game.Scene
             _isGameOver = true;
             StopRun();
             _battleCamera?.PlayDeathZoom();
-            _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
+            _gameOverRoutine = _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
         }
 
         private void OnAllWavesCleared()
@@ -145,6 +157,7 @@ namespace Game.Scene
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();
             _pitSpawner.StopSpawn();
+            _turretSpawner.StopSpawn(); // otherwise turrets keep firing at the corpse during the death-screen delay
         }
 
         // Let the death animation + camera zoom play (real-time, not frozen), THEN show the screen and freeze.
@@ -183,6 +196,7 @@ namespace Game.Scene
         private void QuitToMenu()
         {
             _pauseService.Unpause(); // never carry a paused state across a scene change (next scene must be live)
+            _slowMoService.Stop(); // kill any in-progress bullet-time on the persistent runner before the scene swap
             Time.timeScale = 1f;
             _stateMachine.Enter<LoadMainMenuState>();
         }
@@ -191,6 +205,7 @@ namespace Game.Scene
         {
             _audioService.PlaySfx(GameSfx.UiClick);
             _pauseService.Unpause();
+            _slowMoService.Stop();
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }

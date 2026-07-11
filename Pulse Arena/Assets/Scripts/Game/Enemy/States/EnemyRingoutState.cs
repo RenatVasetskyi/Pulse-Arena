@@ -30,13 +30,20 @@ namespace Game.Enemy.States
             // Controller-coupled slice, in original order: mark dead, zero the health bar, resolve the ringout.
             _context.ResolveRingout();
 
-            TumbleOffEdge();
+            if (_context.PitSinkCenter.HasValue)
+                SinkIntoPit();
+            else
+                TumbleOffEdge();
         }
 
         public override void FixedTick()
         {
             _context.Timers.RingoutElapsed += Time.fixedDeltaTime;
-            ActorPhysicsUtility.ApplyExtraGravity(_context.Rigidbody, _context.Data.ExtraGravity);
+
+            if (_context.PitSinkCenter.HasValue)
+                DriveSink();
+            else
+                ActorPhysicsUtility.ApplyExtraGravity(_context.Rigidbody, _context.Data.ExtraGravity);
 
             float progress =
                 Mathf.Clamp01(_context.Timers.RingoutElapsed / Mathf.Max(0.1f, _context.Data.RingoutDuration));
@@ -72,6 +79,35 @@ namespace Game.Enemy.States
                 Random.Range(-10f, 10f),
                 Random.Range(-4f, 4f),
                 Random.Range(-10f, 10f));
+        }
+
+        // Pit variant of the flung physics: stay upright (no tumble spin) and turn off gravity so DriveSink fully
+        // owns the descent. The controller has already disabled the collider, so the body sinks through the arena
+        // floor into the maw instead of resting on it.
+        private void SinkIntoPit()
+        {
+            if (_context.Rigidbody == null)
+                return;
+
+            _context.Rigidbody.isKinematic = false;
+            _context.Rigidbody.useGravity = false;
+            _context.Rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+            _context.Rigidbody.angularVelocity = Vector3.zero;
+            _context.Rigidbody.linearVelocity = Vector3.zero; // kill incoming fling speed so DriveSink fully owns the descent
+        }
+
+        // Ease toward the maw center (horizontal capped to PitSinkSpeed so it converges without overshooting and
+        // flying out) while descending at that same steady rate — a clean straight-down suck, not a launch.
+        private void DriveSink()
+        {
+            if (_context.Rigidbody == null)
+                return;
+
+            Vector3 toCenter = _context.PitSinkCenter.Value - _context.Transform.position;
+            toCenter.y = 0f;
+
+            Vector3 horizontal = Vector3.ClampMagnitude(toCenter / Time.fixedDeltaTime, _context.PitSinkSpeed);
+            _context.Rigidbody.linearVelocity = horizontal + Vector3.down * _context.PitSinkSpeed;
         }
     }
 }

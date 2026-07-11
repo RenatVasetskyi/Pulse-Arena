@@ -15,6 +15,12 @@ namespace Game.Turrets
     /// </summary>
     public class Turret : MonoBehaviour, IPausable
     {
+        private const float AimHeightOffset = 0.6f; // aim at the player's torso, not their feet
+        private const float DestructDroopAngle = -45f; // the barrel droops before the turret collapses
+        private const float DestructDroopDuration = 0.18f;
+        private const float DestructCollapseDuration = 0.4f; // crumble-to-nothing + sink
+        private const float DestructSinkDepth = 0.35f;
+
         [SerializeField] private Transform _head;
         [SerializeField] private Transform _muzzle;
         private TurretData _data;
@@ -95,10 +101,12 @@ namespace Game.Turrets
             _destructSeq = DOTween.Sequence().SetLink(gameObject);
 
             if (_head != null)
-                _destructSeq.Append(_head.DOLocalRotate(new Vector3(-45f, 0f, 0f), 0.18f).SetEase(Ease.OutQuad));
+                _destructSeq.Append(_head.DOLocalRotate(new Vector3(DestructDroopAngle, 0f, 0f), DestructDroopDuration)
+                    .SetEase(Ease.OutQuad));
 
-            _destructSeq.Append(transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InBack));
-            _destructSeq.Join(transform.DOMoveY(transform.position.y - 0.35f, 0.4f).SetEase(Ease.InQuad));
+            _destructSeq.Append(transform.DOScale(Vector3.zero, DestructCollapseDuration).SetEase(Ease.InBack));
+            _destructSeq.Join(transform.DOMoveY(transform.position.y - DestructSinkDepth, DestructCollapseDuration)
+                .SetEase(Ease.InQuad));
             _destructSeq.OnComplete(Despawn);
         }
 
@@ -134,7 +142,7 @@ namespace Game.Turrets
 
         private void Fire()
         {
-            Vector3 aimPoint = _target.position + Vector3.up * 0.6f;
+            Vector3 aimPoint = _target.position + Vector3.up * AimHeightOffset;
             Vector3 direction = aimPoint - _muzzle.position;
 
             if (direction.sqrMagnitude < 0.0001f)

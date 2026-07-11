@@ -30,6 +30,7 @@ namespace Game.Enemy
 
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
+        [SerializeField] private EnemyPrimitiveVisual _visual;
         private Vector3 _cachedAngularVelocity;
         private bool _cachedIsKinematic;
         private Vector3 _cachedLinearVelocity;
@@ -72,7 +73,6 @@ namespace Game.Enemy
         private ActorStateMachine _stateMachine;
         private Transform _target;
         private EnemyTypeData _typeData = EnemyTypeData.Default;
-        private EnemyPrimitiveVisual _visual;
         public event Action<EnemyController> Destroyed;
         public event Action<int, int> HealthChanged;
 
@@ -243,9 +243,19 @@ namespace Game.Enemy
             _collisions.OnCollisionStay(collision);
         }
 
-        /// <summary>Rings the enemy out on the spot — used by arena pits it gets flung into.</summary>
-        public void FallIntoPit()
+        /// <summary>
+        ///     Sucked into an arena pit: ring out by sinking straight down into the maw at <paramref name="pitCenter" />
+        ///     (centering + descending at <paramref name="sinkSpeed" />) rather than tumbling off an edge. Disables the
+        ///     collider so the body drops through the arena floor into the hole instead of resting on it.
+        /// </summary>
+        public void FallIntoPit(Vector3 pitCenter, float sinkSpeed)
         {
+            _context.PitSinkCenter = pitCenter;
+            _context.PitSinkSpeed = sinkSpeed;
+
+            if (_capsule != null)
+                _capsule.enabled = false;
+
             StartRingout();
         }
 
@@ -431,17 +441,11 @@ namespace Game.Enemy
             ChangeToDeadState();
         }
 
+        // _rigidbody, _agent and _visual are all baked on the enemy prefab (inspector-wired). The agent is
+        // baked disabled and stays parked here until a state hands control to it via TryEnableAgent (once it is
+        // safely on the NavMesh), so a pooled enemy spawned off-mesh at the origin never fires an OnEnable warp.
         private void ResolveComponents()
         {
-            if (_rigidbody == null)
-                _rigidbody = GetComponent<Rigidbody>();
-
-            if (_agent == null)
-                _agent = GetComponent<NavMeshAgent>();
-
-            if (_agent == null)
-                _agent = gameObject.AddComponent<NavMeshAgent>();
-
             _agent.enabled = false;
             _capsule = ActorPhysicsUtility.NormalizeCapsuleRoot(transform);
         }
@@ -456,7 +460,7 @@ namespace Game.Enemy
 
         private void SetupVisualsAndFlash()
         {
-            EnsurePrimitiveVisual();
+            InitializeVisual();
             _hitFlash.Initialize(GetComponentsInChildren<Renderer>(),
                 _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
         }
@@ -517,6 +521,9 @@ namespace Game.Enemy
 
         private void ResetRigidbodyForSpawn()
         {
+            if (_capsule != null)
+                _capsule.enabled = true; // re-arm the collider a pit-sink disabled
+
             if (_rigidbody == null)
                 return;
 
@@ -552,6 +559,7 @@ namespace Game.Enemy
             _context.IsGrabbed = false;
             _context.IsImpactProjectile = false;
             _context.NeedsGroundRecovery = false;
+            _context.PitSinkCenter = null;
         }
 
         private void ReturnToPool()
@@ -723,20 +731,20 @@ namespace Game.Enemy
 
         // Shared cooldowns that tick in EVERY non-dead state (EnemyTimers.TickFixed — includes Stasis, as
         // the original did). The knockback-timer decrement + its expiry side effect live in
-        // EnemyKnockbackState, not here. The impact hit-set is a dictionary the controller still ticks.
+        // EnemyKnockbackState, not here. The impact hit-set needs no per-frame tick — it is a HashSet cleared
+        // once per throw.
         private void TickTimers()
         {
             _timers.TickFixed(Time.fixedDeltaTime);
-            _impact.Tick(Time.fixedDeltaTime);
         }
 
-        private void EnsurePrimitiveVisual()
+        // The visual is baked on the enemy prefab and inspector-wired, so this just hands the assigned ref its
+        // dependencies — nothing is fetched at runtime.
+        private void InitializeVisual()
         {
-            _visual = GetComponentInChildren<EnemyPrimitiveVisual>();
-
             if (_visual == null)
             {
-                Debug.LogError("EnemyPrimitiveVisual is missing on the enemy prefab.", this);
+                Debug.LogError("EnemyPrimitiveVisual is not assigned on the enemy prefab.", this);
                 return;
             }
 

@@ -23,9 +23,6 @@ namespace UI.Hud
 
         private void Awake()
         {
-            if (_button == null)
-                _button = GetComponent<Button>();
-
             if (_button != null)
                 _button.interactable = false; // start inactive until the first charge update flips it
         }

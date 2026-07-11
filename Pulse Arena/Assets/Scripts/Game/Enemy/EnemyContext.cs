@@ -36,6 +36,11 @@ namespace Game.Enemy
         public bool IsGrabbed;
         public bool IsImpactProjectile;
         public bool NeedsGroundRecovery;
+
+        // Set by FallIntoPit: when it has a value the ringout sinks the enemy straight down into this maw
+        // (centering + descending at PitSinkSpeed) instead of tumbling off an arena edge. Null = edge ringout.
+        public Vector3? PitSinkCenter;
+        public float PitSinkSpeed;
         public EnemyCollisionHandler Collisions { get; }
         public EnemyData Data { get; }
         public GroundRecoveryController GroundRecovery { get; }

@@ -17,6 +17,10 @@ namespace Game.Cameras
     /// </summary>
     public class BattleCamera : MonoBehaviour, IBattleCamera
     {
+        private const float LaunchFeedbackMinChargeScale = 0.65f; // launch shake/kick strength at zero charge (→ 1 at full)
+        private const float LaunchFovMinChargeScale = 0.6f; // FOV-punch scale at zero charge
+        private const float DeathZoomLerp = 0.7f; // how far the death zoom pushes from DefaultZoom toward MinZoom
+
         [Header("Cinemachine")] [SerializeField]
         private CinemachineCamera _camera;
 
@@ -52,7 +56,6 @@ namespace Game.Cameras
 
         private void Awake()
         {
-            CacheComponents();
             _shaker.Initialize(_noise, _data.ShakeFrequency);
             _zoom.Initialize(_settings, _followOffset, _data);
             ApplySettings();
@@ -74,7 +77,6 @@ namespace Game.Cameras
 
         private void OnValidate()
         {
-            CacheComponents();
             ApplySettings();
         }
 
@@ -102,9 +104,9 @@ namespace Game.Cameras
             float safeProgress = Mathf.Clamp01(chargeProgress);
 
             _shaker.Shake(_data.LaunchShakeDuration,
-                Mathf.Lerp(_data.LaunchShakeStrength * 0.65f, _data.LaunchShakeStrength, safeProgress));
-            _kick.KickOffset(_data.LaunchKickOffset * Mathf.Lerp(0.65f, 1f, safeProgress), _data.LaunchKickDuration);
-            _kick.FovPunch(_data.LaunchFovPunch * Mathf.Lerp(0.6f, 1f, safeProgress), _data.LaunchFovDuration);
+                Mathf.Lerp(_data.LaunchShakeStrength * LaunchFeedbackMinChargeScale, _data.LaunchShakeStrength, safeProgress));
+            _kick.KickOffset(_data.LaunchKickOffset * Mathf.Lerp(LaunchFeedbackMinChargeScale, 1f, safeProgress), _data.LaunchKickDuration);
+            _kick.FovPunch(_data.LaunchFovPunch * Mathf.Lerp(LaunchFovMinChargeScale, 1f, safeProgress), _data.LaunchFovDuration);
         }
 
         public void PlayPlayerHit()
@@ -139,7 +141,7 @@ namespace Game.Cameras
         // shake. The scene reload after game-over re-reads the saved zoom, so this never sticks.
         public void PlayDeathZoom()
         {
-            _zoom.SetTargetZoom(Mathf.Lerp(_data.DefaultZoom, _data.MinZoom, 0.7f));
+            _zoom.SetTargetZoom(Mathf.Lerp(_data.DefaultZoom, _data.MinZoom, DeathZoomLerp));
 
             if (CameraEffectsEnabled)
                 _shaker.Shake(_data.PlayerHitShakeDuration, _data.PlayerHitShakeStrength);
@@ -158,21 +160,6 @@ namespace Game.Cameras
 
             if (_follow != null)
                 _follow.FollowOffset = _zoom.ZoomedFollowOffset + _kick.CurrentOffset;
-        }
-
-        private void CacheComponents()
-        {
-            if (_camera == null)
-                _camera = GetComponent<CinemachineCamera>();
-
-            if (_follow == null)
-                _follow = GetComponent<CinemachineFollow>();
-
-            if (_rotationComposer == null)
-                _rotationComposer = GetComponent<CinemachineRotationComposer>();
-
-            if (_noise == null)
-                _noise = GetComponent<CinemachineBasicMultiChannelPerlin>();
         }
 
         // Base rig framing applied on Awake + in the editor (OnValidate). Update refreshes the zoom composite

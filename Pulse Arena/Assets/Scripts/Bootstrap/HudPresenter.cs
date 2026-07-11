@@ -64,7 +64,7 @@ namespace Game.Scene
             _comboService.ComboChanged += OnComboChanged;
             _superMeterService.ChargeChanged += OnSuperChargeChanged;
             _enemySpawner.WaveChanged += OnWaveChanged;
-            _pickupSpawner.RarePickupSpawned += OnRarePickupSpawned;
+            _pickupSpawner.PickupSpawned += OnPickupSpawned;
 
             return _hud;
         }
@@ -74,7 +74,7 @@ namespace Game.Scene
             _comboService.ComboChanged -= OnComboChanged;
             _superMeterService.ChargeChanged -= OnSuperChargeChanged;
             _enemySpawner.WaveChanged -= OnWaveChanged;
-            _pickupSpawner.RarePickupSpawned -= OnRarePickupSpawned;
+            _pickupSpawner.PickupSpawned -= OnPickupSpawned;
             _inputService.SetTouchInput(null);
 
             if (_hud != null)
@@ -87,6 +87,6 @@ namespace Game.Scene
 
         private void OnWaveChanged(int current, int total) => _hud.SetWave(current, total);
 
-        private void OnRarePickupSpawned(string message, float duration) => _hud.ShowToast(message, duration);
+        private void OnPickupSpawned(string message, float duration) => _hud.ShowToast(message, duration);
     }
 }

@@ -23,6 +23,7 @@ MonoBehaviour:
     LaunchForce: 18
     LaunchUpwardRatio: 0.12
     LaunchDownwardVelocity: 8
+    LaunchDownwardMaxChargeMultiplier: 1.25
     LaunchDuration: 0.9
     ChargeDuration: 4
     MaxChargeLaunchMultiplier: 1.6
@@ -66,6 +67,7 @@ MonoBehaviour:
     TensionPulseSpeed: 26
     TensionPulseAmplitude: 0.18
     BreakDropForce: 6
+    BreakUpwardRatio: 0.25
     BreakCooldownMultiplier: 1.6
     TensionColor: {r: 1, g: 0.25, b: 0.15, a: 1}
     EnemyLayer:

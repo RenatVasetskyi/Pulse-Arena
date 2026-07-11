@@ -19,15 +19,14 @@ namespace Game.Arena
     {
         [SerializeField] private float _growDuration = 0.35f;
         [SerializeField] private float _closeDuration = 0.4f;
+        [SerializeField] private Collider _trigger;
         private bool _consumed;
         private Sequence _gulp;
         private Sequence _life;
         private IPauseService _pauseService;
         private float _suckDown = 4f;
-        private float _suckSpeed = 12f;
         private Vector3 _targetScale;
 
-        private Collider _trigger;
         private Transform _vortex;
         private Tween _vortexSpin;
 
@@ -56,11 +55,10 @@ namespace Game.Arena
         }
 
         /// <summary>Grow in, stay open for <paramref name="lifetime" />s, then close and despawn if unused.</summary>
-        public void Initialize(float scale, float lifetime, float suckSpeed, float suckDown)
+        public void Initialize(float scale, float lifetime, float suckDown)
         {
             _consumed = false;
             _pauseService?.Register(this);
-            _suckSpeed = suckSpeed;
             _suckDown = suckDown;
             _targetScale = Vector3.one * scale;
             _trigger.enabled = true;
@@ -88,7 +86,6 @@ namespace Game.Arena
 
         private void Awake()
         {
-            _trigger = GetComponent<Collider>();
             _vortex = transform.Find("vortex");
         }
 
@@ -110,16 +107,17 @@ namespace Game.Arena
                 return;
 
             if (body.TryGetComponent(out EnemyController enemy))
-                Consume(body, enemy);
+                Consume(enemy);
         }
 
-        private void Consume(Rigidbody body, EnemyController enemy)
+        private void Consume(EnemyController enemy)
         {
             _consumed = true;
             _trigger.enabled = false;
 
-            enemy.FallIntoPit();
-            Suck(body);
+            // The enemy owns the suck-down physics (its ringout sinks it into the maw); we just hand it the
+            // pit center + rate so it converges to the hole instead of getting launched sideways.
+            enemy.FallIntoPit(transform.position, _suckDown);
 
             _life?.Kill();
 
@@ -127,16 +125,6 @@ namespace Game.Arena
             _gulp.Append(transform.DOScale(_targetScale * 1.12f, 0.1f).SetEase(Ease.OutQuad));
             _gulp.Append(transform.DOScale(Vector3.zero, _closeDuration).SetEase(Ease.InBack));
             _gulp.OnComplete(Despawn);
-        }
-
-        // Yank the enemy toward the pit center (and down), so it visibly gets sucked in as it shrinks.
-        private void Suck(Rigidbody body)
-        {
-            Vector3 toCenter = transform.position - body.position;
-            toCenter.y = 0f;
-
-            Vector3 horizontal = toCenter.sqrMagnitude > 0.001f ? toCenter.normalized : Vector3.zero;
-            body.linearVelocity = horizontal * _suckSpeed + Vector3.down * _suckDown;
         }
 
         private void Despawn()

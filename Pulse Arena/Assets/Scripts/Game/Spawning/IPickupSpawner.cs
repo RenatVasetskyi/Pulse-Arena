@@ -5,7 +5,7 @@ namespace Game.Spawning
 
     public interface IPickupSpawner
     {
-        event Action<string, float> RarePickupSpawned;
+        event Action<string, float> PickupSpawned;
 
         void Initialize(Vector3 center, Transform player, Transform spawnParent, float spawnHeightOffset);
         void StartSpawn();

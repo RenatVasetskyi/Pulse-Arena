@@ -123,7 +123,6 @@ namespace Architecture.Services
         private bool MouseRightPressed()
         {
             return !IsPointerOverUi() && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
-            ;
         }
 
         private static bool MouseRightHeld()

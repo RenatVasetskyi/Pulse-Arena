@@ -25,6 +25,8 @@ namespace Game.Player
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
+        [SerializeField] private EnemySlingshot _slingshot;
+        [SerializeField] private PlayerPrimitiveVisual _visual;
         private readonly IPlayerDash _dash = new PlayerDash();
         private readonly IActorHealth _health = new ActorHealth();
         private readonly HitFlash _hitFlash = new();
@@ -42,8 +44,6 @@ namespace Game.Player
         private IPauseService _pauseService;
         private GameSettings _settings;
         private ActorStateMachine _stateMachine;
-
-        private PlayerPrimitiveVisual _visual;
         public event Action Dashed;
         public event Action Died;
         public event Action<int, int> HealthChanged;
@@ -107,11 +107,8 @@ namespace Game.Player
 
         private void Awake()
         {
-            if (_rigidbody == null)
-                _rigidbody = GetComponent<Rigidbody>();
-
             ActorPhysicsUtility.NormalizeCapsuleRoot(transform);
-            EnsurePrimitiveVisual();
+            InitializeVisual();
             _renderers = GetComponentsInChildren<Renderer>();
 
             _hitFlash.Initialize(_renderers, _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
@@ -274,7 +271,7 @@ namespace Game.Player
         // Drop any enemy still held on the lasso when the player dies, so the rope doesn't keep spinning it.
         private void ReleaseSlingshotGrab()
         {
-            GetComponent<EnemySlingshot>()?.ForceRelease();
+            _slingshot?.ForceRelease();
         }
 
         // Kill all momentum and freeze the body so the corpse doesn't slide or get shoved around while the death
@@ -302,21 +299,18 @@ namespace Game.Player
             _stateMachine.ChangeState(_moveState);
         }
 
-        private void EnsurePrimitiveVisual()
+        // The visual + the slingshot are both baked on the player prefab and inspector-wired (the slingshot's own
+        // LassoOrigin transform too), so this just hands the assigned refs to the visual — the throw arm-swing
+        // subscribes to the slingshot's LassoThrown here. Nothing is fetched or assembled at runtime.
+        private void InitializeVisual()
         {
-            _visual = GetComponentInChildren<PlayerPrimitiveVisual>();
-
             if (_visual == null)
             {
-                Debug.LogError("PlayerPrimitiveVisual is missing on the player prefab.", this);
+                Debug.LogError("PlayerPrimitiveVisual is not assigned on the player prefab.", this);
                 return;
             }
 
-            EnemySlingshot slingshot = GetComponent<EnemySlingshot>();
-            _visual.Initialize(_rigidbody, slingshot, _settings.PlayerVisuals);
-
-            if (slingshot != null && _visual.LassoOrigin != null)
-                slingshot.SetLassoOrigin(_visual.LassoOrigin);
+            _visual.Initialize(_rigidbody, _slingshot, _settings.PlayerVisuals);
         }
     }
 }

@@ -134,6 +134,7 @@ namespace Game.Scene
             if (_lastPlayerHealth >= 0 && health < _lastPlayerHealth)
             {
                 _audioService.PlaySfx(GameSfx.PlayerHit);
+                _camera.PlayPlayerHit();
                 TryVibrate();
             }
 

@@ -15245,6 +15245,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Arena.Pit
   _growDuration: 0.35
   _closeDuration: 0.4
+  _trigger: {fileID: 5498304700715320326}
 --- !u!1 &4345624256372413084
 GameObject:
   m_ObjectHideFlags: 0

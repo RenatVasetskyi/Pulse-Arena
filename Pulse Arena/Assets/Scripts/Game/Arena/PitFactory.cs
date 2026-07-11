@@ -28,7 +28,7 @@ namespace Game.Arena
 
             Pit pit = _container.InstantiatePrefabForComponent<Pit>(prefab, at, Quaternion.identity, parent);
             PitData data = _gameSettings.PitData;
-            pit.Initialize(scale, lifetime, data.SuckSpeed, data.SuckDown);
+            pit.Initialize(scale, lifetime, data.SuckDown);
 
             return pit;
         }

@@ -23,7 +23,7 @@ namespace Game.Spawning
 
         private Coroutine _spawnRoutine;
 
-        public event Action<string, float> RarePickupSpawned;
+        public event Action<string, float> PickupSpawned;
 
         public PickupSpawner(ICoroutineRunner coroutineRunner, IPickupFactory pickupFactory, GameSettings gameSettings,
             IPauseService pauseService)
@@ -130,7 +130,7 @@ namespace Game.Spawning
             pickup.Collected += OnPickupCollected;
 
             _alivePickups++;
-            RarePickupSpawned?.Invoke(_gameSettings.PickupData.RareSpawnMessage,
+            PickupSpawned?.Invoke(_gameSettings.PickupData.RareSpawnMessage,
                 _gameSettings.PickupData.SpawnToastDuration);
         }
 

@@ -14,31 +14,56 @@ namespace Game.Player
     ///     ground shockwave VFX at the player and fires <see cref="Activated" /> so the scene can add camera
     ///     shake / slow-mo / sound on top.
     /// </summary>
-    public class PlayerUltimate : MonoBehaviour
+    public class PlayerUltimate : MonoBehaviour, IPausable
     {
         private readonly IShockwaveEffect _shockwave = new ShockwaveEffect();
         private IInputService _input;
+        private bool _paused;
+        private IPauseService _pauseService;
         private GameSettings _settings;
 
         private ISuperMeterService _superMeter;
         public event Action Activated;
 
         [Inject]
-        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings)
+        public void Construct(ISuperMeterService superMeter, IInputService input, GameSettings settings,
+            IPauseService pauseService)
         {
             _superMeter = superMeter;
             _input = input;
             _settings = settings;
+            _pauseService = pauseService;
             _shockwave.Initialize(transform, settings.SuperData);
+            _pauseService.Register(this);
+        }
+
+        /// <summary>Mechanical pause: stop polling the ultimate input so it can't fire (and consume the meter /
+        /// launch frozen enemies) while the game is mechanically paused.</summary>
+        public void Pause()
+        {
+            _paused = true;
+        }
+
+        public void Resume()
+        {
+            _paused = false;
         }
 
         private void Update()
         {
+            if (_paused)
+                return;
+
             if (!_input.IsUltimatePressedThisFrame || !_superMeter.IsFull)
                 return;
 
             if (_superMeter.TryConsume())
                 Unleash();
+        }
+
+        private void OnDestroy()
+        {
+            _pauseService?.Unregister(this);
         }
 
         private void Unleash()
