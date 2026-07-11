@@ -29,6 +29,19 @@ jobs:
           restore-keys: |
             Library-
 
+      # TEMP diagnostic: proves whether the UNITY_LICENSE secret actually reaches the workflow.
+      # Prints only the length (never the content). Remove once CI is green.
+      - name: Check license secret
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "::error::UNITY_LICENSE is EMPTY — the secret is not visible to this workflow (wrong tab/scope/name)."
+            exit 1
+          else
+            echo "UNITY_LICENSE is present (${#UNITY_LICENSE} chars). Secret plumbing OK."
+          fi
+
       - name: Run tests
         uses: game-ci/unity-test-runner@v4
         env:
