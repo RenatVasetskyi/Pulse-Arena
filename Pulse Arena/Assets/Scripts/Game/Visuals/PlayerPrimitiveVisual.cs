@@ -11,7 +11,7 @@ namespace Game.Visuals
     ///     idle bob, arm swing, throw, hit-squash and death roll. Each animation layer is its own
     ///     single-purpose method the per-frame Animate coordinator composes in order.
     /// </summary>
-    public class PlayerPrimitiveVisual : MonoBehaviour
+    public class PlayerPrimitiveVisual : MonoBehaviour, IPlayerVisual
     {
         // Baked animation "feel" constants — the personality of the character, not per-instance tuning
         // (the designer-facing knobs live in PlayerVisualData). Named so the numbers read intent, not magic.
@@ -106,6 +106,11 @@ namespace Game.Visuals
         public void PlayHit()
         {
             _hitTimer = _visualData.HitSquashDuration;
+        }
+
+        // The primitive has no dash clip — the dash trail + move-blend already sell the dash.
+        public void PlayDash(float dashDuration)
+        {
         }
 
         private void PlayThrow()

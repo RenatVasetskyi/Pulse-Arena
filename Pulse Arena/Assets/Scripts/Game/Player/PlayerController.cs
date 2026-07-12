@@ -26,7 +26,7 @@ namespace Game.Player
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
         [SerializeField] private EnemySlingshot _slingshot;
-        [SerializeField] private PlayerPrimitiveVisual _visual;
+        [SerializeField] private MonoBehaviour _visualBehaviour;
         private readonly IPlayerDash _dash = new PlayerDash();
         private readonly IActorHealth _health = new ActorHealth();
         private readonly HitFlash _hitFlash = new();
@@ -44,6 +44,7 @@ namespace Game.Player
         private IPauseService _pauseService;
         private GameSettings _settings;
         private ActorStateMachine _stateMachine;
+        private IPlayerVisual _visual;
         public event Action Dashed;
         public event Action Died;
         public event Action<int, int> HealthChanged;
@@ -168,6 +169,7 @@ namespace Game.Player
             if (_isDead || !_health.TakeDamage(damage))
                 return false;
 
+            _movement.Stop(); // kill input momentum so a hit interrupts movement (no coasting through the hitstun)
             _movement.ApplyKnockback(sourcePosition, _data.HitKnockbackForce);
             _hitFlash.Play();
             _visual?.PlayHit();
@@ -223,6 +225,7 @@ namespace Game.Player
             _dash.Begin();
             _health.GrantInvulnerability(_data.DashInvulnerability);
             ChangeToDashState();
+            _visual?.PlayDash(_data.DashDuration);
             Dashed?.Invoke();
         }
 
@@ -304,13 +307,15 @@ namespace Game.Player
         // subscribes to the slingshot's LassoThrown here. Nothing is fetched or assembled at runtime.
         private void InitializeVisual()
         {
+            _visual = _visualBehaviour as IPlayerVisual;
+
             if (_visual == null)
             {
-                Debug.LogError("PlayerPrimitiveVisual is not assigned on the player prefab.", this);
+                Debug.LogError("Player visual (IPlayerVisual) is not assigned on the player prefab.", this);
                 return;
             }
 
-            _visual.Initialize(_rigidbody, _slingshot, _settings.PlayerVisuals);
+            _visual.Initialize(_rigidbody, _slingshot, _settings != null ? _settings.PlayerVisuals : null);
         }
     }
 }
