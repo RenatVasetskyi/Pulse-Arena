@@ -125,6 +125,9 @@ namespace Data
         [Tooltip("Delay from the attack telegraph starting to the damage landing — set to the mid-point of the lunge.")]
         public float AttackHitDelay = 0.15f;
 
+        [Tooltip("Stationary recovery window after the strike lands before the enemy resumes chasing (the tail of the attack state).")]
+        public float AttackRecovery = 0.4f;
+
         public int ContactDamage = 1;
         public float ImpactDamageMinSpeed = 3.5f;
         public float ImpactDamageRadius = 1.6f;

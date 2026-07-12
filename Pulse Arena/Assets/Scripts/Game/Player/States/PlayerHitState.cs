@@ -1,36 +1,50 @@
-using Game.Common.StateMachine;
 using UnityEngine;
 
 namespace Game.Player.States
 {
-    public class PlayerHitState : ActorState
+    /// <summary>
+    ///     Brief hitstun after taking damage: plays the hit reaction on entry, rides out the knockback (facing
+    ///     stays steerable, and a dash can still cancel it), then returns to Idle/Run. The controller applies the
+    ///     flash + knockback impulse before the transition; this state owns the timed recovery + the hit clip.
+    /// </summary>
+    public class PlayerHitState : PlayerActiveState
     {
-        private readonly PlayerController _player;
         private float _knockbackTimer;
 
-        public PlayerHitState(PlayerController player)
+        public PlayerHitState(PlayerContext context) : base(context)
         {
-            _player = player;
         }
 
         public override void Enter()
         {
-            _knockbackTimer = _player.Data.HitKnockbackDuration;
+            _knockbackTimer = Context.Data.HitKnockbackDuration;
+            Context.Visual?.PlayHit();
         }
 
-        public override void FixedTick()
+        protected override void OnFixedTick()
         {
-            _player.ApplyExtraGravity();
+            Context.Movement.ApplyExtraGravity();
 
             _knockbackTimer -= Time.fixedDeltaTime;
 
             if (_knockbackTimer <= 0f)
-                _player.ChangeToMoveState();
+                ReturnToLocomotion();
         }
 
-        public override void Tick()
+        protected override void OnTick()
         {
-            _player.RotateToInput();
+            if (Context.TryStartDash())
+                return;
+
+            Context.Movement.RotateToInput();
+        }
+
+        private void ReturnToLocomotion()
+        {
+            if (Context.HasMoveInput)
+                Context.ChangeToRunState();
+            else
+                Context.ChangeToIdleState();
         }
     }
 }

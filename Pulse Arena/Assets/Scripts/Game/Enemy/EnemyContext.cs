@@ -20,14 +20,22 @@ namespace Game.Enemy
     /// </summary>
     public sealed class EnemyContext
     {
+        // ~1000 units from origin — far past any legit arena spot. Catches an enemy flung to infinity (hard
+        // launch / physics blow-up) so it rings out instead of drifting forever and spamming Renderer warnings.
+        private const float MaxArenaSqrDistance = 1_000_000f;
+
+        private readonly Action _changeToAttack;
         private readonly Action _changeToChase;
         private readonly Action _changeToGroundRecovery;
+        private readonly Action _changeToIdle;
+        private readonly Game.Common.HitFlash _hitFlash;
         private readonly Func<bool> _isDead;
         private readonly Func<PlayerController> _playerTarget;
         private readonly Action _resolveRingout;
         private readonly Action _returnToPool;
+        private readonly float _ringoutHeight;
         private readonly Action _startDeathReturn;
-        private readonly Action _stopForDeath;
+        private readonly Action _startRingout;
         private readonly Func<Transform> _target;
 
         private readonly Func<EnemyTypeData> _typeData;
@@ -48,6 +56,7 @@ namespace Game.Enemy
         public bool IsDead => _isDead();
         public EnemyMovement Movement { get; }
         public PlayerController PlayerTarget => _playerTarget();
+        public RingoutHandler Ringout { get; }
 
         // --- direct collaborator references the states drive ---
         public Rigidbody Rigidbody { get; }
@@ -57,27 +66,32 @@ namespace Game.Enemy
         public EnemyTimers Timers { get; }
         public Transform Transform { get; }
         public EnemyTypeData TypeData => _typeData();
-        public EnemyPrimitiveVisual Visual { get; }
+        public IEnemyVisual Visual { get; }
 
         public EnemyContext(
             Rigidbody rigidbody,
             Transform transform,
             EnemyData data,
             EnemyMovement movement,
-            EnemyPrimitiveVisual visual,
+            IEnemyVisual visual,
             EnemyTimers timers,
             GroundRecoveryController groundRecovery,
             EnemyImpact impact,
             EnemyCollisionHandler collisions,
+            RingoutHandler ringout,
+            Game.Common.HitFlash hitFlash,
+            float ringoutHeight,
             Func<Transform> target,
             Func<PlayerController> playerTarget,
             Func<bool> isDead,
             Func<EnemyTypeData> typeData,
+            Action changeToIdle,
+            Action changeToAttack,
             Action changeToChase,
             Action changeToGroundRecovery,
             Action returnToPool,
+            Action startRingout,
             Action startDeathReturn,
-            Action stopForDeath,
             Action resolveRingout)
         {
             Rigidbody = rigidbody;
@@ -89,16 +103,53 @@ namespace Game.Enemy
             GroundRecovery = groundRecovery;
             Impact = impact;
             Collisions = collisions;
+            Ringout = ringout;
+            _hitFlash = hitFlash;
+            _ringoutHeight = ringoutHeight;
             _target = target;
             _playerTarget = playerTarget;
             _isDead = isDead;
             _typeData = typeData;
+            _changeToIdle = changeToIdle;
+            _changeToAttack = changeToAttack;
             _changeToChase = changeToChase;
             _changeToGroundRecovery = changeToGroundRecovery;
             _returnToPool = returnToPool;
+            _startRingout = startRingout;
             _startDeathReturn = startDeathReturn;
-            _stopForDeath = stopForDeath;
             _resolveRingout = resolveRingout;
+        }
+
+        // --- actor-wide per-frame work every GAMEPLAY state runs (the pause + dead + ringout states don't, so it
+        //     freezes under pause and stops once dead for free) ---
+
+        /// <summary>Frame tick: advance the hit-flash fade.</summary>
+        public void TickCommon() => _hitFlash.Tick(Time.deltaTime);
+
+        /// <summary>Physics tick: ring out if flung off the arena, then advance the shared timers.</summary>
+        public void FixedTickCommon()
+        {
+            HandleOutOfBounds();
+            Timers.TickFixed(Time.fixedDeltaTime);
+        }
+
+        // Flung below the ring-out floor or hurled to infinity → ring out (a NaN/Inf blow-up drops straight to the
+        // pool, since it can't be rung out sanely).
+        private void HandleOutOfBounds()
+        {
+            Vector3 position = Transform.position;
+
+            if (!Game.Common.ActorPhysicsUtility.IsFinite(position))
+            {
+                _returnToPool();
+                return;
+            }
+
+            bool belowFloor = position.y < _ringoutHeight;
+            bool tooFarOut = new Vector2(position.x, position.z).sqrMagnitude > MaxArenaSqrDistance;
+
+            if (belowFloor || tooFarOut)
+                _startRingout();
         }
 
         // --- tiny physics/damage helpers operating purely over context-held collaborators ---
@@ -108,6 +159,8 @@ namespace Game.Enemy
             Game.Common.ActorPhysicsUtility.ApplyExtraGravity(Rigidbody, Data.ExtraGravity);
 
         // --- state routing / pool / death (the transitions the states trigger) ---
+        public void ChangeToIdleState() => _changeToIdle();
+        public void ChangeToAttackState() => _changeToAttack();
         public void ChangeToChaseState() => _changeToChase();
         public void ChangeToGroundRecoveryState() => _changeToGroundRecovery();
 
@@ -121,12 +174,14 @@ namespace Game.Enemy
         public void ReturnToPool() => _returnToPool();
         public void StartDeathReturn() => _startDeathReturn();
 
-        /// <summary>
-        ///     The old StopForDeath body (controller-owned): disable the agent, clear the shared flags, clear
-        ///     the knockback/stasis timers and freeze the rigidbody. Kept as a controller callback because it
-        ///     flips the same shared state the controller's lifecycle methods do — a single source of truth.
-        /// </summary>
-        public void StopForDeath() => _stopForDeath();
+        /// <summary>Reset the small shared flags to their spawned defaults (states + the controller's pool reset share this).</summary>
+        public void ClearFlags()
+        {
+            IsGrabbed = false;
+            IsImpactProjectile = false;
+            NeedsGroundRecovery = false;
+            PitSinkCenter = null;
+        }
 
         /// <summary>The sweep-along-trajectory impact-damage tick (drives the collision handler's sweep).</summary>
         public void SweepImpactDamage() => Collisions.SweepImpactDamage();

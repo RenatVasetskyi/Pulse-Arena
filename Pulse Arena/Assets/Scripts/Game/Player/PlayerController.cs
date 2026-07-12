@@ -14,14 +14,17 @@ using Zenject;
 namespace Game.Player
 {
     /// <summary>
-    ///     The player's thin orchestrator. It owns the state machine + Unity lifecycle + the public API + events,
-    ///     and wires three focused collaborators: <see cref="IActorHealth" /> (HP + i-frames),
-    ///     <see cref="IPlayerMovement" /> (Rigidbody locomotion + knockback) and <see cref="IPlayerDash" /> (the
-    ///     dash/dodge). The per-frame work lives in the states, which reach the collaborators through this
-    ///     controller's thin delegating methods (MoveByInput / ApplyDashVelocity / …).
+    ///     The player's thin state ROUTER. It owns the Unity lifecycle + the public API + events and wires the
+    ///     collaborators (<see cref="IActorHealth" />, <see cref="IPlayerMovement" />, <see cref="IPlayerDash" />)
+    ///     into a <see cref="PlayerContext" /> the states drive, but does NO per-frame work itself: Update /
+    ///     FixedUpdate just tick the state machine, and pause is the <see cref="PlayerPausedState" /> (Enter
+    ///     freezes, Exit restores). Behaviour lives in the states + the context; the controller only kicks off the
+    ///     transitions the states can't see themselves (damage → Hit, death → Dead) and the freeze-on-death body.
     /// </summary>
     public class PlayerController : MonoBehaviour, IPausable
     {
+        private const float MoveInputThreshold = 0.01f; // input magnitude² above which the player counts as running
+
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
@@ -31,17 +34,17 @@ namespace Game.Player
         private readonly IActorHealth _health = new ActorHealth();
         private readonly HitFlash _hitFlash = new();
         private readonly IPlayerMovement _movement = new PlayerMovement();
-        private Vector3 _cachedAngularVelocity;
-        private Vector3 _cachedLinearVelocity;
+        private PlayerContext _context;
         private PlayerDashState _dashState;
         private PlayerData _data;
         private PlayerDeadState _deadState;
         private PlayerHitState _hitState;
+        private PlayerIdleState _idleState;
         private IInputService _inputService;
         private bool _isDead;
-        private PlayerMoveState _moveState;
-        private bool _paused;
         private IPauseService _pauseService;
+        private PlayerPausedState _pausedState;
+        private PlayerRunState _runState;
         private GameSettings _settings;
         private ActorStateMachine _stateMachine;
         private IPlayerVisual _visual;
@@ -65,45 +68,16 @@ namespace Game.Player
             _pauseService = pauseService;
         }
 
-        /// <summary>
-        ///     Mechanical pause: freeze the body (cache velocities, go kinematic so PhysX stops integrating
-        ///     gravity/velocity) and stop the procedural visual. The FSM + all delta-timers freeze for free
-        ///     because Update/FixedUpdate early-return, so Resume continues the exact same state + countdowns.
-        /// </summary>
+        // Mechanical pause = overlay the PlayerPausedState on the running state (it caches + freezes the body and
+        // gates the visual on Enter, restores on Exit); the suspended state keeps its exact frame + countdowns.
         public void Pause()
         {
-            if (_paused)
-                return;
-
-            _paused = true;
-
-            if (_rigidbody != null)
-            {
-                _cachedLinearVelocity = _rigidbody.linearVelocity;
-                _cachedAngularVelocity = _rigidbody.angularVelocity;
-                _rigidbody.isKinematic = true;
-            }
-
-            _visual?.SetPaused(true);
+            _stateMachine.Pause(_pausedState);
         }
 
         public void Resume()
         {
-            if (!_paused)
-                return;
-
-            _paused = false;
-
-            // Restore the body BEFORE un-gating the visual — the visual's move-blend reads linearVelocity.
-            if (_rigidbody != null)
-            {
-                _rigidbody.isKinematic = false;
-                _rigidbody.linearVelocity = _cachedLinearVelocity;
-                _rigidbody.angularVelocity = _cachedAngularVelocity;
-                _rigidbody.WakeUp();
-            }
-
-            _visual?.SetPaused(false);
+            _stateMachine.Resume();
         }
 
         private void Awake()
@@ -118,37 +92,17 @@ namespace Game.Player
             _health.Initialize(_data.MaxHealth, _data.HitInvulnerability);
             _health.Changed += OnHealthChanged;
             _pauseService?.Register(this);
+            BuildStateMachine();
         }
 
         private void Update()
         {
-            EnsureStateMachine();
-
-            if (_paused)
-                return;
-
-            _health.Tick(Time.deltaTime);
-            _dash.Tick(Time.deltaTime);
-            TryDash();
-            TickRingout();
-            _hitFlash.Tick(Time.deltaTime);
             _stateMachine.Tick();
         }
 
         private void FixedUpdate()
         {
-            EnsureStateMachine();
-
-            if (_paused)
-                return;
-
             _stateMachine.FixedTick();
-
-            // The Rigidbody leaves Y rotation free (so RotateToInput can turn the player via the
-            // transform), so a collision can impart spin. Facing is fully code-driven, so kill any
-            // physics-induced angular velocity every step to stop the player pinwheeling when idle.
-            if (!_isDead)
-                _movement.KillAngularVelocity();
         }
 
         private void OnDestroy()
@@ -172,7 +126,6 @@ namespace Game.Player
             _movement.Stop(); // kill input momentum so a hit interrupts movement (no coasting through the hitstun)
             _movement.ApplyKnockback(sourcePosition, _data.HitKnockbackForce);
             _hitFlash.Play();
-            _visual?.PlayHit();
 
             if (_health.IsDepleted)
                 Die();
@@ -192,64 +145,37 @@ namespace Game.Player
             HealthChanged?.Invoke(current, max);
         }
 
-        private void TickRingout()
-        {
-            if (!_isDead && transform.position.y < _settings.Feel.RingoutHeight)
-                Die();
-        }
-
-        // --- thin delegates the states drive --------------------------------------------------
-        internal void MoveByInput() => _movement.MoveByInput();
-        internal void RotateToInput() => _movement.RotateToInput();
-        internal void ApplyExtraGravity() => _movement.ApplyExtraGravity();
-        internal void ApplyDashVelocity() => _dash.ApplyDashVelocity();
-        internal void FaceDashDirection() => _dash.FaceDashDirection();
-        internal void SetDashTrail(bool active) => _dash.SetTrail(active);
-
-        private void TryDash()
-        {
-            if (_isDead || !_dash.IsReady)
-                return;
-
-            if (_stateMachine.ActiveState == _dashState)
-                return;
-
-            if (!_dash.WantsDash())
-                return;
-
-            StartDash();
-        }
-
+        // Called by PlayerContext.TryStartDash (from the grounded states) once it has confirmed the dash is ready
+        // and pressed — grant the dodge i-frames + enter the dash state (which plays the clip).
         private void StartDash()
         {
             _dash.Begin();
             _health.GrantInvulnerability(_data.DashInvulnerability);
             ChangeToDashState();
-            _visual?.PlayDash(_data.DashDuration);
             Dashed?.Invoke();
         }
 
         // --- state transitions ----------------------------------------------------------------
-        internal void ChangeToMoveState()
+        private void ChangeToIdleState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
-                _stateMachine.ChangeState(_moveState);
+                _stateMachine.ChangeState(_idleState);
+        }
+
+        private void ChangeToRunState()
+        {
+            if (!_isDead)
+                _stateMachine.ChangeState(_runState);
         }
 
         private void ChangeToHitState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_hitState);
         }
 
         private void ChangeToDashState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_dashState);
         }
@@ -265,8 +191,6 @@ namespace Game.Player
             FreezeBodyOnDeath();
             ReleaseSlingshotGrab();
             _hitFlash.Restore();
-            _visual?.PlayDeath();
-            EnsureStateMachine();
             _stateMachine.ChangeState(_deadState);
             Died?.Invoke();
         }
@@ -289,17 +213,38 @@ namespace Game.Player
             _rigidbody.isKinematic = true;
         }
 
-        private void EnsureStateMachine()
+        // Built once at the end of Awake — after the collaborators + visual are initialized (BuildContext reads
+        // them) and before any Update/FixedUpdate or transition runs, so the states never need a lazy guard.
+        private void BuildStateMachine()
         {
-            if (_stateMachine != null)
-                return;
-
             _stateMachine = new ActorStateMachine();
-            _moveState = new PlayerMoveState(this);
-            _hitState = new PlayerHitState(this);
-            _dashState = new PlayerDashState(this);
-            _deadState = new PlayerDeadState();
-            _stateMachine.ChangeState(_moveState);
+            _context = BuildContext();
+            _idleState = new PlayerIdleState(_context);
+            _runState = new PlayerRunState(_context);
+            _hitState = new PlayerHitState(_context);
+            _dashState = new PlayerDashState(_context);
+            _deadState = new PlayerDeadState(_context);
+            _pausedState = new PlayerPausedState(_context);
+            _stateMachine.ChangeState(_idleState);
+        }
+
+        private PlayerContext BuildContext()
+        {
+            return new PlayerContext(
+                _movement, _dash, _visual, _rigidbody, _health, _hitFlash, _data,
+                HasMoveInput, HasFallenOff,
+                ChangeToIdleState, ChangeToRunState, ChangeToDashState, ChangeToHitState,
+                StartDash, Die);
+        }
+
+        private bool HasMoveInput()
+        {
+            return _inputService.MoveDirection.sqrMagnitude > MoveInputThreshold;
+        }
+
+        private bool HasFallenOff()
+        {
+            return transform.position.y < _settings.Feel.RingoutHeight;
         }
 
         // The visual + the slingshot are both baked on the player prefab and inspector-wired (the slingshot's own

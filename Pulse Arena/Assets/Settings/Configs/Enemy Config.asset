@@ -28,8 +28,9 @@ MonoBehaviour:
     HealthBarHeight: 2.15
     ScoreReward: 1
     AttackRange: 1.35
-    AttackCooldown: 0.9
-    AttackHitDelay: 0.15
+    AttackCooldown: 0.36
+    AttackHitDelay: 0.06
+    AttackRecovery: 0.16
     ContactDamage: 1
     ImpactDamageMinSpeed: 3.5
     ImpactDamageRadius: 1.6

@@ -1,3 +1,4 @@
+using System;
 using Data;
 using DG.Tweening;
 using Game.Common;
@@ -12,7 +13,7 @@ namespace Game.Visuals
     ///     Each animation overlay + reset step is a small single-purpose method the per-frame Animate
     ///     coordinator composes in order.
     /// </summary>
-    public class EnemyPrimitiveVisual : MonoBehaviour
+    public class EnemyPrimitiveVisual : MonoBehaviour, IEnemyVisual
     {
         // Baked animation "feel" constants — the personality of the blob, not per-instance tuning
         // (the designer-facing knobs live in EnemyVisualData). Named so the numbers read intent, not magic.
@@ -63,6 +64,7 @@ namespace Game.Visuals
         private Material _bodyMaterial;
         private Renderer[] _bottomRenderers;
         private float _bounceTimer;
+        private bool _deathSignaled;
         private float _deathTimer;
         private Transform _faceRoot;
         private Transform _footL;
@@ -89,6 +91,11 @@ namespace Game.Visuals
 
         private EnemyVisualData _visualData = new();
 
+        public event Action DeathCompleted;
+
+        // The 0.3s lunge's strike is its middle — driven by the gameplay default (EnemyData.AttackHitDelay), so no override.
+        public float AttackHitDelay => -1f;
+
         public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData = null)
         {
             _rigidbody = rigidbody;
@@ -110,6 +117,7 @@ namespace Game.Visuals
             _bounceTimer = Mathf.Max(0f, _bounceTimer - deltaTime);
             _attackTimer = Mathf.Max(0f, _attackTimer - deltaTime);
             _deathTimer += _isDead ? deltaTime : 0f;
+            TickDeathCompletion();
             TickMoveSpeed(deltaTime);
             Animate(deltaTime);
         }
@@ -149,6 +157,7 @@ namespace Game.Visuals
             _isGrabbed = false;
             _isThrown = false;
             _deathTimer = 0f;
+            _deathSignaled = false;
         }
 
         public void PlayGroundBounce()
@@ -174,6 +183,11 @@ namespace Game.Visuals
                 return;
 
             _attackTimer = AttackDuration;
+        }
+
+        // The lunge is a self-settling additive offset (ApplyAttackLunge eases back to zero), so there's no clip to leave.
+        public void EndAttack()
+        {
         }
 
         public void ResetState()
@@ -212,6 +226,7 @@ namespace Game.Visuals
             _hitTimer = 0f;
             _bounceTimer = 0f;
             _deathTimer = 0f;
+            _deathSignaled = false;
             _moveSpeed = 0f;
             _isGrabbed = false;
             _isThrown = false;
@@ -392,6 +407,17 @@ namespace Game.Visuals
             delta.y = 0f;
             _moveSpeed = Mathf.Lerp(_moveSpeed, delta.magnitude / deltaTime, deltaTime * MoveSpeedSmoothing);
             _lastPosition = currentPosition;
+        }
+
+        // Signal completion once the procedural death pop has fully played, so the controller pools the corpse
+        // exactly when the "animation" is done — the visual owns "death is done", not a controller-guessed timer.
+        private void TickDeathCompletion()
+        {
+            if (!_isDead || _deathSignaled || _deathTimer < _visualData.DeathPopDuration)
+                return;
+
+            _deathSignaled = true;
+            DeathCompleted?.Invoke();
         }
 
         private void Animate(float deltaTime)

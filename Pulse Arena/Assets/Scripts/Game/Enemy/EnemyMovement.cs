@@ -150,6 +150,11 @@ namespace Game.Enemy
                 return;
             }
 
+            // Clear any halt a temporary StopInPlace left (e.g. the attack state stops the agent but keeps
+            // UsesAgent, so TryEnableAgent — which normally clears isStopped — never runs on the chase resume).
+            if (_agent.isStopped)
+                _agent.isStopped = false;
+
             if (IsWithinStoppingDistance(target))
             {
                 if (_agent.hasPath)
@@ -206,6 +211,21 @@ namespace Game.Enemy
             _destinationUpdateTimer = 0f;
 
             return true;
+        }
+
+        /// <summary>Snap to face the target — the attack state commits its aim on entry, then holds it for the swing.</summary>
+        public void FaceTarget(Transform target)
+        {
+            if (target == null || _transform == null)
+                return;
+
+            Vector3 offset = target.position - _transform.position;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= 0.01f)
+                return;
+
+            _transform.rotation = Quaternion.LookRotation(offset);
         }
 
         private void RotateTo(Vector3 direction)

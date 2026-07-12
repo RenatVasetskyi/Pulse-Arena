@@ -1,7 +1,6 @@
-using System.Collections;
+using System;
 using Architecture.Services.Interfaces;
 using Data;
-using System;
 using Game.Common;
 using Game.Common.StateMachine;
 using Game.Enemy.Interfaces;
@@ -20,9 +19,10 @@ namespace Game.Enemy
     ///     owns the pool lifecycle + the public API (Knockback / Grab / Launch / …), and forwards Unity's
     ///     FixedUpdate + collision callbacks into the state machine / collision handler. All per-frame logic
     ///     lives in the seven state classes; the shared flags they flip live on the context (single source of
-    ///     truth) and the controller reads/writes them through it. The death-return coroutine stays here —
-    ///     coroutines need the MonoBehaviour. Each lifecycle step (spawn reset / pool teardown / wiring) is a
-    ///     small single-purpose method the coordinator calls in order.
+    ///     truth) and the controller reads/writes them through it. Death pools the corpse off the visual's
+    ///     <see cref="IEnemyVisual.DeathCompleted" /> event (the death clip's own animation event), not a guessed
+    ///     timer. Each lifecycle step (spawn reset / pool teardown / wiring) is a small single-purpose method the
+    ///     coordinator calls in order.
     /// </summary>
     public class EnemyController : MonoBehaviour, IPausable
     {
@@ -30,13 +30,8 @@ namespace Game.Enemy
 
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
-        [SerializeField] private EnemyPrimitiveVisual _visual;
-        private Vector3 _cachedAngularVelocity;
-        private bool _cachedIsKinematic;
-        private Vector3 _cachedLinearVelocity;
-        private bool _cachedUseGravity;
-        private bool _deathReturnPending;
-        private bool _paused;
+        [SerializeField] private MonoBehaviour _visualBehaviour;
+        private IEnemyVisual _visual;
         private IPauseService _pauseService;
         private readonly EnemyCollisionHandler _collisions = new();
         private readonly GroundRecoveryController _groundRecovery = new();
@@ -47,6 +42,7 @@ namespace Game.Enemy
         private readonly EnemyMovement _movement = new();
         private readonly RingoutHandler _ringout = new();
         private readonly EnemyTimers _timers = new();
+        private EnemyAttackState _attackState;
         private IAudioService _audioService;
         private CapsuleCollider _capsule;
         private EnemyChaseState _chaseState;
@@ -54,13 +50,14 @@ namespace Game.Enemy
         private EnemyContext _context;
         private EnemyData _data;
         private EnemyDeadState _deadState;
-        private Coroutine _deathRoutine;
         private EnemyGrabbedState _grabbedState;
         private EnemyGroundRecoveryState _groundRecoveryState;
+        private EnemyIdleState _idleState;
         private bool _isDead;
         private bool _isInPool;
         private bool _isRingout;
         private EnemyKnockbackState _knockbackState;
+        private EnemyPausedState _pausedState;
         private PlayerController _playerTarget;
         private IEnemyRegistry _registry;
         private Action<EnemyController> _releaseToPool;
@@ -90,7 +87,7 @@ namespace Game.Enemy
         public EnemyTypeData TypeData => _typeData;
 
         /// <summary>The primitive visual, exposed so the collision handler can play the ground-bounce squash.</summary>
-        public EnemyPrimitiveVisual Visual => _visual;
+        public IEnemyVisual Visual => _visual;
 
         [Inject]
         public void Construct(GameSettings gameSettings, IScoreService scoreService, IAudioService audioService,
@@ -131,25 +128,25 @@ namespace Game.Enemy
             InitializeCollaborators();
             SetupVisualsAndFlash();
             BuildContext();
+            BuildStateMachine();
         }
 
+        // The controller only drives the machine + the actor-wide ambient tick (which lives in the context); the
+        // paused check reads the machine's own pause flag, so the EnemyPausedState is the single pause source.
         private void Update()
         {
-            if (_paused)
+            if (_stateMachine.IsPaused)
                 return;
 
-            _hitFlash.Tick(Time.deltaTime);
+            _context.TickCommon();
         }
 
+        // The out-of-bounds ring-out CAN transition, so it must run OUTSIDE the state tick (via the context) —
+        // otherwise a rung-out state would keep acting the same frame. Timers ride along; dead skips both.
         private void FixedUpdate()
         {
-            EnsureStateMachine();
-
-            if (_paused)
+            if (_stateMachine.IsPaused)
                 return;
-
-            if (!_isDead && !_isInPool)
-                HandleOutOfBounds();
 
             if (_isDead)
             {
@@ -157,7 +154,9 @@ namespace Game.Enemy
                 return;
             }
 
-            TickTimers();
+            if (!_isInPool)
+                _context.FixedTickCommon();
+
             _stateMachine.FixedTick();
         }
 
@@ -167,70 +166,23 @@ namespace Game.Enemy
             // neither of which runs PrepareForPool, so the registry never keeps a dangling entry.
             _registry?.Unregister(_rigidbody);
             _pauseService?.Unregister(this);
+            StopDeathReturn(); // drop the visual's DeathCompleted subscription
 
             if (!_isInPool)
                 Destroyed?.Invoke(this);
         }
 
-        /// <summary>
-        ///     Mechanical pause: freeze the body (cache velocity + gravity/kinematic, then zero + kinematic so
-        ///     PhysX stops), stop the agent, freeze the visual + its spawn tween, and suspend the death-return
-        ///     coroutine (WaitForSeconds keeps counting under a mechanical pause). FSM + timers freeze because
-        ///     FixedUpdate early-returns, so Resume continues the exact state at the exact countdowns.
-        /// </summary>
+        // Mechanical pause = overlay the EnemyPausedState on the running state (it caches + freezes the body,
+        // halts the agent, gates the visual + ringout effect on Enter, restores on Exit); the suspended state keeps
+        // its exact frame + countdowns, and the ambient tick below is gated on the machine's paused flag.
         public void Pause()
         {
-            if (_paused)
-                return;
-
-            _paused = true;
-
-            if (_rigidbody != null)
-            {
-                _cachedLinearVelocity = _rigidbody.linearVelocity;
-                _cachedAngularVelocity = _rigidbody.angularVelocity;
-                _cachedIsKinematic = _rigidbody.isKinematic;
-                _cachedUseGravity = _rigidbody.useGravity;
-                _rigidbody.linearVelocity = Vector3.zero;
-                _rigidbody.angularVelocity = Vector3.zero;
-                _rigidbody.isKinematic = true;
-            }
-
-            _movement.Pause();
-            _visual?.SetPaused(true);
-            _ringout.PauseEffect();
-
-            _deathReturnPending = _deathRoutine != null;
-            StopDeathReturn();
+            _stateMachine.Pause(_pausedState);
         }
 
         public void Resume()
         {
-            if (!_paused)
-                return;
-
-            _paused = false;
-
-            if (_deathReturnPending)
-            {
-                _deathReturnPending = false;
-                StartDeathReturn();
-            }
-
-            _visual?.SetPaused(false);
-            _ringout.ResumeEffect();
-            _movement.Resume();
-
-            if (_rigidbody != null)
-            {
-                _rigidbody.isKinematic = _cachedIsKinematic;
-                _rigidbody.useGravity = _cachedUseGravity;
-                _rigidbody.linearVelocity = _cachedLinearVelocity;
-                _rigidbody.angularVelocity = _cachedAngularVelocity;
-
-                if (!_rigidbody.isKinematic)
-                    _rigidbody.WakeUp();
-            }
+            _stateMachine.Resume();
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -326,7 +278,7 @@ namespace Game.Enemy
             _stateMachine?.Clear();
             _movement.DisableAgent();
             ClearTargets();
-            ClearContextFlags();
+            _context.ClearFlags();
             _isRingout = false;
             _timers.Knockback.Clear();
             _timers.Stasis.Clear();
@@ -469,10 +421,11 @@ namespace Game.Enemy
         {
             _context = new EnemyContext(
                 _rigidbody, transform, _data, _movement, _visual, _timers, _groundRecovery, _impact, _collisions,
+                _ringout, _hitFlash, _settings.Feel.RingoutHeight,
                 () => IsPlayerAlive() ? _target : null, () => IsPlayerAlive() ? _playerTarget : null,
                 () => _isDead, () => _typeData,
-                ChangeToChaseState, ChangeToGroundRecoveryState, ReturnToPool, StartDeathReturn,
-                StopForDeath, ResolveRingout);
+                ChangeToIdleState, ChangeToAttackState, ChangeToChaseState, ChangeToGroundRecoveryState,
+                ReturnToPool, StartRingout, StartDeathReturn, ResolveRingout);
         }
 
         // Ignore the player once they die — the chase/attack states early-return on a null target, so enemies
@@ -486,7 +439,6 @@ namespace Game.Enemy
 
         private void ResetForSpawn()
         {
-            EnsureStateMachine();
             StopDeathReturn();
             ResetSpawnFlags();
             _registry.Register(_rigidbody, this); // live for the span it is out of the pool
@@ -503,9 +455,7 @@ namespace Game.Enemy
             _isInPool = false;
             _isDead = false;
             _isRingout = false;
-            _paused = false; // a pooled enemy reused while the flag lingered would spawn frozen
-            _deathReturnPending = false;
-            ClearContextFlags();
+            _context.ClearFlags();
         }
 
         private void ResetCollaboratorsForSpawn()
@@ -554,14 +504,6 @@ namespace Game.Enemy
             _playerTarget = null;
         }
 
-        private void ClearContextFlags()
-        {
-            _context.IsGrabbed = false;
-            _context.IsImpactProjectile = false;
-            _context.NeedsGroundRecovery = false;
-            _context.PitSinkCenter = null;
-        }
-
         private void ReturnToPool()
         {
             if (_isInPool)
@@ -579,113 +521,99 @@ namespace Game.Enemy
             Destroy(gameObject);
         }
 
-        // The death coroutine MUST stay on the MonoBehaviour; EnemyDeadState triggers it via
-        // EnemyContext.StartDeathReturn → this one-liner.
+        // EnemyDeadState triggers this via EnemyContext.StartDeathReturn: wait for the visual to finish its death
+        // presentation (its clip's animation event), THEN pool the corpse — no guessed duration. A visual-less
+        // enemy has nothing to play, so it pools immediately.
         private void StartDeathReturn()
         {
-            if (_deathRoutine == null)
-                _deathRoutine = StartCoroutine(ReturnAfterDeath());
+            if (_visual == null)
+            {
+                ReturnToPool();
+                return;
+            }
+
+            _visual.DeathCompleted -= OnDeathCompleted; // idempotent: never double-subscribe
+            _visual.DeathCompleted += OnDeathCompleted;
         }
 
         private void StopDeathReturn()
         {
-            if (_deathRoutine == null)
-                return;
-
-            StopCoroutine(_deathRoutine);
-            _deathRoutine = null;
+            if (_visual != null)
+                _visual.DeathCompleted -= OnDeathCompleted;
         }
 
-        private IEnumerator ReturnAfterDeath()
+        // The visual's death clip has finished — pool the corpse now.
+        private void OnDeathCompleted()
         {
-            yield return new WaitForSeconds(_settings.EnemyVisuals.DeathPopDuration);
-            _deathRoutine = null;
+            StopDeathReturn();
             ReturnToPool();
         }
 
         // --- state machine + transitions -------------------------------------------------------
 
-        private void EnsureStateMachine()
+        // Built once at the end of Awake — after BuildContext, and Awake runs once per pooled instance (the
+        // machine survives pool reuse: PrepareForPool only Clears the active state, never the machine). So the
+        // transitions + FixedTick never need a lazy guard.
+        private void BuildStateMachine()
         {
-            if (_stateMachine != null)
-                return;
-
             _stateMachine = new ActorStateMachine();
+            _idleState = new EnemyIdleState(_context);
             _chaseState = new EnemyChaseState(_context);
+            _attackState = new EnemyAttackState(_context);
             _grabbedState = new EnemyGrabbedState(_context);
             _stasisState = new EnemyStasisState(_context);
             _groundRecoveryState = new EnemyGroundRecoveryState(_context);
             _knockbackState = new EnemyKnockbackState(_context, _groundRecoveryState);
             _deadState = new EnemyDeadState(_context);
             _ringoutState = new EnemyRingoutState(_context);
+            _pausedState = new EnemyPausedState(_context);
         }
 
         internal void ChangeToChaseState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_chaseState);
         }
 
+        internal void ChangeToIdleState()
+        {
+            if (!_isDead)
+                _stateMachine.ChangeState(_idleState);
+        }
+
+        internal void ChangeToAttackState()
+        {
+            if (!_isDead)
+                _stateMachine.ChangeState(_attackState);
+        }
+
         private void ChangeToGrabbedState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_grabbedState);
         }
 
         internal void ChangeToStasisState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_stasisState);
         }
 
         internal void ChangeToKnockbackState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_knockbackState);
         }
 
         internal void ChangeToGroundRecoveryState()
         {
-            EnsureStateMachine();
-
             if (!_isDead)
                 _stateMachine.ChangeState(_groundRecoveryState);
         }
 
         private void ChangeToDeadState()
         {
-            EnsureStateMachine();
             _stateMachine.ChangeState(_deadState);
-        }
-
-        // ~1000 units from origin — far past any legit arena spot. Catches an enemy flung to infinity
-        // (hard launch / physics blow-up) so it rings out instead of drifting forever (invisible) and
-        // spamming Renderer "Invalid worldAABB" from its visual.
-        private const float MaxArenaSqrDistance = 1_000_000f;
-
-        private void HandleOutOfBounds()
-        {
-            Vector3 position = transform.position;
-
-            if (!ActorPhysicsUtility.IsFinite(position))
-            {
-                ReturnToPool(); // physics blew up (NaN/Inf) — drop it silently, no score/feedback at NaN
-                return;
-            }
-
-            bool belowFloor = position.y < _settings.Feel.RingoutHeight;
-            bool tooFarOut = new Vector2(position.x, position.z).sqrMagnitude > MaxArenaSqrDistance;
-
-            if (belowFloor || tooFarOut)
-                StartRingout();
         }
 
         private void StartRingout()
@@ -694,29 +622,12 @@ namespace Game.Enemy
                 return;
 
             _isRingout = true;
-            EnsureStateMachine();
             _stateMachine.ChangeState(_ringoutState);
         }
 
         // --- state-owned side effects the controller still hosts -------------------------------
-        // Reached through EnemyContext callbacks: they touch controller-private state (dead flag,
-        // health-bar presenter, RingoutHandler). The physics/flag/timer bodies live in the states.
-
-        // The old StopForDeath body (EnemyDeadState.Enter → EnemyContext.StopForDeath).
-        private void StopForDeath()
-        {
-            _movement.DisableAgent();
-            ClearContextFlags();
-            _timers.Knockback.Clear();
-            _timers.Stasis.Clear();
-
-            if (_rigidbody == null)
-                return;
-
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-            _rigidbody.isKinematic = true;
-        }
+        // Reached through an EnemyContext callback because it touches controller-private state (the dead flag,
+        // health-bar presenter, RingoutHandler) a state can't set. StopForDeath moved into EnemyDeadState.Enter.
 
         // The controller-coupled slice of the old EnterRingoutState body, in original order: mark dead,
         // zero the health bar, run the RingoutHandler (EnemyRingoutState.Enter → EnemyContext.ResolveRingout).
@@ -733,18 +644,15 @@ namespace Game.Enemy
         // the original did). The knockback-timer decrement + its expiry side effect live in
         // EnemyKnockbackState, not here. The impact hit-set needs no per-frame tick — it is a HashSet cleared
         // once per throw.
-        private void TickTimers()
-        {
-            _timers.TickFixed(Time.fixedDeltaTime);
-        }
-
         // The visual is baked on the enemy prefab and inspector-wired, so this just hands the assigned ref its
         // dependencies — nothing is fetched at runtime.
         private void InitializeVisual()
         {
+            _visual = _visualBehaviour as IEnemyVisual;
+
             if (_visual == null)
             {
-                Debug.LogError("EnemyPrimitiveVisual is not assigned on the enemy prefab.", this);
+                Debug.LogError("Enemy visual (IEnemyVisual) is not assigned on the enemy prefab.", this);
                 return;
             }
 

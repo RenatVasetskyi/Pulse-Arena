@@ -39,7 +39,7 @@ MonoBehaviour:
     WrapRadius: 0.7
     WrapRadiusScale: 0.86
     WrapRadiusPadding: 0.015
-    MinWrapRadius: 0.3
+    MinWrapRadius: 0.24
     WrapVerticalScale: 0.34
     WrapTurns: 2.4
     WrapSpinSpeed: 12
