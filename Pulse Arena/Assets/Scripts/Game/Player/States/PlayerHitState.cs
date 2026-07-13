@@ -24,6 +24,7 @@ namespace Game.Player.States
         protected override void OnFixedTick()
         {
             Context.Movement.ApplyExtraGravity();
+            Context.Movement.RotateToInput(); // physics-driven rotation lives in FixedTick (see PlayerMovement.RotateToInput)
 
             _knockbackTimer -= Time.fixedDeltaTime;
 
@@ -33,10 +34,7 @@ namespace Game.Player.States
 
         protected override void OnTick()
         {
-            if (Context.TryStartDash())
-                return;
-
-            Context.Movement.RotateToInput();
+            Context.TryStartDash();
         }
 
         private void ReturnToLocomotion()

@@ -1,3 +1,4 @@
+using Architecture.Services;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Cameras;
@@ -157,12 +158,17 @@ namespace Game.Scene
 
         private void OnVictory() => _audioService.PlaySfx(GameSfx.Victory);
 
+        // Damage haptic: a short/weak native one-shot on Android (Handheld.Vibrate is a fixed ~500ms full buzz — too
+        // strong for a hit). iOS keeps the system vibrate for now (a light haptic there needs a native plugin).
         private void TryVibrate()
         {
             if (_settingsService == null || !_settingsService.VibrationEnabled)
                 return;
 
-#if UNITY_ANDROID || UNITY_IOS
+#if UNITY_ANDROID && !UNITY_EDITOR
+            HapticData haptics = _gameSettings.Haptics;
+            AndroidHaptics.VibrateOneShot(haptics.PlayerHitDurationMs, haptics.PlayerHitAmplitude);
+#elif UNITY_IOS && !UNITY_EDITOR
             Handheld.Vibrate();
 #endif
         }

@@ -59,6 +59,8 @@ namespace Game.Player
                 horizontalVelocity.z);
         }
 
+        // Rotate through the Rigidbody (MoveRotation), NOT transform.rotation, and from FixedUpdate: with the body
+        // interpolating, setting transform.rotation directly each frame fights the interpolation and jerks on turns.
         public void RotateToInput()
         {
             Vector2 input = _input.MoveDirection;
@@ -69,8 +71,8 @@ namespace Game.Player
             Vector3 direction = new Vector3(input.x, 0f, input.y);
             Quaternion targetRotation = Quaternion.LookRotation(direction);
 
-            _transform.rotation = Quaternion.RotateTowards(_transform.rotation,
-                targetRotation, _data.RotationSpeed * Time.deltaTime);
+            _rigidbody.MoveRotation(Quaternion.RotateTowards(_rigidbody.rotation,
+                targetRotation, _data.RotationSpeed * Time.fixedDeltaTime));
         }
 
         public void Stop()

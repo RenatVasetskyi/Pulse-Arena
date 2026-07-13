@@ -57,6 +57,7 @@ namespace Data
         public CameraData CameraData => _presentation.Camera;
         public UiData Ui => _presentation.Ui;
         public AudioData AudioData => _presentation.Audio;
+        public HapticData Haptics => _presentation.Haptics;
 
         public EnemyTypeData GetEnemyType(EnemyTypeId id)
         {
@@ -280,6 +281,17 @@ namespace Data
         public float LaunchFovPunch = -3f;
 
         public float LaunchFovDuration = 0.26f;
+    }
+
+    /// <summary>Device haptics tuning. Handheld.Vibrate() can only do a fixed ~500ms buzz, so damage feedback uses a native short/weak one-shot on Android instead.</summary>
+    [Serializable]
+    public class HapticData
+    {
+        [Tooltip("Length of the damage vibration in milliseconds — short (~20-40ms) reads as a tap, not a buzz.")]
+        [Range(5f, 200f)] public int PlayerHitDurationMs = 30;
+
+        [Tooltip("Strength of the damage vibration, 1-255 (Android amplitude). Low (~40-80) = a soft nudge.")]
+        [Range(1, 255)] public int PlayerHitAmplitude = 60;
     }
 
     [Serializable]

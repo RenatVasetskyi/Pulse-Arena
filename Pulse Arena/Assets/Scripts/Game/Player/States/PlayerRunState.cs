@@ -14,6 +14,7 @@ namespace Game.Player.States
         protected override void OnFixedTick()
         {
             Context.Movement.MoveByInput();
+            Context.Movement.RotateToInput(); // physics-driven rotation lives in FixedTick (see PlayerMovement.RotateToInput)
             Context.Movement.ApplyExtraGravity();
         }
 
@@ -21,8 +22,6 @@ namespace Game.Player.States
         {
             if (Context.TryStartDash())
                 return;
-
-            Context.Movement.RotateToInput();
 
             if (!Context.HasMoveInput)
                 Context.ChangeToIdleState();
