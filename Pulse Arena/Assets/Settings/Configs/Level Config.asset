@@ -114,7 +114,7 @@ MonoBehaviour:
         Count: 2
       - Type: 2
         Count: 2
-  - DisplayName: Swarm
+  - DisplayName: Swarm Rush
     IsEndless: 0
     MaxEnemiesOnScreen: 8
     EnablePits: 1
@@ -211,12 +211,24 @@ MonoBehaviour:
         Count: 3
       - Type: 3
         Count: 3
-  - DisplayName: Survival
+  - DisplayName: Endless Survival
     IsEndless: 1
     MaxEnemiesOnScreen: 12
     EnablePits: 1
     EnableTurrets: 1
     Waves: []
+  Survival:
+    BaseEnemiesPerWave: 4
+    CountGrowthPerWave: 1
+    MaxEnemiesPerWave: 16
+    WaveGap: 2
+    BaseSpawnInterval: 1.1
+    SpawnIntervalDecayPerWave: 0.04
+    MinSpawnInterval: 0.4
+    LightUnlockWave: 1
+    HeavyUnlockWave: 3
+    FastUnlockWave: 5
+    SpikyUnlockWave: 7
   Waves:
   - DelayBeforeWave: 2.5
     SpawnInterval: 1

@@ -46,7 +46,7 @@ namespace UI.MainMenu
 
         public void Dispose()
         {
-            CloseLevelSelect();
+            DestroyLevelSelect();
 
             if (_view == null)
                 return;
@@ -65,6 +65,22 @@ namespace UI.MainMenu
 
         private void OpenLevelSelect()
         {
+            if (_levelSelect == null)
+                CreateLevelSelect();
+
+            if (_levelSelect == null)
+                return;
+
+            _levelSelect.Build(BuildLevelModels());
+            _levelSelect.Show();
+        }
+
+        /// <summary>
+        ///     Instantiates the level-select overlay once and keeps it. It is shown/hidden on open/close (never
+        ///     re-instantiated per open); the instance is destroyed only in <see cref="Dispose" /> on menu teardown.
+        /// </summary>
+        private void CreateLevelSelect()
+        {
             GameObject prefab = _gameSettings.Prefabs.LevelSelectPrefab;
 
             if (prefab == null)
@@ -76,7 +92,6 @@ namespace UI.MainMenu
             _levelSelect = UnityEngine.Object.Instantiate(prefab).GetComponent<LevelSelectView>();
             _levelSelect.LevelChosen += OnLevelChosen;
             _levelSelect.BackPressed += OnLevelSelectBack;
-            _levelSelect.Build(BuildLevelModels());
         }
 
         private List<LevelSelectView.LevelButtonModel> BuildLevelModels()
@@ -91,7 +106,7 @@ namespace UI.MainMenu
                 models.Add(new LevelSelectView.LevelButtonModel
                 {
                     Name = level.DisplayName,
-                    Unlocked = _levelProgress.IsUnlocked(i),
+                    Unlocked = level.IsEndless || _levelProgress.IsUnlocked(i),
                     Stars = _levelProgress.GetStars(i),
                     IsSurvival = level.IsEndless
                 });
@@ -104,18 +119,18 @@ namespace UI.MainMenu
         {
             _audioService?.PlaySfx(GameSfx.UiClick);
             _levelService.Select(index);
-            CloseLevelSelect();
+            _levelSelect.Hide();
             _stateMachine.Enter<LoadGameState>();
         }
 
         private void OnLevelSelectBack()
         {
             _audioService?.PlaySfx(GameSfx.UiClick);
-            CloseLevelSelect();
+            _levelSelect.Hide();
             _view.Show();
         }
 
-        private void CloseLevelSelect()
+        private void DestroyLevelSelect()
         {
             if (_levelSelect == null)
                 return;

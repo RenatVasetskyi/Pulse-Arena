@@ -6,41 +6,29 @@ using UnityEngine.UI;
 namespace UI.MainMenu
 {
     /// <summary>
-    ///     The level-select overlay (a passive View): a jungle-temple background with a grid of ornate level tiles.
-    ///     It clones <see cref="_tileTemplate" /> once per level into <see cref="_tileContainer" /> and binds each,
-    ///     then raises <see cref="LevelChosen" /> / <see cref="BackPressed" />; all progress logic lives in the
-    ///     presenter. Everything is authored on the <c>level_select</c> prefab — layout, sprites and colours are
-    ///     tuned in the inspector, not in code.
+    ///     The level-select overlay (a passive View): a jungle-temple background with a hand-placed set of ornate
+    ///     level tiles. <see cref="Build" /> binds each tile in <see cref="_tiles" /> to one level (index → level) and
+    ///     raises <see cref="LevelChosen" /> / <see cref="BackPressed" />; all progress logic lives in the presenter.
+    ///     Tiles are positioned by hand on the <c>level_select</c> prefab — no grid, no runtime cloning.
     /// </summary>
     public class LevelSelectView : MonoBehaviour
     {
-        [SerializeField] private RectTransform _tileContainer;
-        [SerializeField] private LevelTileView _tileTemplate;
+        [SerializeField] private LevelTileView[] _tiles;
         [SerializeField] private Button _backButton;
-        private readonly List<LevelTileView> _tiles = new();
 
         public event Action<int> LevelChosen;
         public event Action BackPressed;
 
         private void Awake()
         {
-            _tileTemplate.gameObject.SetActive(false);
             _backButton.onClick.AddListener(RaiseBack);
+            SubscribeTiles();
         }
 
         public void Build(IReadOnlyList<LevelButtonModel> levels)
         {
-            for (int i = 0; i < levels.Count; i++)
-            {
-                LevelTileView tile = Instantiate(_tileTemplate, _tileContainer);
-                tile.gameObject.SetActive(true);
-
-                int captured = i;
-                tile.Clicked += () => LevelChosen?.Invoke(captured);
-                tile.Bind(levels[i].Name, levels[i].Unlocked, levels[i].Stars, levels[i].IsSurvival);
-
-                _tiles.Add(tile);
-            }
+            for (int i = 0; i < _tiles.Length; i++)
+                BindTile(i, levels);
         }
 
         public void Show()
@@ -57,6 +45,33 @@ namespace UI.MainMenu
         {
             if (this != null)
                 Destroy(gameObject);
+        }
+
+        private void BindTile(int index, IReadOnlyList<LevelButtonModel> levels)
+        {
+            LevelTileView tile = _tiles[index];
+
+            if (index >= levels.Count)
+            {
+                tile.gameObject.SetActive(false);
+                return;
+            }
+
+            tile.gameObject.SetActive(true);
+            tile.Bind(levels[index].Name, levels[index].Unlocked, levels[index].Stars, levels[index].IsSurvival);
+        }
+
+        /// <summary>
+        ///     Wires each tile's click to <see cref="LevelChosen" /> exactly once, so the view can be reused
+        ///     (shown/hidden and re-<see cref="Build" />-ed) without stacking duplicate subscriptions.
+        /// </summary>
+        private void SubscribeTiles()
+        {
+            for (int i = 0; i < _tiles.Length; i++)
+            {
+                int captured = i;
+                _tiles[i].Clicked += () => LevelChosen?.Invoke(captured);
+            }
         }
 
         private void RaiseBack()
