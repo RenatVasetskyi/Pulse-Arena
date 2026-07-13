@@ -32,9 +32,191 @@ MonoBehaviour:
     Lifetime: 7
     FireInterval: 1.5
     AimSpeed: 4
+    AimHeightOffset: 0.6
     BulletSpeed: 11
     BulletDamage: 1
     BulletLifetime: 4
+    DestructDroopAngle: -45
+    DestructDroopDuration: 0.18
+    DestructCollapseDuration: 0.4
+    DestructSinkDepth: 0.35
+  Levels:
+  - DisplayName: First Blood
+    IsEndless: 0
+    MaxEnemiesOnScreen: 5
+    EnablePits: 0
+    EnableTurrets: 0
+    Waves:
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1.1
+      Enemies:
+      - Type: 0
+        Count: 3
+    - DelayBeforeWave: 3
+      SpawnInterval: 1
+      Enemies:
+      - Type: 0
+        Count: 4
+  - DisplayName: Pack Hunters
+    IsEndless: 0
+    MaxEnemiesOnScreen: 6
+    EnablePits: 0
+    EnableTurrets: 0
+    Waves:
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1.1
+      Enemies:
+      - Type: 0
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1
+      Enemies:
+      - Type: 1
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.9
+      Enemies:
+      - Type: 0
+        Count: 2
+      - Type: 1
+        Count: 3
+  - DisplayName: Heavy Guard
+    IsEndless: 0
+    MaxEnemiesOnScreen: 7
+    EnablePits: 1
+    EnableTurrets: 0
+    Waves:
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1
+      Enemies:
+      - Type: 0
+        Count: 3
+      - Type: 1
+        Count: 2
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1
+      Enemies:
+      - Type: 2
+        Count: 2
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.9
+      Enemies:
+      - Type: 1
+        Count: 3
+      - Type: 2
+        Count: 1
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.85
+      Enemies:
+      - Type: 0
+        Count: 3
+      - Type: 1
+        Count: 2
+      - Type: 2
+        Count: 2
+  - DisplayName: Swarm
+    IsEndless: 0
+    MaxEnemiesOnScreen: 8
+    EnablePits: 1
+    EnableTurrets: 1
+    Waves:
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 1
+      Enemies:
+      - Type: 0
+        Count: 4
+      - Type: 1
+        Count: 2
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.85
+      Enemies:
+      - Type: 3
+        Count: 4
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.9
+      Enemies:
+      - Type: 2
+        Count: 2
+      - Type: 4
+        Count: 2
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.8
+      Enemies:
+      - Type: 1
+        Count: 4
+      - Type: 3
+        Count: 2
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.8
+      Enemies:
+      - Type: 0
+        Count: 3
+      - Type: 2
+        Count: 2
+      - Type: 3
+        Count: 3
+  - DisplayName: Last Stand
+    IsEndless: 0
+    MaxEnemiesOnScreen: 10
+    EnablePits: 1
+    EnableTurrets: 1
+    Waves:
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.9
+      Enemies:
+      - Type: 0
+        Count: 4
+      - Type: 1
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.9
+      Enemies:
+      - Type: 2
+        Count: 3
+      - Type: 3
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.85
+      Enemies:
+      - Type: 1
+        Count: 4
+      - Type: 4
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.8
+      Enemies:
+      - Type: 0
+        Count: 3
+      - Type: 2
+        Count: 3
+      - Type: 3
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.8
+      Enemies:
+      - Type: 1
+        Count: 4
+      - Type: 2
+        Count: 2
+      - Type: 4
+        Count: 3
+    - DelayBeforeWave: 2.5
+      SpawnInterval: 0.7
+      Enemies:
+      - Type: 0
+        Count: 3
+      - Type: 1
+        Count: 3
+      - Type: 2
+        Count: 3
+      - Type: 3
+        Count: 3
+  - DisplayName: Survival
+    IsEndless: 1
+    MaxEnemiesOnScreen: 12
+    EnablePits: 1
+    EnableTurrets: 1
+    Waves: []
   Waves:
   - DelayBeforeWave: 2.5
     SpawnInterval: 1

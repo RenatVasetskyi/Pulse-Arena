@@ -36,6 +36,7 @@ namespace Game.Scene
         private readonly GameSettings _gameSettings;
         private readonly HudPresenter _hudPresenter;
         private readonly IInputService _inputService;
+        private readonly ILevelService _levelService;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
         private readonly IPlayerFactory _playerFactory;
@@ -56,6 +57,7 @@ namespace Game.Scene
             IPitSpawner pitSpawner,
             ITurretSpawner turretSpawner,
             IInputService inputService,
+            ILevelService levelService,
             IScoreService scoreService,
             IComboService comboService,
             ISuperMeterService superMeterService,
@@ -73,6 +75,7 @@ namespace Game.Scene
             _pitSpawner = pitSpawner;
             _turretSpawner = turretSpawner;
             _inputService = inputService;
+            _levelService = levelService;
             _scoreService = scoreService;
             _comboService = comboService;
             _superMeterService = superMeterService;
@@ -173,19 +176,29 @@ namespace Game.Scene
         private void StartSpawners()
         {
             Vector3 center = _arena.transform.position;
+            LevelDefinition level = _levelService.Selected;
 
             _enemySpawner.Initialize(_player.transform, center, _sceneReferences.EnemySpawnParent,
                 _sceneReferences.EnemySpawnHeightOffset);
             _pickupSpawner.Initialize(center, _player.transform, _sceneReferences.PickupSpawnParent,
                 _sceneReferences.PickupSpawnHeightOffset);
-            _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
-                _player.transform, _arena.transform);
-            _turretSpawner.Initialize(center, _player.transform, _arena.transform);
 
             _enemySpawner.StartSpawn();
             _pickupSpawner.StartSpawn();
-            _pitSpawner.StartSpawn();
-            _turretSpawner.StartSpawn();
+
+            // Hazards are per-level: the first levels stay clean, later ones layer in pits then turrets.
+            if (level == null || level.EnablePits)
+            {
+                _pitSpawner.Initialize(_arena.transform.position + Vector3.up * _gameSettings.PitData.SpawnHeight,
+                    _player.transform, _arena.transform);
+                _pitSpawner.StartSpawn();
+            }
+
+            if (level == null || level.EnableTurrets)
+            {
+                _turretSpawner.Initialize(center, _player.transform, _arena.transform);
+                _turretSpawner.StartSpawn();
+            }
         }
     }
 }

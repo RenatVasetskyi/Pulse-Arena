@@ -32,6 +32,8 @@ namespace Game.Scene
         private readonly IEnemySpawner _enemySpawner;
         private readonly GameSettings _gameSettings;
         private readonly IInputService _inputService;
+        private readonly ILevelProgressService _levelProgress;
+        private readonly ILevelService _levelService;
         private readonly IPauseService _pauseService;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
@@ -53,9 +55,12 @@ namespace Game.Scene
             ISlowMoService slowMoService, IStateMachine stateMachine, ISettingsController settingsController,
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
             IPitSpawner pitSpawner, ITurretSpawner turretSpawner, IPauseService pauseService,
-            ICoroutineRunner coroutineRunner, GameSettings gameSettings)
+            ICoroutineRunner coroutineRunner, GameSettings gameSettings, ILevelService levelService,
+            ILevelProgressService levelProgress)
         {
             _inputService = inputService;
+            _levelService = levelService;
+            _levelProgress = levelProgress;
             _scoreService = scoreService;
             _slowMoService = slowMoService;
             _stateMachine = stateMachine;
@@ -138,14 +143,31 @@ namespace Game.Scene
             _gameOverRoutine = _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
         }
 
+        // Campaign win: record the clear (unlocks the next level + banks stars). Survival is endless, so this never
+        // fires for it — only real campaign levels ever unlock the next one.
         private void OnAllWavesCleared()
         {
             if (_isGameOver)
                 return;
 
             _isGameOver = true;
+            _levelProgress.Complete(_levelService.SelectedIndex, ComputeStars());
             StopRun();
             ShowGameOver("YOU WIN!");
+        }
+
+        // Stars reward keeping your health: 3 = untouched, 2 = at least half, 1 = survived by a sliver.
+        private int ComputeStars()
+        {
+            if (_player == null || _player.MaxHealth <= 0)
+                return 1;
+
+            float ratio = _player.Health / (float)_player.MaxHealth;
+
+            if (ratio >= 0.999f)
+                return 3;
+
+            return ratio >= 0.5f ? 2 : 1;
         }
 
         // Stops the live run but does NOT freeze — so the death/win beat can still animate before the screen appears.

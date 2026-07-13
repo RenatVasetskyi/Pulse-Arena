@@ -25,9 +25,19 @@ namespace Bootstrap
             BindSceneLoader();
             BindInputService();
             BindScoreService();
+            BindLevelServices();
             BindSettingsService();
             BindPauseService();
             BindAudioService();
+        }
+
+        // The linear-campaign pair: the roster + current selection (ILevelService, reads GameSettings.Levels) and the
+        // persistent unlock/stars (ILevelProgressService, PlayerPrefs). ProjectContext-scoped so the chosen level +
+        // progress survive the menu → match scene load.
+        private void BindLevelServices()
+        {
+            Container.Bind<ILevelService>().To<LevelService>().AsSingle();
+            Container.Bind<ILevelProgressService>().To<LevelProgressService>().AsSingle();
         }
 
         private void BindPauseService()

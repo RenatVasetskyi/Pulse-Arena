@@ -49,6 +49,8 @@ namespace Data
         public SpawnData SpawnData => _level.Spawn;
         public SpawnAreaData SpawnAreaData => _level.SpawnArea;
         public TurretData TurretData => _level.Turret;
+        public LevelDefinition[] Levels => _level.Levels;
+        public SurvivalData SurvivalData => _level.Survival;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
         public PoolData PoolData => _level.Pool;
@@ -609,6 +611,32 @@ namespace Data
         [Min(1)] public int Count = 3;
     }
 
+    /// <summary>
+    ///     Difficulty-scaling knobs for the endless Survival mode (a <c>LevelDefinition</c> with <c>IsEndless</c>).
+    ///     The spawner generates wave <c>w = 1,2,3…</c> where the count grows, the spawn interval tightens, and each
+    ///     enemy type joins the random pool once <c>w</c> reaches its unlock wave — so Survival ramps forever.
+    /// </summary>
+    [Serializable]
+    public class SurvivalData
+    {
+        [Header("Count per wave")]
+        [Min(1)] public int BaseEnemiesPerWave = 4;
+        [Min(0)] public int CountGrowthPerWave = 1;
+        [Min(1)] public int MaxEnemiesPerWave = 16;
+
+        [Header("Pace")]
+        [Tooltip("Breather (s) between waves.")] [Min(0f)] public float WaveGap = 2f;
+        [Min(0.05f)] public float BaseSpawnInterval = 1.1f;
+        [Min(0f)] public float SpawnIntervalDecayPerWave = 0.04f;
+        [Min(0.05f)] public float MinSpawnInterval = 0.4f;
+
+        [Header("Enemy unlock (wave # a type joins the random pool)")]
+        [Min(1)] public int LightUnlockWave = 1;
+        [Min(1)] public int HeavyUnlockWave = 3;
+        [Min(1)] public int FastUnlockWave = 5;
+        [Min(1)] public int SpikyUnlockWave = 7;
+    }
+
     [Serializable]
     public class WaveData
     {
@@ -648,6 +676,7 @@ namespace Data
         [Header("UI")] public GameObject SettingsPanelPrefab;
 
         public GameObject PausePanelPrefab;
+        public GameObject LevelSelectPrefab;
 
         [Header("Audio")] public GameObject AudioHostPrefab;
     }

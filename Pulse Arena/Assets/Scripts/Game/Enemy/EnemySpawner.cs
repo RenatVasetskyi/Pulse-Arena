@@ -10,11 +10,18 @@ using Random = UnityEngine.Random;
 
 namespace Game.Enemy
 {
+    /// <summary>
+    ///     Spawns the enemies for the currently-SELECTED level (<see cref="ILevelService" />): a fixed
+    ///     <see cref="WaveRoutine" /> for a campaign level (fires <see cref="AllWavesCleared" /> on completion → win),
+    ///     or an endless, escalating <see cref="SurvivalRoutine" /> for an <c>IsEndless</c> level (never wins — the
+    ///     player plays until they die). The level also drives the on-screen enemy cap (<see cref="MaxEnemies" />).
+    /// </summary>
     public class EnemySpawner : IEnemySpawner, IPausable
     {
         private readonly ICoroutineRunner _coroutineRunner;
         private readonly IEnemyFactory _enemyFactory;
         private readonly GameSettings _gameSettings;
+        private readonly ILevelService _levelService;
         private readonly IPauseService _pauseService;
         private readonly ISafeSpawnFinder _placementFinder = new SafeSpawnFinder();
         private int _aliveEnemies;
@@ -28,13 +35,23 @@ namespace Game.Enemy
         public event Action<int, int> WaveChanged;
 
         public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings,
-            IPauseService pauseService)
+            ILevelService levelService, IPauseService pauseService)
         {
             _coroutineRunner = coroutineRunner;
             _enemyFactory = enemyFactory;
             _gameSettings = gameSettings;
+            _levelService = levelService;
             _pauseService = pauseService;
         }
+
+        private LevelDefinition CurrentLevel => _levelService.Selected;
+
+        // On-screen enemy cap for this level (falls back to the global default when no level is selected).
+        private int MaxEnemies =>
+            CurrentLevel != null ? CurrentLevel.MaxEnemiesOnScreen : _gameSettings.SpawnData.MaxEnemies;
+
+        private WaveData[] CurrentWaves =>
+            CurrentLevel != null ? CurrentLevel.Waves : _gameSettings.Waves;
 
         /// <summary>Mechanical pause: stop the spawn timer accumulating (PausableWait holds), so no spawns fire while paused.</summary>
         public void Pause()
@@ -47,21 +64,6 @@ namespace Game.Enemy
             _paused = false;
         }
 
-        // A WaitForSeconds that freezes while paused — it holds its remaining time instead of restarting the
-        // interval on resume (StopCoroutine would lose the elapsed time WaitForSeconds hides).
-        private IEnumerator PausableWait(float seconds)
-        {
-            float remaining = seconds;
-
-            while (remaining > 0f)
-            {
-                if (!_paused)
-                    remaining -= Time.deltaTime;
-
-                yield return null;
-            }
-        }
-
         public void Initialize(Transform target, Vector3 center, Transform spawnParent, float spawnHeightOffset)
         {
             _target = target;
@@ -71,19 +73,12 @@ namespace Game.Enemy
             _placementFinder.Initialize(center, target, _gameSettings.SpawnAreaData, BlockerMask());
         }
 
-        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
-        // so one clearance test keeps a fresh spawn out of all of them.
-        private LayerMask BlockerMask()
-        {
-            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
-        }
-
         public void StartSpawn()
         {
             if (_spawnRoutine != null)
                 return;
 
-            _spawnRoutine = _coroutineRunner.StartCoroutine(HasWaves() ? WaveRoutine() : SpawnLoop());
+            _spawnRoutine = _coroutineRunner.StartCoroutine(PickRoutine());
             _pauseService.Register(this);
         }
 
@@ -108,16 +103,48 @@ namespace Game.Enemy
             }
         }
 
+        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
+        // so one clearance test keeps a fresh spawn out of all of them.
+        private LayerMask BlockerMask()
+        {
+            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
+        }
+
+        // A WaitForSeconds that freezes while paused — it holds its remaining time instead of restarting the
+        // interval on resume (StopCoroutine would lose the elapsed time WaitForSeconds hides).
+        private IEnumerator PausableWait(float seconds)
+        {
+            float remaining = seconds;
+
+            while (remaining > 0f)
+            {
+                if (!_paused)
+                    remaining -= Time.deltaTime;
+
+                yield return null;
+            }
+        }
+
+        // Endless Survival wins nothing → runs SurvivalRoutine; a campaign level runs its fixed waves; a level with
+        // no waves authored falls back to the plain weighted loop. Plain method (not an iterator) so it can branch.
+        private IEnumerator PickRoutine()
+        {
+            if (CurrentLevel != null && CurrentLevel.IsEndless)
+                return SurvivalRoutine();
+
+            return HasWaves() ? WaveRoutine() : SpawnLoop();
+        }
+
         private bool HasWaves()
         {
-            return _gameSettings.Waves != null && _gameSettings.Waves.Length > 0;
+            return CurrentWaves != null && CurrentWaves.Length > 0;
         }
 
         private IEnumerator SpawnLoop()
         {
             while (true)
             {
-                if (_aliveEnemies < _gameSettings.SpawnData.MaxEnemies)
+                if (_aliveEnemies < MaxEnemies)
                     Spawn(PickEnemyType());
 
                 yield return PausableWait(_gameSettings.SpawnData.EnemySpawnDelay);
@@ -126,7 +153,8 @@ namespace Game.Enemy
 
         private IEnumerator WaveRoutine()
         {
-            WaveData[] waves = _gameSettings.Waves;
+            WaveData[] waves = CurrentWaves;
+            float pollInterval = Mathf.Max(0.05f, _gameSettings.SpawnData.WavePollInterval);
 
             for (int waveIndex = 0; waveIndex < waves.Length; waveIndex++)
             {
@@ -140,11 +168,9 @@ namespace Game.Enemy
 
                 List<EnemyTypeData> spawnQueue = BuildWaveQueue(wave);
 
-                float pollInterval = Mathf.Max(0.05f, _gameSettings.SpawnData.WavePollInterval);
-
                 foreach (EnemyTypeData type in spawnQueue)
                 {
-                    while (_aliveEnemies >= _gameSettings.SpawnData.MaxEnemies)
+                    while (_aliveEnemies >= MaxEnemies)
                         yield return PausableWait(pollInterval);
 
                     Spawn(type);
@@ -157,6 +183,40 @@ namespace Game.Enemy
 
             _spawnRoutine = null;
             AllWavesCleared?.Invoke();
+        }
+
+        // Endless: wave w spawns more enemies, faster, from a pool that unlocks tougher types as w climbs. The
+        // on-screen cap throttles the queue, so a slow player gets pinned at MaxEnemies rather than buried instantly.
+        // Never fires AllWavesCleared — Survival ends only when the player dies (the normal lose flow).
+        private IEnumerator SurvivalRoutine()
+        {
+            SurvivalData survival = _gameSettings.SurvivalData;
+            float pollInterval = Mathf.Max(0.05f, _gameSettings.SpawnData.WavePollInterval);
+            int wave = 1;
+
+            while (true)
+            {
+                WaveChanged?.Invoke(wave, 0); // total 0 = endless; the HUD shows a bare "Wave N"
+                yield return PausableWait(survival.WaveGap);
+
+                int count = Mathf.Min(survival.MaxEnemiesPerWave,
+                    survival.BaseEnemiesPerWave + (wave - 1) * survival.CountGrowthPerWave);
+                float interval = Mathf.Max(survival.MinSpawnInterval,
+                    survival.BaseSpawnInterval - (wave - 1) * survival.SpawnIntervalDecayPerWave);
+
+                List<EnemyTypeData> spawnQueue = BuildSurvivalQueue(wave, count, survival);
+
+                foreach (EnemyTypeData type in spawnQueue)
+                {
+                    while (_aliveEnemies >= MaxEnemies)
+                        yield return PausableWait(pollInterval);
+
+                    Spawn(type);
+                    yield return PausableWait(interval);
+                }
+
+                wave++;
+            }
         }
 
         private List<EnemyTypeData> BuildWaveQueue(WaveData wave)
@@ -174,13 +234,42 @@ namespace Game.Enemy
                     queue.Add(type);
             }
 
+            Shuffle(queue);
+            return queue;
+        }
+
+        // Build a random spawn queue of `count` enemies from the types unlocked by this wave (Standard is always in).
+        private List<EnemyTypeData> BuildSurvivalQueue(int wave, int count, SurvivalData survival)
+        {
+            List<EnemyTypeId> pool = new() { EnemyTypeId.Standard };
+
+            if (wave >= survival.LightUnlockWave)
+                pool.Add(EnemyTypeId.Light);
+
+            if (wave >= survival.HeavyUnlockWave)
+                pool.Add(EnemyTypeId.Heavy);
+
+            if (wave >= survival.FastUnlockWave)
+                pool.Add(EnemyTypeId.Fast);
+
+            if (wave >= survival.SpikyUnlockWave)
+                pool.Add(EnemyTypeId.Spiky);
+
+            List<EnemyTypeData> queue = new();
+
+            for (int i = 0; i < count; i++)
+                queue.Add(_gameSettings.GetEnemyType(pool[Random.Range(0, pool.Count)]));
+
+            return queue;
+        }
+
+        private static void Shuffle(List<EnemyTypeData> queue)
+        {
             for (int i = queue.Count - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
                 (queue[i], queue[j]) = (queue[j], queue[i]);
             }
-
-            return queue;
         }
 
         private void Spawn(EnemyTypeData type)

@@ -10,6 +10,8 @@ namespace Architecture.States
     {
         private readonly IAudioService _audioService;
         private readonly GameSettings _gameSettings;
+        private readonly ILevelProgressService _levelProgress;
+        private readonly ILevelService _levelService;
         private readonly ISceneLoader _sceneLoader;
         private readonly ISettingsController _settingsController;
         private readonly IStateMachine _stateMachine;
@@ -21,13 +23,17 @@ namespace Architecture.States
             IStateMachine stateMachine,
             GameSettings gameSettings,
             IAudioService audioService,
-            ISettingsController settingsController)
+            ISettingsController settingsController,
+            ILevelService levelService,
+            ILevelProgressService levelProgress)
         {
             _sceneLoader = sceneLoader;
             _stateMachine = stateMachine;
             _gameSettings = gameSettings;
             _audioService = audioService;
             _settingsController = settingsController;
+            _levelService = levelService;
+            _levelProgress = levelProgress;
         }
 
         public void Enter()
@@ -53,7 +59,8 @@ namespace Architecture.States
 
             MainMenuView view = Object.Instantiate(prefab).GetComponent<MainMenuView>();
 
-            _presenter = new MainMenuPresenter(view, _stateMachine, _audioService, _settingsController);
+            _presenter = new MainMenuPresenter(view, _stateMachine, _audioService, _settingsController,
+                _levelService, _levelProgress, _gameSettings);
             _presenter.Initialize();
 
             _audioService.PlayMusic(_gameSettings.AudioData.MenuMusic);
