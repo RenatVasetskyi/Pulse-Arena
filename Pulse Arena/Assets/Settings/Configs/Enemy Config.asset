@@ -55,8 +55,14 @@ MonoBehaviour:
     RingoutShrinkScale: 0.15
     GroundContactMemory: 0.12
     HeldDamageGrace: 0.35
+    FlourishMinInterval: 3
+    FlourishMaxInterval: 6
+    FlourishMinPlayerDistance: 4.5
+    SpeedVariation: 0.25
+    SizeVariation: 0.2
   Types:
   - Id: 0
+    Prefab: {fileID: 3034675120685911586, guid: 6e1dfbc7ea15f4a9bbf078f98c3196e9, type: 3}
     SpawnWeight: 1
     HealthMultiplier: 1
     MoveSpeedMultiplier: 1
@@ -73,6 +79,7 @@ MonoBehaviour:
     VisualScale: 1
     ShowSpikes: 0
   - Id: 1
+    Prefab: {fileID: 3034675120685911586, guid: 4e30955912923451385e4d02d56e02d4, type: 3}
     SpawnWeight: 1
     HealthMultiplier: 0.7
     MoveSpeedMultiplier: 1.15
@@ -89,9 +96,10 @@ MonoBehaviour:
     VisualScale: 0.85
     ShowSpikes: 0
   - Id: 2
+    Prefab: {fileID: 3034675120685911586, guid: 5fcc78b2aad184df5823b82256790c96, type: 3}
     SpawnWeight: 0.8
     HealthMultiplier: 1.7
-    MoveSpeedMultiplier: 0.65
+    MoveSpeedMultiplier: 0.9
     ScoreMultiplier: 2
     Weight: 2.2
     TensionRateMultiplier: 0.66
@@ -102,9 +110,10 @@ MonoBehaviour:
     HeldDamageInterval: 0.75
     OverrideBodyColor: 1
     BodyColor: {r: 0.62, g: 0.32, b: 0.18, a: 1}
-    VisualScale: 1.3
+    VisualScale: 1
     ShowSpikes: 0
   - Id: 3
+    Prefab: {fileID: 0}
     SpawnWeight: 0.9
     HealthMultiplier: 0.7
     MoveSpeedMultiplier: 1.7
@@ -121,6 +130,7 @@ MonoBehaviour:
     VisualScale: 0.9
     ShowSpikes: 0
   - Id: 4
+    Prefab: {fileID: 0}
     SpawnWeight: 0.7
     HealthMultiplier: 1
     MoveSpeedMultiplier: 0.9
@@ -152,4 +162,3 @@ MonoBehaviour:
     HitSquashDuration: 0.16
     BounceSquashDuration: 0.22
     DeathPopDuration: 0.38
-    ThrownSpinSpeed: 540

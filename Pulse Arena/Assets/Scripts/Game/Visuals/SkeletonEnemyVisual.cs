@@ -5,10 +5,14 @@ using UnityEngine;
 namespace Game.Visuals
 {
     /// <summary>
-    ///     A skinned enemy visual (the PSX skeleton) driven by an <see cref="Animator" />: a Speed parameter
-    ///     mirrors the enemy's actual world movement (Idle↔Run) and Death is a one-shot. Implements
-    ///     <see cref="IEnemyVisual" /> so <c>EnemyController</c> swaps it in for the primitive blob without any
-    ///     controller change. Speed is sampled from the ROOT's world-position delta — NOT
+    ///     The shared skinned-model enemy visual (skeleton, wolf, karate man) driven by an <see cref="Animator" />:
+    ///     a Speed parameter mirrors the enemy's actual world movement (Idle↔Run) and Death is a one-shot. It is
+    ///     model-agnostic — every model-specific beat (Attack, Death, the karate Flip somersault, the spawn Taunt)
+    ///     is an OPTIONAL Animator parameter, so the same component drives any controller and simply skips the
+    ///     triggers its controller lacks (the spawn taunt needs no code at all — it is the karate controller's
+    ///     Entry state, replayed on each <see cref="ResetState" /> rebind). Implements <see cref="IEnemyVisual" />
+    ///     so <c>EnemyController</c> swaps it in for the primitive blob without any controller change. Speed is
+    ///     sampled from the ROOT's world-position delta — NOT
     ///     <c>Rigidbody.linearVelocity</c> — because a chasing enemy is moved by its NavMeshAgent (which drives
     ///     the transform, leaving rigidbody velocity ~0), so a velocity read would sit in Idle while it walks.
     ///     Movement anim is suppressed (Speed 0) while grabbed/thrown/dead so a spun-on-the-lasso enemy doesn't
@@ -26,9 +30,11 @@ namespace Game.Visuals
 
         private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int DeathHash = Animator.StringToHash("Death");
+        private static readonly int FlipHash = Animator.StringToHash("Flip");
         private static readonly int IdleHash = Animator.StringToHash("Idle");
         private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int TauntHash = Animator.StringToHash("Taunt");
 
         [SerializeField] private Animator _animator;
         [SerializeField] private Renderer _renderer;
@@ -36,8 +42,17 @@ namespace Game.Visuals
         [Tooltip("Seconds from PlayAttack to the swing's contact frame (this model's strike moment). Negative = use the gameplay default.")]
         [SerializeField] private float _attackHitDelay = -1f;
 
+        [Tooltip("Seconds the attack state should last so this model's swing plays through (clip length / play speed). 0 = the default hit-delay+recovery window is enough.")]
+        [SerializeField] private float _attackDuration;
+
         [Tooltip("Global Animator playback speed for this model (Idle/Run/Death). Attack is sped up per-state in the controller, not here.")]
         [SerializeField] private float _animationSpeed = 1f;
+
+        [Tooltip("Seconds EnemyTauntState holds the enemy still while the spawn taunt plays (set to the taunt clip's length). 0 = no taunt.")]
+        [SerializeField] private float _spawnTauntDuration;
+
+        [Tooltip("Seconds EnemyFlipState runs the somersault before returning to the chase (set to the flip clip's length / its play speed). 0 = no flip.")]
+        [SerializeField] private float _flourishDuration;
         private Vector3 _baseScale = Vector3.one;
         private Collider _bodyCollider;
         private bool _deathSignaled;
@@ -51,7 +66,20 @@ namespace Game.Visuals
 
         public event Action DeathCompleted;
 
+        public float AttackClipDuration => _attackDuration;
+
         public float AttackHitDelay => _attackHitDelay;
+
+        public float FlourishDuration => _flourishDuration;
+
+        // True only when the assigned controller actually has a "Taunt" trigger — the enemy then spawns into the taunt state.
+        public bool HasSpawnTaunt => HasParameter(TauntHash);
+
+        public float SpawnTauntDuration => _spawnTauntDuration;
+
+        // True only when the assigned controller actually has a "Flip" trigger (the karate somersault) — the
+        // skeleton/wolf controllers don't, so the chase state skips flourishing them.
+        public bool SupportsRunFlourish => HasParameter(FlipHash);
 
         public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData)
         {
@@ -122,6 +150,27 @@ namespace Game.Visuals
         {
             if (HasParameter(AttackHash))
                 _animator.SetTrigger(AttackHash);
+        }
+
+        // One-shot somersault mid-run (the karate flourish). Fires the Flip trigger only if the controller has it —
+        // the skeleton/wolf controllers don't, so this is inert there. Guarded off death so a corpse never flips.
+        public void PlayRunFlourish()
+        {
+            if (_animator == null || _isDead)
+                return;
+
+            if (HasParameter(FlipHash))
+                _animator.SetTrigger(FlipHash);
+        }
+
+        // One-shot spawn taunt. Fires the Taunt trigger only if the controller has it (the karate does); inert otherwise.
+        public void PlaySpawnTaunt()
+        {
+            if (_animator == null || _isDead)
+                return;
+
+            if (HasParameter(TauntHash))
+                _animator.SetTrigger(TauntHash);
         }
 
         // Leave the attack clip the moment the attack state exits (crossfade to Idle; Speed then blends to Run) so

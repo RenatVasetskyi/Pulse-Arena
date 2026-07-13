@@ -34,7 +34,7 @@ namespace Game.Enemy.States
             _context.Timers.AttackCooldown.Set(_context.Data.AttackCooldown);
 
             _hitDelay = ResolveHitDelay();
-            _duration = _hitDelay + _context.Data.AttackRecovery;
+            _duration = Mathf.Max(_hitDelay + _context.Data.AttackRecovery, _context.Visual?.AttackClipDuration ?? 0f);
             _elapsed = 0f;
             _struck = false;
         }

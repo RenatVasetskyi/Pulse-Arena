@@ -19,6 +19,10 @@ namespace Data
 
         public EnemyTypeId Id = EnemyTypeId.Standard;
 
+        [Tooltip("The self-contained enemy prefab for this type — its own model, Animator, controller and scale. " +
+                 "Null falls back to the shared GameSettings.Prefabs.EnemyPrefab.")]
+        public GameObject Prefab;
+
         [Header("Spawning")] [Min(0f)] public float SpawnWeight = 1f;
 
         [Header("Stats")] [Min(0.1f)] public float HealthMultiplier = 1f;

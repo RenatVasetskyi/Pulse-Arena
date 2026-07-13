@@ -26,8 +26,10 @@ namespace Game.Enemy
 
         private readonly Action _changeToAttack;
         private readonly Action _changeToChase;
+        private readonly Action _changeToFlip;
         private readonly Action _changeToGroundRecovery;
         private readonly Action _changeToIdle;
+        private readonly Action _changeToTaunt;
         private readonly Game.Common.HitFlash _hitFlash;
         private readonly Func<bool> _isDead;
         private readonly Func<PlayerController> _playerTarget;
@@ -89,6 +91,8 @@ namespace Game.Enemy
             Action changeToAttack,
             Action changeToChase,
             Action changeToGroundRecovery,
+            Action changeToTaunt,
+            Action changeToFlip,
             Action returnToPool,
             Action startRingout,
             Action startDeathReturn,
@@ -114,6 +118,8 @@ namespace Game.Enemy
             _changeToAttack = changeToAttack;
             _changeToChase = changeToChase;
             _changeToGroundRecovery = changeToGroundRecovery;
+            _changeToTaunt = changeToTaunt;
+            _changeToFlip = changeToFlip;
             _returnToPool = returnToPool;
             _startRingout = startRingout;
             _startDeathReturn = startDeathReturn;
@@ -163,6 +169,8 @@ namespace Game.Enemy
         public void ChangeToAttackState() => _changeToAttack();
         public void ChangeToChaseState() => _changeToChase();
         public void ChangeToGroundRecoveryState() => _changeToGroundRecovery();
+        public void ChangeToTauntState() => _changeToTaunt();
+        public void ChangeToFlipState() => _changeToFlip();
 
         /// <summary>
         ///     The controller-coupled half of the old EnterRingoutState body, in order: mark the controller
@@ -203,6 +211,38 @@ namespace Game.Enemy
             }
 
             return Movement.TryEnableAgent();
+        }
+
+        // --- shared pursue behaviour (the chase + flip states both drive with these) ---
+
+        /// <summary>Drive toward the current target: NavMeshAgent when it can be placed on the mesh, physics fallback otherwise.</summary>
+        public void DriveToTarget()
+        {
+            if (TryEnableAgentControl())
+            {
+                Movement.MoveToTarget(Target);
+            }
+            else
+            {
+                ApplyExtraGravity();
+                Movement.MoveDirectlyToTarget(Target);
+            }
+        }
+
+        /// <summary>The player is alive, in range, and the attack is off cooldown — the chase/flip may commit to a swing.</summary>
+        public bool CanAttack()
+        {
+            return PlayerTarget != null && Timers.AttackCooldown.Remaining <= 0f && IsInAttackRange();
+        }
+
+        private bool IsInAttackRange()
+        {
+            if (PlayerTarget == null)
+                return false;
+
+            Vector3 offset = PlayerTarget.transform.position - Transform.position;
+            offset.y = 0f;
+            return offset.sqrMagnitude <= Data.AttackRange * Data.AttackRange;
         }
     }
 }

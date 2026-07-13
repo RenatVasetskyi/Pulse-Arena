@@ -10,6 +10,7 @@ using Game.Visuals;
 using UnityEngine;
 using UnityEngine.AI;
 using Zenject;
+using Random = UnityEngine.Random;
 
 namespace Game.Enemy
 {
@@ -26,11 +27,15 @@ namespace Game.Enemy
     /// </summary>
     public class EnemyController : MonoBehaviour, IPausable
     {
-        private const float EnemyBodyScale = 0.7f; // shrink all enemies a bit (scales visual + collider together)
-
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private NavMeshAgent _agent;
         [SerializeField] private MonoBehaviour _visualBehaviour;
+
+        [Tooltip("Overall body scale for THIS enemy prefab — scales the visual + collider together on spawn, so each creature carries its own footprint.")]
+        [SerializeField] private float _bodyScale = 0.7f;
+
+        [Tooltip("World-space height of the floating HP bar for THIS prefab (taller models need it raised so the head does not overlap it). Negative = use the shared EnemyData.HealthBarHeight.")]
+        [SerializeField] private float _healthBarHeight = -1f;
         private IEnemyVisual _visual;
         private IPauseService _pauseService;
         private readonly EnemyCollisionHandler _collisions = new();
@@ -50,6 +55,7 @@ namespace Game.Enemy
         private EnemyContext _context;
         private EnemyData _data;
         private EnemyDeadState _deadState;
+        private EnemyFlipState _flipState;
         private EnemyGrabbedState _grabbedState;
         private EnemyGroundRecoveryState _groundRecoveryState;
         private EnemyIdleState _idleState;
@@ -64,9 +70,12 @@ namespace Game.Enemy
         private EnemyRingoutState _ringoutState;
         private IScorePopupService _scorePopups;
         private IScoreService _scoreService;
+        private float _spawnSizeFactor = 1f;
+        private float _spawnSpeedFactor = 1f;
 
         private GameSettings _settings;
         private EnemyStasisState _stasisState;
+        private EnemyTauntState _tauntState;
         private ActorStateMachine _stateMachine;
         private Transform _target;
         private EnemyTypeData _typeData = EnemyTypeData.Default;
@@ -117,7 +126,16 @@ namespace Game.Enemy
             _playerTarget = target.GetComponentInParent<PlayerController>();
             _movement.ConfigureAgent();
             _visual?.ApplyTypeStyle(_typeData);
-            ChangeToChaseState();
+            EnterSpawnState();
+        }
+
+        // Models with a spawn taunt (the karate) stand their ground and taunt first; the rest hunt immediately.
+        private void EnterSpawnState()
+        {
+            if (_visual != null && _visual.HasSpawnTaunt)
+                ChangeToTauntState();
+            else
+                ChangeToChaseState();
         }
 
         // --- Unity lifecycle -------------------------------------------------------------------
@@ -283,7 +301,7 @@ namespace Game.Enemy
             _timers.Knockback.Clear();
             _timers.Stasis.Clear();
             _impact.Clear();
-            transform.localScale = Vector3.one * EnemyBodyScale;
+            transform.localScale = Vector3.one * _bodyScale;
             ParkRigidbody();
         }
 
@@ -337,7 +355,8 @@ namespace Game.Enemy
 
         private void CreateHealthBar()
         {
-            _healthBar.Create(transform, _settings.Prefabs.WorldHealthBarPrefab, _health.Max, _data.HealthBarHeight);
+            float barHeight = _healthBarHeight >= 0f ? _healthBarHeight : _data.HealthBarHeight;
+            _healthBar.Create(transform, _settings.Prefabs.WorldHealthBarPrefab, _health.Max, barHeight);
         }
 
         // The shared prelude of Knockback + Grab: leave impact-projectile mode, reset the sweep origin and
@@ -389,6 +408,7 @@ namespace Game.Enemy
                 return;
 
             _isDead = true;
+            _healthBar.Hide(); // drop the (now-empty) bar the instant the death animation starts
             _ringout.AwardKill(out _);
             ChangeToDeadState();
         }
@@ -425,6 +445,7 @@ namespace Game.Enemy
                 () => IsPlayerAlive() ? _target : null, () => IsPlayerAlive() ? _playerTarget : null,
                 () => _isDead, () => _typeData,
                 ChangeToIdleState, ChangeToAttackState, ChangeToChaseState, ChangeToGroundRecoveryState,
+                ChangeToTauntState, ChangeToFlipState,
                 ReturnToPool, StartRingout, StartDeathReturn, ResolveRingout);
         }
 
@@ -441,10 +462,12 @@ namespace Game.Enemy
         {
             StopDeathReturn();
             ResetSpawnFlags();
+            RollSpawnVariation();
             _registry.Register(_rigidbody, this); // live for the span it is out of the pool
             _pauseService.Register(this);          // pausable only while out of the pool
             ResetCollaboratorsForSpawn();
-            transform.localScale = Vector3.one * EnemyBodyScale;
+            transform.localScale = Vector3.one * _bodyScale * _spawnSizeFactor;
+            _healthBar.Show(); // re-show the bar a previous death hid on this pooled instance
             _health.Initialize(GetTypeAdjustedMaxHealth()); // fires Changed → HealthChanged + health bar
             _visual?.ResetState();
             ResetRigidbodyForSpawn();
@@ -560,6 +583,8 @@ namespace Game.Enemy
             _idleState = new EnemyIdleState(_context);
             _chaseState = new EnemyChaseState(_context);
             _attackState = new EnemyAttackState(_context);
+            _tauntState = new EnemyTauntState(_context);
+            _flipState = new EnemyFlipState(_context);
             _grabbedState = new EnemyGrabbedState(_context);
             _stasisState = new EnemyStasisState(_context);
             _groundRecoveryState = new EnemyGroundRecoveryState(_context);
@@ -585,6 +610,18 @@ namespace Game.Enemy
         {
             if (!_isDead)
                 _stateMachine.ChangeState(_attackState);
+        }
+
+        internal void ChangeToTauntState()
+        {
+            if (!_isDead)
+                _stateMachine.ChangeState(_tauntState);
+        }
+
+        internal void ChangeToFlipState()
+        {
+            if (!_isDead)
+                _stateMachine.ChangeState(_flipState);
         }
 
         private void ChangeToGrabbedState()
@@ -634,7 +671,7 @@ namespace Game.Enemy
         private void ResolveRingout()
         {
             _isDead = true;
-            _healthBar.SetHealth(0, _health.Max);
+            _healthBar.Hide(); // ring-out has no death clip, but the bar should still vanish with the tumbling body
             _ringout.ResolveRingout();
         }
 
@@ -666,7 +703,16 @@ namespace Game.Enemy
 
         private float GetMoveSpeed()
         {
-            return _data.MoveSpeed * _typeData.MoveSpeedMultiplier;
+            return _data.MoveSpeed * _typeData.MoveSpeedMultiplier * _spawnSpeedFactor;
+        }
+
+        // Per-spawn variety: roll a speed factor and an INVERSELY-tied size factor from ONE roll, so a faster enemy
+        // always comes out smaller and a slower one bigger (the wolves/skeletons differ in build, not just palette).
+        private void RollSpawnVariation()
+        {
+            float t = Random.value;
+            _spawnSpeedFactor = Mathf.Lerp(1f - _data.SpeedVariation, 1f + _data.SpeedVariation, t);
+            _spawnSizeFactor = Mathf.Lerp(1f + _data.SizeVariation, 1f - _data.SizeVariation, t);
         }
     }
 }

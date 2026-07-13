@@ -152,6 +152,21 @@ namespace Data
         public float RingoutShrinkScale = 0.15f;
         public float GroundContactMemory = 0.12f;
         public float HeldDamageGrace = 0.35f;
+
+        [Tooltip("Min seconds between run-flourish attempts (e.g. the karate somersault). Re-rolled on each chase entry.")]
+        public float FlourishMinInterval = 3f;
+
+        [Tooltip("Max seconds between run-flourish attempts.")]
+        public float FlourishMaxInterval = 6f;
+
+        [Tooltip("The enemy only flourishes (somersaults) while farther than this from the target — never shows off inside striking range.")]
+        public float FlourishMinPlayerDistance = 4.5f;
+
+        [Tooltip("Per-spawn speed spread: each enemy rolls a random move speed in [1-this, 1+this] for variety. 0 = every enemy the same speed.")]
+        [Range(0f, 0.6f)] public float SpeedVariation = 0.25f;
+
+        [Tooltip("Per-spawn size spread, INVERSELY tied to the speed roll — the fast ones come out smaller, the slow ones bigger. 0 = uniform size.")]
+        [Range(0f, 0.5f)] public float SizeVariation = 0.2f;
     }
 
     [Serializable]
@@ -239,7 +254,7 @@ namespace Data
     {
         [Header("Zoom")] public float DefaultZoom = 1f;
 
-        public float MinZoom = 0.72f;
+        public float MinZoom = 0.36f; // closest zoom-in (offset multiplier) — halved so the camera can get 50% closer
         public float MaxZoom = 1.38f;
         public float ZoomStep = 0.08f;
         public float ZoomSmoothTime = 0.22f;

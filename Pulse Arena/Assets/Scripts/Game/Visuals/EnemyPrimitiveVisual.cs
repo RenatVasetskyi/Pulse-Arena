@@ -96,6 +96,17 @@ namespace Game.Visuals
         // The 0.3s lunge's strike is its middle — driven by the gameplay default (EnemyData.AttackHitDelay), so no override.
         public float AttackHitDelay => -1f;
 
+        // The short lunge fits the default hit-delay+recovery window — no need to extend the attack state.
+        public float AttackClipDuration => 0f;
+
+        // The primitive blob has no somersault clip — the run flourish is a skinned-model beat only.
+        public bool SupportsRunFlourish => false;
+
+        // No taunt / flourish clips on the primitive blob — those are skinned-model beats only.
+        public bool HasSpawnTaunt => false;
+        public float SpawnTauntDuration => 0f;
+        public float FlourishDuration => 0f;
+
         public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData = null)
         {
             _rigidbody = rigidbody;
@@ -187,6 +198,16 @@ namespace Game.Visuals
 
         // The lunge is a self-settling additive offset (ApplyAttackLunge eases back to zero), so there's no clip to leave.
         public void EndAttack()
+        {
+        }
+
+        // No somersault clip on the primitive blob — flourishing is a skinned-model beat only.
+        public void PlayRunFlourish()
+        {
+        }
+
+        // No taunt clip on the primitive blob — the spawn taunt is a skinned-model beat only.
+        public void PlaySpawnTaunt()
         {
         }
 

@@ -48,6 +48,11 @@ namespace UI
             transform.rotation = _camera.transform.rotation;
         }
 
+        public void SetVisible(bool visible)
+        {
+            gameObject.SetActive(visible);
+        }
+
         public void SetHealth(int health, int maxHealth)
         {
             int count = Mathf.Max(1, maxHealth);

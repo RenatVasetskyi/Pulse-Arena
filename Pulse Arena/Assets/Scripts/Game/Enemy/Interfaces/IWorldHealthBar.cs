@@ -8,5 +8,9 @@ namespace Game.Enemy.Interfaces
     {
         void Initialize(int maxHealth, float height);
         void SetHealth(int health, int maxHealth);
+
+        // Hide/show the whole bar — the enemy hides it the moment death (or ring-out) starts so an empty bar
+        // doesn't hang over the dying body, and shows it again on pooled respawn.
+        void SetVisible(bool visible);
     }
 }

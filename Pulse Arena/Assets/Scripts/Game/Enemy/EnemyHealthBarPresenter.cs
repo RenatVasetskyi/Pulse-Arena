@@ -36,5 +36,17 @@ namespace Game.Enemy
         {
             _healthBar?.SetHealth(current, max);
         }
+
+        /// <summary>Hide the bar the instant death / ring-out starts, so an empty bar never hangs over the dying body.</summary>
+        public void Hide()
+        {
+            _healthBar?.SetVisible(false);
+        }
+
+        /// <summary>Show the bar again on pooled respawn (the same instance was hidden when it last died).</summary>
+        public void Show()
+        {
+            _healthBar?.SetVisible(true);
+        }
     }
 }

@@ -5,19 +5,22 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The pursue ("run") state: drive toward the target (NavMeshAgent when it can be placed on the mesh,
-    ///     physics fallback otherwise). When the player is in range and the attack is off cooldown it hands off to
-    ///     <see cref="EnemyAttackState" /> — the enemy only ever commits to an attack FROM the chase, so a swing is
-    ///     never started mid-chase and the chase never runs while a swing plays. When the target is lost (the
-    ///     player died) it hands off to <see cref="EnemyIdleState" />.
+    ///     The pursue ("run") state: drive toward the target (via <see cref="EnemyContext.DriveToTarget" />). When the
+    ///     player is in range and the attack is off cooldown it hands off to <see cref="EnemyAttackState" /> — the
+    ///     enemy only ever commits to an attack FROM the chase, so a swing is never started mid-chase and the chase
+    ///     never runs while a swing plays. On models that support it, <see cref="EnemyFlourish" /> occasionally rolls
+    ///     a somersault mid-approach and hands off to <see cref="EnemyFlipState" />. When the target is lost (the
+    ///     player died) it drops to <see cref="EnemyIdleState" />.
     /// </summary>
     public class EnemyChaseState : ActorState
     {
         private readonly EnemyContext _context;
+        private readonly EnemyFlourish _flourish;
 
         public EnemyChaseState(EnemyContext context)
         {
             _context = context;
+            _flourish = new EnemyFlourish(context);
         }
 
         public override void Enter()
@@ -28,6 +31,7 @@ namespace Game.Enemy.States
             _context.Visual?.SetGrabbed(false);
             _context.Visual?.SetThrown(false);
             _context.TryEnableAgentControl();
+            _flourish.Rearm();
         }
 
         public override void FixedTick()
@@ -38,41 +42,19 @@ namespace Game.Enemy.States
                 return;
             }
 
-            if (CanAttack())
+            if (_context.CanAttack())
             {
                 _context.ChangeToAttackState();
                 return;
             }
 
-            DriveToTarget();
-        }
-
-        private bool CanAttack()
-        {
-            return _context.PlayerTarget != null
-                   && _context.Timers.AttackCooldown.Remaining <= 0f
-                   && InAttackRange();
-        }
-
-        private void DriveToTarget()
-        {
-            if (_context.TryEnableAgentControl())
+            if (_flourish.ShouldFlip(Time.fixedDeltaTime))
             {
-                _context.Movement.MoveToTarget(_context.Target);
+                _context.ChangeToFlipState();
+                return;
             }
-            else
-            {
-                _context.ApplyExtraGravity();
-                _context.Movement.MoveDirectlyToTarget(_context.Target);
-            }
-        }
 
-        private bool InAttackRange()
-        {
-            Vector3 offset = _context.PlayerTarget.transform.position - _context.Transform.position;
-            offset.y = 0f;
-
-            return offset.sqrMagnitude <= _context.Data.AttackRange * _context.Data.AttackRange;
+            _context.DriveToTarget();
         }
     }
 }

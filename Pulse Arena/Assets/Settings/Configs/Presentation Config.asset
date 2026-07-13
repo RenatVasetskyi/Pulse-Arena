@@ -36,7 +36,7 @@ MonoBehaviour:
     FloatingTextColor: {r: 1, g: 0.92, b: 0.4, a: 1}
   Camera:
     DefaultZoom: 1
-    MinZoom: 0.72
+    MinZoom: 0.36
     MaxZoom: 1.38
     ZoomStep: 0.08
     ZoomSmoothTime: 0.22
