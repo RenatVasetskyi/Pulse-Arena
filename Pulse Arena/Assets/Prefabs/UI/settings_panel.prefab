@@ -905,7 +905,7 @@ GameObject:
   - component: {fileID: 8487526793804231565}
   - component: {fileID: 1583538067840663773}
   m_Layer: 0
-  m_Name: Row_Master
+  m_Name: mater
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1178,7 +1178,7 @@ GameObject:
   - component: {fileID: 3373254512190016805}
   - component: {fileID: 3256720334277295078}
   m_Layer: 0
-  m_Name: Row_Camera Zoom
+  m_Name: camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1375,7 +1375,7 @@ GameObject:
   - component: {fileID: 5731523427376082519}
   - component: {fileID: 8421488251616618807}
   m_Layer: 0
-  m_Name: Row_SFX
+  m_Name: sfx
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1608,7 +1608,7 @@ GameObject:
   - component: {fileID: 2977675833421175764}
   - component: {fileID: 7664925855364572983}
   m_Layer: 0
-  m_Name: Row_Music
+  m_Name: music
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3560,7 +3560,7 @@ GameObject:
   - component: {fileID: 6970131735264524042}
   - component: {fileID: 2225296098180797467}
   m_Layer: 0
-  m_Name: Backdrop
+  m_Name: fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3786,7 +3786,7 @@ GameObject:
   - component: {fileID: 2009414749578031865}
   - component: {fileID: 6095889937416984991}
   m_Layer: 0
-  m_Name: Row_Screen Shake
+  m_Name: shake
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4358,7 +4358,7 @@ GameObject:
   - component: {fileID: 8077526929907130494}
   - component: {fileID: 5378579004675370811}
   m_Layer: 0
-  m_Name: CloseButton
+  m_Name: button_close
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4719,7 +4719,7 @@ GameObject:
   - component: {fileID: 3748742190023688348}
   - component: {fileID: 4272041677280460418}
   m_Layer: 0
-  m_Name: Row_Vibration
+  m_Name: vibration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

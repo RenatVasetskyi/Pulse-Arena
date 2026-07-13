@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 444311879075935454}
   - component: {fileID: 8182521812720566183}
   m_Layer: 0
-  m_Name: Btn_RESUME
+  m_Name: button_resume
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -154,7 +154,7 @@ GameObject:
   - component: {fileID: 823826139554755446}
   - component: {fileID: 5074309145733696538}
   m_Layer: 0
-  m_Name: Title
+  m_Name: title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -313,7 +313,7 @@ GameObject:
   - component: {fileID: 3306418986807272219}
   - component: {fileID: 5109342401076263945}
   m_Layer: 0
-  m_Name: Btn_SETTINGS
+  m_Name: button_setting
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -454,7 +454,7 @@ GameObject:
   - component: {fileID: 2688288864915009629}
   - component: {fileID: 612496077054331580}
   m_Layer: 0
-  m_Name: Btn_MAIN MENU
+  m_Name: button_main_menu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -595,7 +595,7 @@ GameObject:
   - component: {fileID: 3914147694466405291}
   - component: {fileID: 1813291813472118833}
   m_Layer: 0
-  m_Name: Btn_RESTART
+  m_Name: button_restart
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -734,7 +734,7 @@ GameObject:
   - component: {fileID: 6774005504776642649}
   - component: {fileID: 5218150249160280802}
   m_Layer: 0
-  m_Name: Backdrop
+  m_Name: fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

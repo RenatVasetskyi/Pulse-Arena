@@ -78,6 +78,9 @@ MonoBehaviour:
   _segmentsParent: {fileID: 4539652544876462058}
   _segmentTemplate: {fileID: 5934221176234276995}
   _background: {fileID: 2952720170128774728}
+  _aliveColor: {r: 1, g: 0.2, b: 0.12, a: 1}
+  _emptyColor: {r: 0.12, g: 0.12, b: 0.15, a: 0.76}
+  _backgroundColor: {r: 0.02, g: 0.025, b: 0.035, a: 0.72}
 --- !u!1 &425643791057777032
 GameObject:
   m_ObjectHideFlags: 0
@@ -90,7 +93,7 @@ GameObject:
   - component: {fileID: 3663132334307044752}
   - component: {fileID: 2952720170128774728}
   m_Layer: 0
-  m_Name: Background
+  m_Name: background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -165,7 +168,7 @@ GameObject:
   - component: {fileID: 7047714587928541501}
   - component: {fileID: 5934221176234276995}
   m_Layer: 0
-  m_Name: Segment
+  m_Name: segment
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

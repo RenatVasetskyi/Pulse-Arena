@@ -1,73 +1,50 @@
+using System;
 using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using UnityEngine;
-using Zenject;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace Architecture.Services
 {
     /// <summary>
-    ///     Persistent (ProjectContext) 2D one-shot SFX player. Clips + volume/pitch come from
-    ///     <see cref="AudioData" />; a small round-robin pool of AudioSources lets sounds overlap and
-    ///     carry independent pitch. Missing/unassigned clips are silently ignored so partial audio works.
+    ///     Persistent (ProjectContext) 2D one-shot SFX + music player. Plain C# — it is NOT a MonoBehaviour; the
+    ///     Unity <see cref="AudioSource" />s live on an <see cref="AudioHost" /> prefab (from config) that this
+    ///     service instantiates once and drives. Clips + volume/pitch come from <see cref="AudioData" />; a small
+    ///     round-robin pool lets sounds overlap with independent pitch. Missing/unassigned clips are silently ignored
+    ///     so partial audio works. Owned by the container: it self-cleans via <see cref="IDisposable" /> at shutdown.
     /// </summary>
-    public class AudioService : MonoBehaviour, IAudioService, IPausable
+    public class AudioService : IAudioService, IPausable, IDisposable
     {
-        private const int SourceCount = 8;
-
-        private AudioData _data;
-        private Dictionary<GameSfx, SfxEntry> _map;
-        private AudioSource _musicSource;
-
+        private readonly AudioData _data;
+        private readonly Dictionary<GameSfx, SfxEntry> _map;
+        private readonly IPauseService _pauseService;
+        private readonly ISettingsService _settings;
+        private readonly AudioSource _musicSource;
+        private readonly AudioSource[] _sources;
+        private readonly GameObject _hostObject;
         private int _next;
         private bool _paused;
-        private IPauseService _pauseService;
-        private ISettingsService _settings;
-        private AudioSource[] _sources;
 
-        // Zenject-injected after all installers complete (NonLazy), so it never resolves during InstallBindings.
-        [Inject]
-        public void Construct(GameSettings gameSettings, ISettingsService settings, IPauseService pauseService)
+        // Constructor injection on a NonLazy binding: Zenject builds this after every installer has registered its
+        // bindings, so resolving ISettingsService/IPauseService here is safe (no InstallBindings-time resolve).
+        public AudioService(GameSettings gameSettings, ISettingsService settings, IPauseService pauseService)
         {
             _data = gameSettings.AudioData;
             _settings = settings;
             _pauseService = pauseService;
-            _map = new Dictionary<GameSfx, SfxEntry>();
+            _map = BuildSfxMap(_data);
 
-            if (_data?.Sfx != null)
-            {
-                foreach (SfxEntry entry in _data.Sfx)
-                    if (entry != null && entry.Clip != null)
-                        _map[entry.Id] = entry;
-            }
-
-            _sources = new AudioSource[SourceCount];
-
-            for (int i = 0; i < SourceCount; i++)
-            {
-                AudioSource source = gameObject.AddComponent<AudioSource>();
-                source.playOnAwake = false;
-                source.spatialBlend = 0f;
-                _sources[i] = source;
-            }
-
-            _musicSource = gameObject.AddComponent<AudioSource>();
-            _musicSource.playOnAwake = false;
-            _musicSource.loop = true;
-            _musicSource.spatialBlend = 0f;
+            AudioHost host = CreateHost(gameSettings.Prefabs.AudioHostPrefab);
+            _hostObject = host.gameObject;
+            _musicSource = host.MusicSource;
+            _sources = host.SfxSources;
 
             if (_settings != null)
                 _settings.Changed += OnSettingsChanged;
 
             _pauseService?.Register(this);
-        }
-
-        private void OnDestroy()
-        {
-            if (_settings != null)
-                _settings.Changed -= OnSettingsChanged;
-
-            _pauseService?.Unregister(this);
         }
 
         /// <summary>Pauses music + any in-flight SFX at their current sample (Pause, NOT Stop → resumes exactly).</summary>
@@ -119,6 +96,40 @@ namespace Architecture.Services
         public void PlaySfx(GameSfx sfx, float pitch)
         {
             PlayInternal(sfx, Mathf.Clamp(pitch, 0.1f, 3f));
+        }
+
+        public void Dispose()
+        {
+            if (_settings != null)
+                _settings.Changed -= OnSettingsChanged;
+
+            _pauseService?.Unregister(this);
+
+            if (_hostObject != null)
+                Object.Destroy(_hostObject);
+        }
+
+        private AudioHost CreateHost(GameObject prefab)
+        {
+            AudioHost host = Object.Instantiate(prefab).GetComponent<AudioHost>();
+            host.gameObject.name = "AudioService";
+            Object.DontDestroyOnLoad(host.gameObject); // ProjectContext-scoped: must survive every scene load.
+
+            return host;
+        }
+
+        private static Dictionary<GameSfx, SfxEntry> BuildSfxMap(AudioData data)
+        {
+            Dictionary<GameSfx, SfxEntry> map = new Dictionary<GameSfx, SfxEntry>();
+
+            if (data?.Sfx == null)
+                return map;
+
+            foreach (SfxEntry entry in data.Sfx)
+                if (entry != null && entry.Clip != null)
+                    map[entry.Id] = entry;
+
+            return map;
         }
 
         // Live-update the music volume when the player drags a settings slider.

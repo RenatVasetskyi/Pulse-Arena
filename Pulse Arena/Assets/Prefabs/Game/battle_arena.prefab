@@ -174,8 +174,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6892362986159752555}
-  - component: {fileID: 3697334017893327916}
   - component: {fileID: 5365825343296624114}
+  - component: {fileID: 3697334017893327916}
   m_Layer: 0
   m_Name: battle_arena
   m_TagString: Untagged
@@ -204,26 +204,6 @@ Transform:
   - {fileID: 891077777379755177}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3697334017893327916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2106224971127039174}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2627d427e8e83431e9933fa7bb9efd8e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Scene.GameSceneReferences
-  _battleCamera: {fileID: 9050712947824056722}
-  _playerSpawnPoint: {fileID: 5569943634213055165}
-  _playerParent: {fileID: 8000730708139973857}
-  _enemySpawnParent: {fileID: 5857449366765915674}
-  _pickupSpawnParent: {fileID: 2927455331865040714}
-  _playerSpawnHeightOffset: 1
-  _enemySpawnHeightOffset: 1
-  _pickupSpawnHeightOffset: 0.5
 --- !u!114 &5365825343296624114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,6 +236,26 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: d7ea384cf6a2a4c978f5a32794250538, type: 2}
   m_BuildHeightMesh: 0
+--- !u!114 &3697334017893327916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2106224971127039174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2627d427e8e83431e9933fa7bb9efd8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Scene.GameSceneReferences
+  _battleCamera: {fileID: 9050712947824056722}
+  _playerSpawnPoint: {fileID: 5569943634213055165}
+  _playerParent: {fileID: 8000730708139973857}
+  _enemySpawnParent: {fileID: 5857449366765915674}
+  _pickupSpawnParent: {fileID: 2927455331865040714}
+  _playerSpawnHeightOffset: 1
+  _enemySpawnHeightOffset: 1
+  _pickupSpawnHeightOffset: 0.5
 --- !u!1 &2751283466534538481
 GameObject:
   m_ObjectHideFlags: 0

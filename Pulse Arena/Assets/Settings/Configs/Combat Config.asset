@@ -33,7 +33,7 @@ MonoBehaviour:
     PullToHoldDuration: 0.28
     PullToHoldArcHeight: 0.45
     Cooldown: 0.45
-    LineWidth: 0.08
+    LineWidth: 0.048
     ThrowWaveAmplitude: 0.08
     WrapWaveAmplitude: 0.06
     WrapRadius: 0.7
@@ -91,12 +91,12 @@ MonoBehaviour:
     MaxRadius: 18
     MinPlayerDistance: 3.5
     SpawnClearance: 1.5
+    TriggerRadius: 2.5
     SpawnHeight: 0.05
     MinScale: 0.6
     MaxScale: 1.2
     MinLifetime: 6
     MaxLifetime: 11
-    SuckSpeed: 12
     SuckDown: 4
   Super:
     KillsToCharge: 10

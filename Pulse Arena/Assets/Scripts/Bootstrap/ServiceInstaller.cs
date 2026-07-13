@@ -147,16 +147,13 @@ namespace Bootstrap
                 .AsSingle();
         }
 
-        // Let Zenject build + inject AudioService (its [Inject] Construct runs after all installers complete),
-        // instead of resolving ISettingsService/IPauseService during InstallBindings — which Zenject warns on.
+        // Plain-C# service (NOT a MonoBehaviour): it instantiates its AudioHost prefab (from config) for the actual
+        // AudioSources. BindInterfacesAndSelfTo so the container also owns its IDisposable (destroys the host at
+        // shutdown). Constructor injection is safe — a NonLazy singleton is built after all installers register.
         private void BindAudioService()
         {
             Container
-                .Bind<IAudioService>()
-                .To<AudioService>()
-                .FromNewComponentOnNewGameObject()
-                .WithGameObjectName("AudioService")
-                .UnderTransform(transform)
+                .BindInterfacesAndSelfTo<AudioService>()
                 .AsSingle()
                 .NonLazy();
         }

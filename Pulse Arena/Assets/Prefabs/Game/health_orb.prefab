@@ -13373,8 +13373,8 @@ GameObject:
   - component: {fileID: 3808687859103314800}
   - component: {fileID: 5598558267325026401}
   - component: {fileID: 6450187329115137096}
-  - component: {fileID: 8762125533009932849}
   - component: {fileID: 1077147874760695491}
+  - component: {fileID: 8762125533009932849}
   m_Layer: 0
   m_Name: health_orb
   m_TagString: Untagged
@@ -13484,24 +13484,6 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!114 &8762125533009932849
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2989478771963095101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f2d7f67a2a84fd78d73ea3175ce6a11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Pickups.HealthOrbPickup
-  _visualRoot: {fileID: 1584952694457046151}
-  _innerGlow: {fileID: 5432415507075515686}
-  _innerRing: {fileID: 3511403269789952587}
-  _outerRing: {fileID: 940509075050890642}
-  _light: {fileID: 6450187329115137096}
-  _collider: {fileID: 5598558267325026401}
 --- !u!114 &1077147874760695491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13531,6 +13513,24 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &8762125533009932849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2989478771963095101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f2d7f67a2a84fd78d73ea3175ce6a11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Pickups.HealthOrbPickup
+  _visualRoot: {fileID: 1584952694457046151}
+  _innerGlow: {fileID: 5432415507075515686}
+  _innerRing: {fileID: 3511403269789952587}
+  _outerRing: {fileID: 940509075050890642}
+  _light: {fileID: 6450187329115137096}
+  _collider: {fileID: 5598558267325026401}
 --- !u!1 &6617385699918221624
 GameObject:
   m_ObjectHideFlags: 0

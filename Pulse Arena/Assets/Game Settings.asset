@@ -37,6 +37,7 @@ MonoBehaviour:
     TurretBulletPrefab: {fileID: 1098990780795131704, guid: 1f92a34dcd0764abb9e1d6fd1adb7f04, type: 3}
     SettingsPanelPrefab: {fileID: 5679090128603803609, guid: 7b297561ddec54827a9d420704ac1296, type: 3}
     PausePanelPrefab: {fileID: 6353425926950742748, guid: 14e8c462154dc4793b2808bd5c03471b, type: 3}
+    AudioHostPrefab: {fileID: 993384632042326699, guid: 249f30b2605d0421cbd198dc5f2bc160, type: 3}
   _player: {fileID: 11400000, guid: 500ba64cda954b9d8fac688c11707894, type: 2}
   _enemy: {fileID: 11400000, guid: b8658dd11918436b945d2b78f68c582f, type: 2}
   _combat: {fileID: 11400000, guid: ac924186f4af4023af24e64fdb36a8e7, type: 2}

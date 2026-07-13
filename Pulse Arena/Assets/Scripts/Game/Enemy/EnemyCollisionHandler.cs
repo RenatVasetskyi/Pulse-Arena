@@ -139,7 +139,7 @@ namespace Game.Enemy
         {
             foreach (ContactPoint contact in collision.contacts)
             {
-                if (contact.normal.y > 0.65f &&
+                if (contact.normal.y > _data.GroundBounceNormalThreshold &&
                     ActorGroundingUtility.IsGroundCollider(contact.otherCollider))
                 {
                     return true;

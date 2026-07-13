@@ -40,7 +40,6 @@ namespace Data
         public PlayerVisualData PlayerVisuals => _player.Visuals;
         public EnemyData EnemyData => _enemy.Data;
         public EnemyTypeData[] EnemyTypes => _enemy.Types;
-        public EnemyVisualData EnemyVisuals => _enemy.Visuals;
         public SlingshotData SlingshotData => _combat.Slingshot;
         public ComboData ComboData => _combat.Combo;
         public SlowMoData SlowMoData => _combat.SlowMo;
@@ -82,10 +81,11 @@ namespace Data
     [Serializable]
     public class PlayerData
     {
-        public float MoveSpeed = 6f;
+        [Header("Movement")] public float MoveSpeed = 6f;
         public float RotationSpeed = 720f;
         public float ExtraGravity = 35f;
-        public int MaxHealth = 3;
+
+        [Header("Health / Hit")] public int MaxHealth = 3;
         public float HitInvulnerability = 0.65f;
         public float HitKnockbackForce = 5f;
         public float HitKnockbackDuration = 0.18f;
@@ -106,21 +106,24 @@ namespace Data
     [Serializable]
     public class EnemyData
     {
-        public float MoveSpeed = 3.5f;
+        [Header("Movement")] public float MoveSpeed = 3.5f;
         public float RotationSpeed = 8f;
         public float KnockbackDuration = 0.45f;
         public float ExtraGravity = 45f;
-        public float AgentRadius = 0.35f;
+
+        [Header("NavMesh Agent")] public float AgentRadius = 0.35f;
         public float AgentHeight = 1.8f;
         public float AgentAcceleration = 24f;
         public float AgentAngularSpeed = 720f;
         public float AgentStoppingDistance = 1.25f;
         public float NavMeshSampleDistance = 2f;
         public float DestinationUpdateInterval = 0.15f;
-        public int MaxHealth = 3;
+
+        [Header("Health / Score")] public int MaxHealth = 3;
         public float HealthBarHeight = 2.15f;
         public int ScoreReward = 1;
-        public float AttackRange = 1.35f;
+
+        [Header("Attack")] public float AttackRange = 1.35f;
         public float AttackCooldown = 0.9f;
 
         [Tooltip("Delay from the attack telegraph starting to the damage landing — set to the mid-point of the lunge.")]
@@ -129,7 +132,7 @@ namespace Data
         [Tooltip("Stationary recovery window after the strike lands before the enemy resumes chasing (the tail of the attack state).")]
         public float AttackRecovery = 0.4f;
 
-        public int ContactDamage = 1;
+        [Header("Contact / Impact")] public int ContactDamage = 1;
         public float ImpactDamageMinSpeed = 3.5f;
         public float ImpactDamageRadius = 1.6f;
         public float ImpactDamageForwardOffset = 0.75f;
@@ -138,22 +141,34 @@ namespace Data
         public int ImpactDamage = 1;
         public int WallImpactDamage = 1;
         public float ImpactDamageCooldown = 0.08f;
-        public int GroundBounceCount = 1;
+        [Header("Ground Bounce")] public int GroundBounceCount = 1;
         public float GroundBounceUpwardVelocity = 5.8f;
         public float GroundBounceHorizontalDamping = 0.58f;
+
+        [Tooltip("Min upward-facing contact-normal Y for a collision to count as a ground bounce (1 = flat floor, lower = accepts slopes).")]
+        public float GroundBounceNormalThreshold = 0.65f;
         public float GroundBounceCooldown = 0.18f;
         public float GroundBounceMinVerticalSpeed = 1.8f;
         public float GroundBounceKeepAliveDuration = 0.45f;
-        public float GroundRecoveryProbeDistance = 4f;
+
+        [Header("Ground Recovery")] public float GroundRecoveryProbeDistance = 4f;
         public float GroundRecoveryMaxVerticalOffset = 1.35f;
         public float GroundRecoveryMaxUpwardSpeed = 0.1f;
         public float GroundRecoveryForceAfter = 1.1f;
-        public float RingoutDuration = 1.1f;
+
+        [Header("Ringout")] public float RingoutDuration = 1.1f;
         public float RingoutTextHeight = 1.2f;
         public float RingoutShrinkScale = 0.15f;
-        public float GroundContactMemory = 0.12f;
+
+        [Tooltip("Ragdoll tumble spin (deg/s, ±) applied to X/Z when an enemy is flung off the edge.")]
+        public float RingoutTumbleSpin = 10f;
+
+        [Tooltip("Ragdoll tumble yaw (deg/s, ±) applied to Y when an enemy is flung off the edge.")]
+        public float RingoutTumbleYaw = 4f;
+        [Header("Misc Timing")] public float GroundContactMemory = 0.12f;
         public float HeldDamageGrace = 0.35f;
 
+        [Header("Run Flourish")]
         [Tooltip("Min seconds between run-flourish attempts (e.g. the karate somersault). Re-rolled on each chase entry.")]
         public float FlourishMinInterval = 3f;
 
@@ -163,6 +178,7 @@ namespace Data
         [Tooltip("The enemy only flourishes (somersaults) while farther than this from the target — never shows off inside striking range.")]
         public float FlourishMinPlayerDistance = 4.5f;
 
+        [Header("Per-Spawn Variation")]
         [Tooltip("Per-spawn speed spread: each enemy rolls a random move speed in [1-this, 1+this] for variety. 0 = every enemy the same speed.")]
         [Range(0f, 0.6f)] public float SpeedVariation = 0.25f;
 
@@ -178,45 +194,19 @@ namespace Data
         public float GroundNormalThreshold = 0.55f;
     }
 
+    /// <summary>
+    ///     The player model's locomotion-blend knobs, read by <c>CowboyVisual</c> to drive its Animator Speed
+    ///     parameter. (The enemy model — <c>SkeletonEnemyVisual</c> — samples raw movement instead and needs no
+    ///     equivalent data, so there is deliberately no <c>EnemyVisualData</c>.)
+    /// </summary>
     [Serializable]
     public class PlayerVisualData
     {
-        public Vector3 RootOffset = new(0f, -0.78f, 0f);
-        public Color BodyColor = new(0.2f, 0.75f, 0.95f, 1f);
-        public Color HeadColor = new(0.78f, 0.9f, 0.95f, 1f);
-        public Color DarkColor = new(0.08f, 0.11f, 0.16f, 1f);
-        public Color AccentColor = new(1f, 0.78f, 0.24f, 1f);
+        [Tooltip("Planar speed below which the model stays in Idle (dead-zone before the run blend starts).")]
         public float MoveThreshold = 0.25f;
-        public float MoveAnimationMaxSpeed = 4.5f; // planar speed that maps to full run-blend
-        public float BobFrequencyIdle = 2.4f;
-        public float BobFrequencyRun = 9f;
-        public float BobAmplitudeIdle = 0.025f;
-        public float BobAmplitudeRun = 0.09f;
-        public float ArmSwingFrequency = 10f;
-        public float ArmSwingAngle = 28f;
-        public float ThrowSwingDuration = 0.28f;
-        public float HitSquashDuration = 0.16f;
-        public float DeathRollAngle = 72f;
-    }
 
-    [Serializable]
-    public class EnemyVisualData
-    {
-        public Vector3 RootOffset = new(0f, -1.15f, 0f);
-        public Color BodyColor = new(0.42f, 0.2f, 0.72f, 1f);
-        public Color BellyColor = new(0.58f, 0.42f, 0.9f, 1f);
-        public Color EyeColor = new(1f, 0.92f, 0.72f, 1f);
-        public Color PupilColor = new(0.04f, 0.02f, 0.08f, 1f);
-        public Color SpikeColor = new(0.12f, 0.08f, 0.22f, 1f);
-        public float MoveThreshold = 0.2f;
-        public float MoveAnimationMaxSpeed = 3.8f; // planar speed that maps to full run-blend
-        public float WobbleFrequencyIdle = 2.6f;
-        public float WobbleFrequencyRun = 8.5f;
-        public float SquashAmountIdle = 0.025f;
-        public float SquashAmountRun = 0.08f;
-        public float HitSquashDuration = 0.16f;
-        public float BounceSquashDuration = 0.22f;
-        public float DeathPopDuration = 0.38f;
+        [Tooltip("Planar speed that maps to the full run-blend — the model's Speed anim param saturates here.")]
+        public float MoveAnimationMaxSpeed = 4.5f;
     }
 
     [Serializable]
@@ -326,6 +316,9 @@ namespace Data
         [Tooltip(
             "Extra clearance (beyond the pit's own radius) kept from the player and every enemy, so a pit never opens right on top of someone.")]
         public float SpawnClearance = 1.5f;
+
+        [Tooltip("The pit prefab's base trigger-collider radius (scaled by spawn scale) — the clearance placement keeps around it. Match the pit prefab's CapsuleCollider.")]
+        public float TriggerRadius = 2.5f;
 
         [Tooltip("Height (Y) pits sit at, just above the floor.")]
         public float SpawnHeight = 0.05f;
@@ -587,11 +580,26 @@ namespace Data
         [Tooltip("How fast the head swivels to track the player (lerp speed).")]
         public float AimSpeed = 4f;
 
+        [Tooltip("Height above the target's feet the turret aims at (0.6 = torso, not feet).")]
+        public float AimHeightOffset = 0.6f;
+
         [Header("Bullet")] public float BulletSpeed = 11f;
         public int BulletDamage = 1;
 
         [Tooltip("Seconds a bullet lives before it despawns if it hits nothing.")]
         public float BulletLifetime = 4f;
+
+        [Header("Destruct")] [Tooltip("Angle the barrel droops just before the turret collapses (degrees).")]
+        public float DestructDroopAngle = -45f;
+
+        [Tooltip("Seconds the barrel takes to droop.")]
+        public float DestructDroopDuration = 0.18f;
+
+        [Tooltip("Seconds the turret takes to crumble down + sink.")]
+        public float DestructCollapseDuration = 0.4f;
+
+        [Tooltip("How far the turret sinks into the ground as it collapses.")]
+        public float DestructSinkDepth = 0.35f;
     }
 
     [Serializable]
@@ -640,5 +648,7 @@ namespace Data
         [Header("UI")] public GameObject SettingsPanelPrefab;
 
         public GameObject PausePanelPrefab;
+
+        [Header("Audio")] public GameObject AudioHostPrefab;
     }
 }

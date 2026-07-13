@@ -6,25 +6,24 @@ namespace Game.Visuals
 {
     /// <summary>
     ///     The enemy's swappable visual seam. <c>EnemyController</c> + its states drive the creature through this
-    ///     interface so the body can be the procedural primitive blob (<see cref="EnemyPrimitiveVisual" />) or a
-    ///     skinned/animated model (<see cref="SkeletonEnemyVisual" />) without the controller knowing which. Pooled
-    ///     actors call <see cref="ResetState" /> on reuse; the lasso reads the grab volume via
-    ///     <see cref="TryGetRopeBounds" />.
+    ///     interface so the body is a skinned/animated model (<see cref="SkeletonEnemyVisual" />) without the
+    ///     controller knowing which specific model. Pooled actors call <see cref="ResetState" /> on reuse; the lasso
+    ///     reads the grab volume via <see cref="TryGetRopeBounds" />.
     /// </summary>
     public interface IEnemyVisual
     {
         /// <summary>
         ///     Raised when THIS model's death presentation has finished (the skinned death clip reaches its end
-        ///     via an animation event, the primitive's procedural death pop completes, or a model with no death
-        ///     clip signals next frame), so <c>EnemyController</c> pools the corpse exactly when the animation is
+        ///     via an animation event, or a model with no death clip signals next frame), so
+        ///     <c>EnemyController</c> pools the corpse exactly when the animation is
         ///     done — no guessed timer. The controller subscribes on death and unsubscribes on pool-return.
         /// </summary>
         event Action DeathCompleted;
 
         /// <summary>
         ///     Seconds from <see cref="PlayAttack" /> to the frame the strike visually connects, so the chase
-        ///     state lands damage in sync with THIS model's swing (a long skinned melee clip connects ~1s in,
-        ///     the primitive lunge ~0.15s). Negative = "no opinion, use the gameplay default" (EnemyData.AttackHitDelay).
+        ///     state lands damage in sync with THIS model's swing (a long skinned melee clip connects ~1s in).
+        ///     Negative = "no opinion, use the gameplay default" (EnemyData.AttackHitDelay).
         /// </summary>
         float AttackHitDelay { get; }
 
@@ -32,7 +31,7 @@ namespace Game.Visuals
         ///     How long the attack STATE should hold for THIS model's swing to play through (its clip length ÷ the
         ///     clip's play speed), so a long cinematic attack (the karate spin-flip kick) is not cut off on the
         ///     wind-up. <c>EnemyAttackState</c> takes the max of this and the default hit-delay+recovery window.
-        ///     0 = "no opinion, the default window is enough" (short attacks / the primitive lunge).
+        ///     0 = "no opinion, the default window is enough" (short attacks).
         /// </summary>
         float AttackClipDuration { get; }
 
@@ -54,7 +53,7 @@ namespace Game.Visuals
         /// <summary>Seconds <c>EnemyFlipState</c> runs the somersault flourish before returning to the chase (0 for models without one).</summary>
         float FlourishDuration { get; }
 
-        void Initialize(Rigidbody rigidbody, EnemyVisualData visualData);
+        void Initialize(Rigidbody rigidbody);
 
         void SetPaused(bool value);
 

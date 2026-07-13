@@ -693,7 +693,7 @@ namespace Game.Enemy
                 return;
             }
 
-            _visual.Initialize(_rigidbody, _settings.EnemyVisuals);
+            _visual.Initialize(_rigidbody);
         }
 
         private int GetTypeAdjustedMaxHealth()

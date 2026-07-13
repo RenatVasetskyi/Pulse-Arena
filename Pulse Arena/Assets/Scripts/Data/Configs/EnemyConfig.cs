@@ -7,6 +7,5 @@ namespace Data
     {
         public EnemyData Data;
         public EnemyTypeData[] Types = { new EnemyTypeData() };
-        public EnemyVisualData Visuals = new();
     }
 }

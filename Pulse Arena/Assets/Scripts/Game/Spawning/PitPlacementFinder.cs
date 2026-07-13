@@ -12,10 +12,6 @@ namespace Game.Spawning
     {
         private const int MaxPlacementTries = 8;
 
-        // The pit prefab's base trigger radius (Assets/Prefabs/Game/pit.prefab CapsuleCollider). Scaled by the
-        // spawn scale to keep a fresh pit clear of the player and any enemy.
-        private const float PitTriggerRadius = 2.5f;
-
         private Vector3 _center;
         private PitData _data;
         private LayerMask _enemyLayer;
@@ -31,7 +27,7 @@ namespace Game.Spawning
 
         public bool TryFind(float scale, out Vector3 position)
         {
-            float clearance = PitTriggerRadius * scale + _data.SpawnClearance;
+            float clearance = _data.TriggerRadius * scale + _data.SpawnClearance;
             float playerClearance = Mathf.Max(_data.MinPlayerDistance, clearance);
 
             for (int i = 0; i < MaxPlacementTries; i++)

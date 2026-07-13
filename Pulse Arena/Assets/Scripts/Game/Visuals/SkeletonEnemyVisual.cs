@@ -81,7 +81,7 @@ namespace Game.Visuals
         // skeleton/wolf controllers don't, so the chase state skips flourishing them.
         public bool SupportsRunFlourish => HasParameter(FlipHash);
 
-        public void Initialize(Rigidbody rigidbody, EnemyVisualData visualData)
+        public void Initialize(Rigidbody rigidbody)
         {
             _rigidbody = rigidbody;
             _bodyCollider = rigidbody != null ? rigidbody.GetComponent<Collider>() : null;

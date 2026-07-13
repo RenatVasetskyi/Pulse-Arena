@@ -75,10 +75,12 @@ namespace Game.Enemy.States
 
             // Ragdoll-ish tumble: free the upright constraints and spin it as it flies off the edge.
             _context.Rigidbody.constraints = RigidbodyConstraints.None;
+            float spin = _context.Data.RingoutTumbleSpin;
+            float yaw = _context.Data.RingoutTumbleYaw;
             _context.Rigidbody.angularVelocity = new Vector3(
-                Random.Range(-10f, 10f),
-                Random.Range(-4f, 4f),
-                Random.Range(-10f, 10f));
+                Random.Range(-spin, spin),
+                Random.Range(-yaw, yaw),
+                Random.Range(-spin, spin));
         }
 
         // Pit variant of the flung physics: stay upright (no tumble spin) and turn off gravity so DriveSink fully

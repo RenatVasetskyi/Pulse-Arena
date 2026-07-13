@@ -15,12 +15,14 @@ using Zenject;
 namespace Game.Scene
 {
     /// <summary>
-    ///     Builds and tears down the whole game world. It lives in the game scene's SceneContext and runs off that
-    ///     context's kernel: <see cref="Initialize" /> (→ Build) fires when the scene loads, <see cref="Dispose" />
-    ///     (→ Teardown) fires automatically when the scene unloads — so no state has to manage the match lifecycle,
-    ///     and cleanup can never be forgotten. It coordinates: creates the arena + player via factories, then hands
-    ///     the world to focused collaborators (<see cref="HudPresenter" />, <see cref="GameplayFeedbackDirector" />,
-    ///     <see cref="GameFlowController" />) and starts spawning.
+    ///     THE composition root of the game scene — read <see cref="Build" /> top-to-bottom to see the ENTIRE match
+    ///     setup in one place (this is the game-scene equivalent of <c>LoadMainMenuState.CreateMenu</c>). It lives in
+    ///     the game scene's SceneContext and runs off that context's kernel: <see cref="Initialize" /> (→ Build) fires
+    ///     when the scene loads, <see cref="Dispose" /> (→ Teardown) fires automatically when the scene unloads — so
+    ///     no FSM state has to manage the match lifecycle, and cleanup can never be forgotten. It coordinates: creates
+    ///     the arena + player via factories, then hands the world to focused collaborators
+    ///     (<see cref="HudPresenter" />, <see cref="GameplayFeedbackDirector" />, <see cref="GameFlowController" />)
+    ///     and starts spawning. Build/Teardown are private — the only entry points are the two interface hooks.
     /// </summary>
     public class GameWorldBuilder : IInitializable, System.IDisposable
     {
@@ -86,7 +88,7 @@ namespace Game.Scene
             Build();
         }
 
-        public void Build()
+        private void Build()
         {
             ResetSession();
 
@@ -111,7 +113,7 @@ namespace Game.Scene
             Teardown();
         }
 
-        public void Teardown()
+        private void Teardown()
         {
             Time.timeScale = 1f;
 

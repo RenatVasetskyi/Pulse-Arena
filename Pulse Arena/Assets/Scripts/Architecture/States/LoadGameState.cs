@@ -22,6 +22,9 @@ namespace Architecture.States
 
         public void Enter()
         {
+            // Just loads the scene. What happens NEXT: the game scene's SceneContext (GameInstaller) instantiates
+            // GameWorldBuilder (NonLazy IInitializable), whose Build() composes the whole match. To read the
+            // game-scene setup top-to-bottom, open GameWorldBuilder.Build() — THAT is the composition root.
             _sceneLoader.Load(_gameSettings.GameSceneName);
         }
 
