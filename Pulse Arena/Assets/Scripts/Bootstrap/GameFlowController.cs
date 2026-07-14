@@ -138,9 +138,19 @@ namespace Game.Scene
                 return;
 
             _isGameOver = true;
+            RecordSurvivalScore();
             StopRun();
             _battleCamera?.PlayDeathZoom();
             _gameOverRoutine = _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
+        }
+
+        // Survival is endless — the run only ends on death, so bank the final score as the new best here.
+        private void RecordSurvivalScore()
+        {
+            if (_levelService.Selected == null || !_levelService.Selected.IsEndless)
+                return;
+
+            _levelProgress.SubmitSurvivalScore(_scoreService.Score);
         }
 
         // Campaign win: record the clear (unlocks the next level + banks stars). Survival is endless, so this never

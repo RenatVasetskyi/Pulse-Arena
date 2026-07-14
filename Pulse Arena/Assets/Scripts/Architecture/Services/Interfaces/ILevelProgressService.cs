@@ -21,6 +21,12 @@ namespace Architecture.Services.Interfaces
         /// </summary>
         bool Complete(int levelIndex, int stars);
 
+        /// <summary>Best survival-run score ever banked; 0 if survival was never played.</summary>
+        int GetSurvivalBest();
+
+        /// <summary>Banks a survival score if it beats the stored best. Returns true when it set a new record.</summary>
+        bool SubmitSurvivalScore(int score);
+
         void ResetProgress();
     }
 }

@@ -12,6 +12,7 @@ namespace Architecture.Services
     {
         private const string UnlockedKey = "PulseArena.Levels.HighestUnlocked";
         private const string StarsKeyPrefix = "PulseArena.Levels.Stars.";
+        private const string SurvivalBestKey = "PulseArena.Survival.Best";
 
         public int HighestUnlockedIndex => Mathf.Max(0, PlayerPrefs.GetInt(UnlockedKey, 0));
 
@@ -37,6 +38,21 @@ namespace Architecture.Services
                 return false;
 
             PlayerPrefs.SetInt(UnlockedKey, levelIndex + 1);
+            PlayerPrefs.Save();
+            return true;
+        }
+
+        public int GetSurvivalBest()
+        {
+            return Mathf.Max(0, PlayerPrefs.GetInt(SurvivalBestKey, 0));
+        }
+
+        public bool SubmitSurvivalScore(int score)
+        {
+            if (score <= GetSurvivalBest())
+                return false;
+
+            PlayerPrefs.SetInt(SurvivalBestKey, score);
             PlayerPrefs.Save();
             return true;
         }

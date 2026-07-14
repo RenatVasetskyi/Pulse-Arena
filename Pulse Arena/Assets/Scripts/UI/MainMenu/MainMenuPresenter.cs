@@ -72,7 +72,29 @@ namespace UI.MainMenu
                 return;
 
             _levelSelect.Build(BuildLevelModels());
+            BindSurvival();
             _levelSelect.Show();
+        }
+
+        private void BindSurvival()
+        {
+            int index = FindSurvivalIndex();
+
+            if (index < 0)
+                return;
+
+            _levelSelect.BindSurvival(index, _levelProgress.GetSurvivalBest());
+        }
+
+        private int FindSurvivalIndex()
+        {
+            IReadOnlyList<LevelDefinition> levels = _levelService.Levels;
+
+            for (int i = 0; i < levels.Count; i++)
+                if (levels[i].IsEndless)
+                    return i;
+
+            return -1;
         }
 
         /// <summary>

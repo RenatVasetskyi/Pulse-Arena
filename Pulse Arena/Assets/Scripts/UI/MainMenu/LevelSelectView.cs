@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,14 +8,18 @@ namespace UI.MainMenu
 {
     /// <summary>
     ///     The level-select overlay (a passive View): a jungle-temple background with a hand-placed set of ornate
-    ///     level tiles. <see cref="Build" /> binds each tile in <see cref="_tiles" /> to one level (index → level) and
-    ///     raises <see cref="LevelChosen" /> / <see cref="BackPressed" />; all progress logic lives in the presenter.
-    ///     Tiles are positioned by hand on the <c>level_select</c> prefab — no grid, no runtime cloning.
+    ///     campaign tiles plus a wide always-open survival button. <see cref="Build" /> binds each tile in
+    ///     <see cref="_tiles" /> to a campaign level and <see cref="BindSurvival" /> points the survival button at the
+    ///     endless level (showing its best score); both raise <see cref="LevelChosen" />. Progress logic lives in the
+    ///     presenter; everything is positioned by hand on the <c>level_select</c> prefab — no grid, no runtime cloning.
     /// </summary>
     public class LevelSelectView : MonoBehaviour
     {
         [SerializeField] private LevelTileView[] _tiles;
         [SerializeField] private Button _backButton;
+        [SerializeField] private Button _survivalButton;
+        [SerializeField] private TextMeshProUGUI _survivalScore;
+        private int _survivalIndex = -1;
 
         public event Action<int> LevelChosen;
         public event Action BackPressed;
@@ -22,6 +27,7 @@ namespace UI.MainMenu
         private void Awake()
         {
             _backButton.onClick.AddListener(RaiseBack);
+            _survivalButton.onClick.AddListener(RaiseSurvival);
             SubscribeTiles();
         }
 
@@ -29,6 +35,16 @@ namespace UI.MainMenu
         {
             for (int i = 0; i < _tiles.Length; i++)
                 BindTile(i, levels);
+        }
+
+        /// <summary>
+        ///     Points the wide survival button at its level (always open) and shows the best-score record. Kept apart
+        ///     from the campaign tiles because survival shows a score, not a lock/stars.
+        /// </summary>
+        public void BindSurvival(int levelIndex, int bestScore)
+        {
+            _survivalIndex = levelIndex;
+            _survivalScore.text = "Score: " + bestScore;
         }
 
         public void Show()
@@ -72,6 +88,11 @@ namespace UI.MainMenu
                 int captured = i;
                 _tiles[i].Clicked += () => LevelChosen?.Invoke(captured);
             }
+        }
+
+        private void RaiseSurvival()
+        {
+            LevelChosen?.Invoke(_survivalIndex);
         }
 
         private void RaiseBack()
