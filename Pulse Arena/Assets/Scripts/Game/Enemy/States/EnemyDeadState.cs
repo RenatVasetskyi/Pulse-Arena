@@ -50,10 +50,13 @@ namespace Game.Enemy.States
 
             // Drop straight down: kill horizontal drift + spin (no fly-off, no roll) but keep it non-kinematic
             // under gravity + upright so a mid-air death lands on the ground instead of freezing in the air.
+            // FreezeRotation locks the corpse upright so the player walking into it can no longer spin it up —
+            // the death anim (skinned bones) still plays; only the rigidbody's physical rotation is pinned.
             rigidbody.angularVelocity = Vector3.zero;
             rigidbody.linearVelocity = new Vector3(0f, Mathf.Min(0f, rigidbody.linearVelocity.y), 0f);
             rigidbody.useGravity = true;
             rigidbody.isKinematic = false;
+            rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
         }
     }
 }

@@ -223,17 +223,14 @@ namespace Game.Enemy
 
         /// <summary>
         ///     Sucked into an arena pit: ring out by sinking straight down into the maw at <paramref name="pitCenter" />
-        ///     (centering + descending at <paramref name="sinkSpeed" />) rather than tumbling off an edge. Disables the
-        ///     collider so the body drops through the arena floor into the hole instead of resting on it.
+        ///     (centering + descending at <paramref name="sinkSpeed" />) rather than tumbling off an edge. The collider
+        ///     drop that lets the body fall through the floor into the hole is shared with the edge path in
+        ///     <see cref="StartRingout" />.
         /// </summary>
         public void FallIntoPit(Vector3 pitCenter, float sinkSpeed)
         {
             _context.PitSinkCenter = pitCenter;
             _context.PitSinkSpeed = sinkSpeed;
-
-            if (_capsule != null)
-                _capsule.enabled = false;
-
             StartRingout();
         }
 
@@ -682,6 +679,13 @@ namespace Game.Enemy
                 return;
 
             _isRingout = true;
+
+            // The enemy is leaving the arena (tumbling off an edge or sinking into a pit). Drop its collider so the
+            // dying body neither rests on the floor nor collides with — and spins wildly off — the player who walks
+            // into it. The tumble/sink is driven by velocity + gravity, not collision, so nothing else needs it.
+            if (_capsule != null)
+                _capsule.enabled = false;
+
             _stateMachine.ChangeState(_ringoutState);
         }
 
