@@ -211,6 +211,12 @@ namespace Game.Visuals
         public void SetGrabbed(bool isGrabbed)
         {
             _isGrabbed = isGrabbed;
+
+            // Snap out of any attack lunge into the neutral Idle pose the instant the enemy is grabbed, so the skinned
+            // body sits back over the physics capsule the lasso wraps. A skeleton caught mid-attack otherwise stays
+            // leaned forward while the rope hugs the (upright) capsule beside it — the "crooked wrap".
+            if (isGrabbed && _animator != null && !_isDead && _animator.HasState(0, IdleHash))
+                _animator.CrossFade(IdleHash, 0.1f);
         }
 
         public void SetThrown(bool isThrown)

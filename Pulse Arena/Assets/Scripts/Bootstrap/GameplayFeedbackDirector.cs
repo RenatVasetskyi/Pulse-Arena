@@ -70,6 +70,7 @@ namespace Game.Scene
             }
 
             _enemySpawner.WaveChanged += OnWaveStarted;
+            _enemySpawner.WaveCleared += OnWaveCleared;
             _enemySpawner.AllWavesCleared += OnVictory;
         }
 
@@ -94,6 +95,7 @@ namespace Game.Scene
             }
 
             _enemySpawner.WaveChanged -= OnWaveStarted;
+            _enemySpawner.WaveCleared -= OnWaveCleared;
             _enemySpawner.AllWavesCleared -= OnVictory;
         }
 
@@ -155,6 +157,15 @@ namespace Game.Scene
         private void OnPlayerDied() => _audioService.PlaySfx(GameSfx.Defeat);
 
         private void OnWaveStarted(int current, int total) => _audioService.PlaySfx(GameSfx.WaveStart);
+
+        // The wave's last enemy just died — punctuate it with a brief slow-mo so the final kill lands in slow motion.
+        private void OnWaveCleared()
+        {
+            SlowMoData data = _gameSettings.SlowMoData;
+
+            if (data != null)
+                _slowMoService.Trigger(data.WaveClearScale, data.WaveClearDuration);
+        }
 
         private void OnVictory() => _audioService.PlaySfx(GameSfx.Victory);
 

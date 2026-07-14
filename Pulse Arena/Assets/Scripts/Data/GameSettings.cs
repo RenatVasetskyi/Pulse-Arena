@@ -297,6 +297,12 @@ namespace Data
 
         [Tooltip("Minimum seconds between launch-triggered slow-mos.")]
         public float Cooldown = 1.4f;
+
+        [Tooltip("Slow-mo scale when a wave is cleared — its last enemy dies in slow motion (lower = slower).")]
+        [Range(0.05f, 1f)] public float WaveClearScale = 0.3f;
+
+        [Tooltip("How long the wave-clear slow-mo lasts (unscaled seconds).")]
+        public float WaveClearDuration = 0.55f;
     }
 
     [Serializable]

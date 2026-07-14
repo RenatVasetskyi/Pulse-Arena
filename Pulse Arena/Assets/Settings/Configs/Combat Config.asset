@@ -84,6 +84,8 @@ MonoBehaviour:
     Duration: 0.22
     LaunchChargeThreshold: 0.85
     Cooldown: 1.4
+    WaveClearScale: 0.3
+    WaveClearDuration: 0.55
   Pit:
     SpawnInterval: 6
     MaxActive: 2

@@ -25,7 +25,9 @@ namespace Game.Enemy
         private readonly IPauseService _pauseService;
         private readonly ISafeSpawnFinder _placementFinder = new SafeSpawnFinder();
         private int _aliveEnemies;
+        private int _livingEnemies;
         private bool _paused;
+        private bool _waveClearPending;
         private float _spawnHeightOffset;
         private Transform _spawnParent;
 
@@ -33,6 +35,7 @@ namespace Game.Enemy
         private Transform _target;
         public event Action AllWavesCleared;
         public event Action<int, int> WaveChanged;
+        public event Action WaveCleared;
 
         public EnemySpawner(ICoroutineRunner coroutineRunner, IEnemyFactory enemyFactory, GameSettings gameSettings,
             ILevelService levelService, IPauseService pauseService)
@@ -70,6 +73,7 @@ namespace Game.Enemy
             _spawnParent = spawnParent;
             _spawnHeightOffset = spawnHeightOffset;
             _aliveEnemies = 0;
+            _livingEnemies = 0;
             _placementFinder.Initialize(center, target, _gameSettings.SpawnAreaData, BlockerMask());
         }
 
@@ -163,6 +167,7 @@ namespace Game.Enemy
                 if (wave == null || wave.Enemies == null || wave.Enemies.Length == 0)
                     continue;
 
+                _waveClearPending = false;
                 WaveChanged?.Invoke(waveIndex + 1, waves.Length);
                 yield return PausableWait(Mathf.Max(0f, wave.DelayBeforeWave));
 
@@ -176,6 +181,15 @@ namespace Game.Enemy
                     Spawn(type);
                     yield return PausableWait(Mathf.Max(0.05f, wave.SpawnInterval));
                 }
+
+                // Wave fully spawned — from now the moment _livingEnemies hits 0 is this wave's LAST KILL (the lethal
+                // hit / ring-out, via OnEnemyDied — NOT the ~1s-later pool return), which is where the slow-mo must
+                // land. Skip the final wave: its clear rolls straight into the victory sequence (AllWavesCleared),
+                // and a breather slow-mo there would fight the game-over freeze.
+                _waveClearPending = waveIndex < waves.Length - 1;
+
+                if (_waveClearPending && _livingEnemies == 0)
+                    RaiseWaveCleared();
 
                 while (_aliveEnemies > 0)
                     yield return PausableWait(pollInterval);
@@ -282,7 +296,9 @@ namespace Game.Enemy
 
             EnemyController enemy = _enemyFactory.Create(spawnPosition, rotation, _spawnParent, _target, type);
             enemy.Destroyed += OnEnemyDestroyed;
+            enemy.Died += OnEnemyDied;
             _aliveEnemies++;
+            _livingEnemies++;
         }
 
         private EnemyTypeData PickEnemyType()
@@ -319,10 +335,33 @@ namespace Game.Enemy
             return types[^1];
         }
 
+        // Pool-return bookkeeping: drives the on-screen cap + the wave-progression gate (both want "corpse gone").
         private void OnEnemyDestroyed(EnemyController enemy)
         {
             enemy.Destroyed -= OnEnemyDestroyed;
             _aliveEnemies = Mathf.Max(0, _aliveEnemies - 1);
+        }
+
+        // Moment-of-death bookkeeping: the instant the wave's last enemy takes its lethal hit / rings out, so the
+        // slow-mo lands ON the kill instead of ~1s later (when the corpse finally returns to the pool).
+        private void OnEnemyDied(EnemyController enemy)
+        {
+            enemy.Died -= OnEnemyDied;
+            _livingEnemies = Mathf.Max(0, _livingEnemies - 1);
+
+            if (_waveClearPending && _livingEnemies == 0)
+                RaiseWaveCleared();
+        }
+
+        // Fires WaveCleared exactly once per wave — guarded by the pending flag so a mid-spawn dip to zero or a
+        // second death on the same frame can't re-raise it.
+        private void RaiseWaveCleared()
+        {
+            if (!_waveClearPending)
+                return;
+
+            _waveClearPending = false;
+            WaveCleared?.Invoke();
         }
     }
 }

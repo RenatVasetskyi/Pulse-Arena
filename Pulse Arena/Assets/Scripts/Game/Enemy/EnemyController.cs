@@ -87,6 +87,10 @@ namespace Game.Enemy
         private Transform _target;
         private EnemyTypeData _typeData = EnemyTypeData.Default;
         public event Action<EnemyController> Destroyed;
+
+        // Fires at the MOMENT OF DEATH (lethal hit or ring-out), unlike Destroyed which fires ~1s later on pool
+        // return after the death animation. Consumers that need kill TIMING (e.g. the wave-clear slow-mo) use this.
+        public event Action<EnemyController> Died;
         public event Action<int, int> HealthChanged;
 
         public bool IsGrabbed => _context != null && _context.IsGrabbed;
@@ -415,6 +419,7 @@ namespace Game.Enemy
             _isDead = true;
             _healthBar.Hide(); // drop the (now-empty) bar the instant the death animation starts
             _ringout.AwardKill(out _);
+            Died?.Invoke(this);
             ChangeToDeadState();
         }
 
@@ -700,6 +705,7 @@ namespace Game.Enemy
             _isDead = true;
             _healthBar.Hide(); // ring-out has no death clip, but the bar should still vanish with the tumbling body
             _ringout.ResolveRingout();
+            Died?.Invoke(this);
         }
 
         // --- shared timer tick + small helpers -------------------------------------------------
