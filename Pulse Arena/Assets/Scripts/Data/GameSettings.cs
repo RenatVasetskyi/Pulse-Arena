@@ -471,18 +471,35 @@ namespace Data
     public class SlingshotData
     {
         public float GrabRadius = 7.5f;
+
+        [Tooltip("Orbit radius at FULL charge (the widest the spin gets).")]
         public float HoldRadius = 1.85f;
+
+        [Tooltip("Orbit radius at ZERO charge (a fresh grab). The spin stretches from here out to HoldRadius as it " +
+                 "charges, like a rubber band.")]
+        public float HoldRadiusStart = 1f;
         public float HoldHeight = 0.75f;
         public float HoldAngularSpeed = 170f;
         public float MaxHoldAngularSpeed = 720f;
         public float SpinAcceleration = 190f;
         public float HoldFollowSpeed = 26f;
+
+        [Tooltip("While spinning, if the held enemy travels LESS than this fraction of the distance the spin should " +
+                 "carry it, it counts as BLOCKED (snagged on a wall corner).")]
+        [Range(0f, 1f)] public float SpinBlockedMoveFraction = 0.35f;
+
+        [Tooltip("How long the spin can stay blocked before the rope snaps and drops the enemy.")]
+        public float SpinBlockedBreakTime = 0.5f;
         public float LaunchForce = 18f;
         public float LaunchUpwardRatio = 0.12f;
         public float LaunchDownwardVelocity = 8f;
         public float LaunchDownwardMaxChargeMultiplier = 1.25f; // extra downward boost at full charge
         public float LaunchDuration = 0.9f;
         public float ChargeDuration = 4f;
+
+        [Tooltip("Launch-force multiplier at ZERO charge (grab + instant release) — keep it small so a quick fling " +
+                 "barely travels; distance then scales with spin up to MaxChargeLaunchMultiplier.")]
+        [Range(0f, 1f)] public float MinChargeLaunchMultiplier = 0.2f;
         public float MaxChargeLaunchMultiplier = 1.6f;
         public float MaxChargeLineWidthMultiplier = 1.65f;
         public float ThrowDuration = 0.18f;
@@ -494,7 +511,10 @@ namespace Data
         public float ThrowWaveAmplitude = 0.08f;
         public float WrapWaveAmplitude = 0.06f;
         public float WrapRadius = 0.7f;
-        public float WrapRadiusScale = 0.86f;
+
+        [Tooltip("Wrap-ring radius as a multiple of the enemy's torso (capsule) half-width — MUST be >1 so the ring " +
+                 "encircles the body from OUTSIDE at every spawn size (large enemies otherwise get a ring inside them).")]
+        public float WrapRadiusScale = 1.4f;
         public float WrapRadiusPadding = 0.015f;
         public float MinWrapRadius = 0.3f;
         public float WrapVerticalScale = 0.34f;

@@ -20,6 +20,8 @@ MonoBehaviour:
     MaxHoldAngularSpeed: 720
     SpinAcceleration: 190
     HoldFollowSpeed: 26
+    SpinBlockedMoveFraction: 0.35
+    SpinBlockedBreakTime: 0.5
     LaunchForce: 18
     LaunchUpwardRatio: 0.12
     LaunchDownwardVelocity: 8
@@ -37,7 +39,7 @@ MonoBehaviour:
     ThrowWaveAmplitude: 0.08
     WrapWaveAmplitude: 0.06
     WrapRadius: 0.7
-    WrapRadiusScale: 0.86
+    WrapRadiusScale: 1.4
     WrapRadiusPadding: 0.015
     MinWrapRadius: 0.24
     WrapVerticalScale: 0.34

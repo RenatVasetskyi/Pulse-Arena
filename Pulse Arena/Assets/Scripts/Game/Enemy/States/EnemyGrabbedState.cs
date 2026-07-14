@@ -37,6 +37,10 @@ namespace Game.Enemy.States
             _context.Rigidbody.useGravity = true;
             _context.Rigidbody.isKinematic = false;
 
+            // Level the body upright (keep only its heading) BEFORE freezing — a grab caught mid-tumble/knockback
+            // would otherwise stay held sideways, and the horizontal wrap ring then sits off the tilted body.
+            _context.Rigidbody.rotation = Quaternion.Euler(0f, _context.Transform.eulerAngles.y, 0f);
+
             // Freeze ALL rotation while held: the lasso drives the body's POSITION directly, so bumping into
             // another enemy must not spin it. The struggle animation is purely visual (a child transform), so the
             // physics body stays steady. The pre-grab constraints are restored on Exit (launch / drop / death).

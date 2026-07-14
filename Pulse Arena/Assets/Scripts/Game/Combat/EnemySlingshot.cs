@@ -34,9 +34,11 @@ namespace Game.Combat
         private IPauseService _pauseService;
         private Vector3 _lassoEnd;
         private Vector3 _lassoStart;
+        private Vector3 _lastEnemyPos;
         private Vector3 _pullStartPosition;
         private float _pullTimer;
         private bool _releaseRequested;
+        private float _spinBlockedTimer;
         private float _spinSpeed;
         private LassoState _state;
         private EnemyController _targetEnemy;
@@ -204,6 +206,31 @@ namespace Game.Combat
                 return;
 
             FollowHoldPosition();
+            CheckSpinBlocked();
+        }
+
+        // The held enemy can snag on geometry (a wall corner) and stop following its orbit. Comparing where it should
+        // be doesn't work — the orbit point keeps sweeping past a stuck body, so its lag oscillates. Instead measure
+        // how far it ACTUALLY travelled vs how far the current spin should have carried it; if it keeps falling short
+        // for SpinBlockedBreakTime it's snagged, so snap the rope + drop it rather than leaving it stuck in hand.
+        private void CheckSpinBlocked()
+        {
+            if (_grabbedEnemy == null)
+                return;
+
+            Vector3 position = _grabbedEnemy.transform.position;
+            float moved = Vector3.Distance(position, _lastEnemyPos);
+            _lastEnemyPos = position;
+
+            float expected = Mathf.Abs(_spinSpeed) * Mathf.Deg2Rad * _data.HoldRadius * Time.fixedDeltaTime;
+
+            if (moved < expected * _data.SpinBlockedMoveFraction)
+                _spinBlockedTimer += Time.fixedDeltaTime;
+            else
+                _spinBlockedTimer = 0f;
+
+            if (_spinBlockedTimer >= _data.SpinBlockedBreakTime)
+                BreakRope();
         }
 
         private void AdvanceCharge()
@@ -336,6 +363,11 @@ namespace Game.Combat
         private void StartSpin()
         {
             _chargeTimer = 0f;
+            _spinBlockedTimer = 0f;
+
+            if (_grabbedEnemy != null)
+                _lastEnemyPos = _grabbedEnemy.transform.position;
+
             _state = LassoState.Spinning;
             _releaseRequested = _releaseRequested || SlingshotReleased();
             EnemyGrabbed?.Invoke();
@@ -347,7 +379,8 @@ namespace Game.Combat
             float launchProgress = Mathf.SmoothStep(0f, 1f, GetChargeProgress());
             float chargeProgress = GetChargeProgress();
             float launchForce = _data.LaunchForce *
-                                Mathf.Lerp(1f, _data.MaxChargeLaunchMultiplier, launchProgress) *
+                                Mathf.Lerp(_data.MinChargeLaunchMultiplier, _data.MaxChargeLaunchMultiplier,
+                                    launchProgress) *
                                 GetGrabbedLaunchMultiplier();
             Vector3 velocity = launchDirection.normalized * launchForce;
             velocity.y = -Mathf.Lerp(_data.LaunchDownwardVelocity,
@@ -373,8 +406,10 @@ namespace Game.Combat
 
         private Vector3 GetHoldPosition()
         {
+            // Orbit stretches outward with charge (rubber-band): tight on a fresh grab, widest at full spin.
+            float radius = Mathf.Lerp(_data.HoldRadiusStart, _data.HoldRadius, GetChargeProgress());
             Vector3 direction = Quaternion.Euler(0f, _holdAngle, 0f) * Vector3.forward;
-            return transform.position + Vector3.up * _data.HoldHeight + direction * _data.HoldRadius;
+            return transform.position + Vector3.up * _data.HoldHeight + direction * radius;
         }
 
         private Vector3 GetLassoOrigin()
