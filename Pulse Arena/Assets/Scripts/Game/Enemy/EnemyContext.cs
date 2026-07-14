@@ -1,5 +1,6 @@
 using System;
 using Data;
+using Game.Enemy.Behaviors;
 using Game.Player;
 using Game.Visuals;
 using UnityEngine;
@@ -41,6 +42,7 @@ namespace Game.Enemy
         private readonly Func<Transform> _target;
 
         private readonly Func<EnemyTypeData> _typeData;
+        private readonly Func<IEnemyBehavior> _behavior;
 
         // --- small SHARED mutable flags the states flip (held on the context itself) ---
         public bool IsGrabbed;
@@ -51,6 +53,8 @@ namespace Game.Enemy
         // (centering + descending at PitSinkSpeed) instead of tumbling off an arena edge. Null = edge ringout.
         public Vector3? PitSinkCenter;
         public float PitSinkSpeed;
+        // The enemy's swappable combat brain (per-type pursue/attack), driven by the chase state each tick.
+        public IEnemyBehavior Behavior => _behavior();
         public EnemyCollisionHandler Collisions { get; }
         public EnemyData Data { get; }
         public GroundRecoveryController GroundRecovery { get; }
@@ -87,6 +91,7 @@ namespace Game.Enemy
             Func<PlayerController> playerTarget,
             Func<bool> isDead,
             Func<EnemyTypeData> typeData,
+            Func<IEnemyBehavior> behavior,
             Action changeToIdle,
             Action changeToAttack,
             Action changeToChase,
@@ -114,6 +119,7 @@ namespace Game.Enemy
             _playerTarget = playerTarget;
             _isDead = isDead;
             _typeData = typeData;
+            _behavior = behavior;
             _changeToIdle = changeToIdle;
             _changeToAttack = changeToAttack;
             _changeToChase = changeToChase;

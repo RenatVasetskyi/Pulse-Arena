@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using Architecture.Services.Interfaces;
 using Data;
 using Game.Common;
 using Game.Common.StateMachine;
+using Game.Enemy.Behaviors;
 using Game.Enemy.Interfaces;
 using Game.Enemy.States;
 using Game.Player;
@@ -47,6 +49,11 @@ namespace Game.Enemy
         private readonly EnemyMovement _movement = new();
         private readonly RingoutHandler _ringout = new();
         private readonly EnemyTimers _timers = new();
+
+        // The active combat brain (selected per spawn from EnemyTypeData.Behavior) + the per-instance cache so
+        // reused pooled enemies never re-allocate one for a behaviour they have already run.
+        private readonly Dictionary<EnemyBehaviorId, IEnemyBehavior> _behaviors = new();
+        private IEnemyBehavior _behavior;
         private EnemyAttackState _attackState;
         private IAudioService _audioService;
         private CapsuleCollider _capsule;
@@ -121,6 +128,7 @@ namespace Game.Enemy
         public void Initialize(Transform target, EnemyTypeData typeData = null)
         {
             _typeData = typeData ?? EnemyTypeData.Default;
+            _behavior = ResolveBehavior(_typeData.Behavior);
             ResetForSpawn();
             _target = target;
             _playerTarget = target.GetComponentInParent<PlayerController>();
@@ -443,7 +451,7 @@ namespace Game.Enemy
                 _rigidbody, transform, _data, _movement, _visual, _timers, _groundRecovery, _impact, _collisions,
                 _ringout, _hitFlash, _settings.Feel.RingoutHeight,
                 () => IsPlayerAlive() ? _target : null, () => IsPlayerAlive() ? _playerTarget : null,
-                () => _isDead, () => _typeData,
+                () => _isDead, () => _typeData, () => _behavior,
                 ChangeToIdleState, ChangeToAttackState, ChangeToChaseState, ChangeToGroundRecoveryState,
                 ChangeToTauntState, ChangeToFlipState,
                 ReturnToPool, StartRingout, StartDeathReturn, ResolveRingout);
@@ -454,6 +462,21 @@ namespace Game.Enemy
         private bool IsPlayerAlive()
         {
             return _playerTarget != null && !_playerTarget.IsDead;
+        }
+
+        // Pick this type's combat brain, caching it per instance so a pooled enemy reused as the same behaviour
+        // never re-allocates one. It is Initialize'd with the (already-built, instance-stable) context the first
+        // time it is seen, so one wiring covers every reuse.
+        private IEnemyBehavior ResolveBehavior(EnemyBehaviorId id)
+        {
+            if (!_behaviors.TryGetValue(id, out IEnemyBehavior behavior))
+            {
+                behavior = EnemyBehaviorFactory.Create(id);
+                behavior.Initialize(_context);
+                _behaviors[id] = behavior;
+            }
+
+            return behavior;
         }
 
         // --- pool lifecycle --------------------------------------------------------------------

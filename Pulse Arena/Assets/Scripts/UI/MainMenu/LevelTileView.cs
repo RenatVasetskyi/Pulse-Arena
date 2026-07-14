@@ -20,7 +20,6 @@ namespace UI.MainMenu
         [SerializeField] private Button _button;
         [SerializeField] private TextMeshProUGUI _name;
         [SerializeField] private Image _lock;
-        [SerializeField] private TextMeshProUGUI _endless;
         [SerializeField] private GameObject _starsHolder;
         [SerializeField] private Image[] _stars;
 
@@ -32,9 +31,6 @@ namespace UI.MainMenu
             _button.interactable = unlocked;
 
             _lock.gameObject.SetActive(!unlocked);
-
-            if (_endless != null)
-                _endless.gameObject.SetActive(unlocked && survival);
 
             bool showStars = unlocked && !survival;
             _starsHolder.SetActive(showStars);

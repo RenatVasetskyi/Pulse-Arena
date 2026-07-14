@@ -12,6 +12,17 @@ namespace Data
         Spiky = 4
     }
 
+    /// <summary>
+    ///     Which combat "brain" an enemy type runs — its pursue/attack archetype, mapped to an
+    ///     <c>IEnemyBehavior</c> by <c>EnemyBehaviorFactory</c>. The universal reactions (grab, knockback, ringout,
+    ///     death) are shared by every enemy and are NOT selected here; only the offense archetype varies. Add a value
+    ///     + a factory case + an <c>IEnemyBehavior</c> impl to give a new enemy its own behaviour.
+    /// </summary>
+    public enum EnemyBehaviorId
+    {
+        MeleeChaser = 0
+    }
+
     [Serializable]
     public class EnemyTypeData
     {
@@ -22,6 +33,11 @@ namespace Data
         [Tooltip("The self-contained enemy prefab for this type — its own model, Animator, controller and scale. " +
                  "Null falls back to the shared GameSettings.Prefabs.EnemyPrefab.")]
         public GameObject Prefab;
+
+        [Header("Behavior")]
+        [Tooltip("Which pursue/attack brain this enemy runs (EnemyBehaviorFactory maps it to an IEnemyBehavior). " +
+                 "MeleeChaser = the default run-in-and-swing archetype.")]
+        public EnemyBehaviorId Behavior = EnemyBehaviorId.MeleeChaser;
 
         [Header("Spawning")] [Min(0f)] public float SpawnWeight = 1f;
 

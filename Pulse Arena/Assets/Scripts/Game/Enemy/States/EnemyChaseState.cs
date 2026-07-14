@@ -1,26 +1,21 @@
 using Game.Common.StateMachine;
-using Game.Enemy;
-using UnityEngine;
 
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The pursue ("run") state: drive toward the target (via <see cref="EnemyContext.DriveToTarget" />). When the
-    ///     player is in range and the attack is off cooldown it hands off to <see cref="EnemyAttackState" /> — the
-    ///     enemy only ever commits to an attack FROM the chase, so a swing is never started mid-chase and the chase
-    ///     never runs while a swing plays. On models that support it, <see cref="EnemyFlourish" /> occasionally rolls
-    ///     a somersault mid-approach and hands off to <see cref="EnemyFlipState" />. When the target is lost (the
-    ///     player died) it drops to <see cref="EnemyIdleState" />.
+    ///     The pursue ("run") state: a thin FSM shell that clears the actor's grabbed/thrown/recovery flags on entry,
+    ///     hands agent control back to the mover, then delegates the per-tick pursue/attack DECISION to the enemy
+    ///     type's <see cref="Game.Enemy.Behaviors.IEnemyBehavior" /> (via <see cref="EnemyContext.Behavior" />).
+    ///     What the enemy does while chasing — run + melee for the default brain, or hold-distance + fire for a future
+    ///     ranged one — lives in that behaviour, not here, so a new archetype needs no change to this state.
     /// </summary>
     public class EnemyChaseState : ActorState
     {
         private readonly EnemyContext _context;
-        private readonly EnemyFlourish _flourish;
 
         public EnemyChaseState(EnemyContext context)
         {
             _context = context;
-            _flourish = new EnemyFlourish(context);
         }
 
         public override void Enter()
@@ -31,30 +26,12 @@ namespace Game.Enemy.States
             _context.Visual?.SetGrabbed(false);
             _context.Visual?.SetThrown(false);
             _context.TryEnableAgentControl();
-            _flourish.Rearm();
+            _context.Behavior.OnEnterChase();
         }
 
         public override void FixedTick()
         {
-            if (_context.Target == null)
-            {
-                _context.ChangeToIdleState();
-                return;
-            }
-
-            if (_context.CanAttack())
-            {
-                _context.ChangeToAttackState();
-                return;
-            }
-
-            if (_flourish.ShouldFlip(Time.fixedDeltaTime))
-            {
-                _context.ChangeToFlipState();
-                return;
-            }
-
-            _context.DriveToTarget();
+            _context.Behavior.Tick();
         }
     }
 }
