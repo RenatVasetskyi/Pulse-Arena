@@ -37,6 +37,7 @@ namespace Game.Scene
         private readonly HudPresenter _hudPresenter;
         private readonly IInputService _inputService;
         private readonly ILevelService _levelService;
+        private readonly OnboardingController _onboarding;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IPitSpawner _pitSpawner;
         private readonly IPlayerFactory _playerFactory;
@@ -65,6 +66,7 @@ namespace Game.Scene
             HudPresenter hudPresenter,
             GameplayFeedbackDirector feedback,
             GameFlowController gameFlow,
+            OnboardingController onboarding,
             GameSettings gameSettings)
         {
             _arenaFactory = arenaFactory;
@@ -83,6 +85,7 @@ namespace Game.Scene
             _hudPresenter = hudPresenter;
             _feedback = feedback;
             _gameFlow = gameFlow;
+            _onboarding = onboarding;
             _gameSettings = gameSettings;
         }
 
@@ -107,6 +110,7 @@ namespace Game.Scene
             GameHud gameHud = _hudPresenter.Bind(_player, _battleCamera);
             _feedback.Bind(_player, _battleCamera);
             _gameFlow.Bind(_player, gameHud, _battleCamera);
+            _onboarding.Bind(_player, gameHud);
 
             StartSpawners();
         }
@@ -123,6 +127,7 @@ namespace Game.Scene
             _hudPresenter.Unbind();
             _feedback.Unbind();
             _gameFlow.Unbind();
+            _onboarding.Unbind();
 
             _enemySpawner.StopSpawn();
             _pickupSpawner.StopSpawn();

@@ -229,6 +229,11 @@ namespace Game.Enemy
                     yield return PausableWait(interval);
                 }
 
+                // Wait for the whole wave to be cleared before escalating — otherwise waves pile on top of each other
+                // (the on-screen cap alone just keeps the arena full without ever "finishing" a wave).
+                while (_aliveEnemies > 0)
+                    yield return PausableWait(pollInterval);
+
                 wave++;
             }
         }

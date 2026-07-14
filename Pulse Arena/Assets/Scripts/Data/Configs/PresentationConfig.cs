@@ -10,5 +10,6 @@ namespace Data
         public UiData Ui = new();
         public AudioData Audio = new();
         public HapticData Haptics = new();
+        public OnboardingData Onboarding = new();
     }
 }

@@ -109,6 +109,10 @@ namespace Bootstrap
                 .Bind<GameFlowController>()
                 .AsSingle();
 
+            Container
+                .Bind<OnboardingController>()
+                .AsSingle();
+
             // NonLazy + IInitializable/IDisposable: the SceneContext builds the world on load and tears it down
             // on unload, automatically and in isolation from the ProjectContext.
             Container

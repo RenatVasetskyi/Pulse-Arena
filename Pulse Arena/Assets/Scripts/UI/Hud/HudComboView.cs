@@ -13,7 +13,7 @@ namespace UI.Hud
     {
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private TextMeshProUGUI _label;
-        [SerializeField] private float _holdDuration = 2.5f;
+        [SerializeField] private float _holdDuration = 0.7f;
         private Vector3 _baseScale = Vector3.one;
         private Coroutine _hideRoutine;
 
@@ -54,8 +54,15 @@ namespace UI.Hud
             }
 
             _rect.DOKill();
-            _rect.localScale = _baseScale * 0.6f;
-            _rect.DOScale(_baseScale, 0.28f).SetEase(Ease.OutBack).SetLink(gameObject);
+            _rect.localScale = _baseScale * 0.3f;
+            _rect.localRotation = Quaternion.identity;
+
+            // Aggressive impact: snap well past full size then settle back, with a quick rotational kick — reads as a
+            // punchy hit rather than a gentle grow.
+            Sequence pop = DOTween.Sequence().SetLink(gameObject);
+            pop.Append(_rect.DOScale(_baseScale * 1.3f, 0.09f).SetEase(Ease.OutQuad));
+            pop.Append(_rect.DOScale(_baseScale, 0.1f).SetEase(Ease.OutBack));
+            pop.Insert(0f, _rect.DOPunchRotation(new Vector3(0f, 0f, 7f), 0.26f, 9, 1f));
 
             if (_hideRoutine != null)
                 StopCoroutine(_hideRoutine);
@@ -70,10 +77,17 @@ namespace UI.Hud
             _hideRoutine = null;
         }
 
+        // Snappy exit: a fast fade paired with a slight scale-up so it bursts away instead of lingering.
         private void FadeOut()
         {
             if (_canvasGroup != null)
-                _canvasGroup.DOFade(0f, 0.3f).SetLink(gameObject);
+                _canvasGroup.DOFade(0f, 0.14f).SetLink(gameObject);
+
+            if (_rect != null)
+            {
+                _rect.DOKill();
+                _rect.DOScale(_baseScale * 1.25f, 0.14f).SetEase(Ease.InBack).SetLink(gameObject);
+            }
         }
     }
 }

@@ -24,6 +24,7 @@ namespace UI.Hud
         [SerializeField] private HudTensionView _tension;
         [SerializeField] private HudComboView _combo;
         [SerializeField] private HudDamageFlash _damageFlash;
+        [SerializeField] private HudHintView _hint;
 
         [Header("Touch controls (mobile)")] [SerializeField]
         private VirtualJoystick _joystick;
@@ -35,6 +36,7 @@ namespace UI.Hud
         [Header("Pause")] [SerializeField] private Button _pauseButton;
 
         private int _lastHealth = -1;
+        private bool _suppressTransient;
 
         private PlayerController _player;
 
@@ -101,10 +103,19 @@ namespace UI.Hud
             if (_combo == null)
                 return;
 
-            if (combo >= 2)
+            if (combo >= 2 && !_suppressTransient)
                 _combo.Show(combo);
             else
                 _combo.Hide();
+        }
+
+        // Onboarding suppresses the combo popup + pickup toasts so its hints read cleanly on the first game.
+        public void SetTransientSuppressed(bool suppressed)
+        {
+            _suppressTransient = suppressed;
+
+            if (suppressed)
+                _combo?.Hide();
         }
 
         public void SetSuperCharge(float charge01)
@@ -123,8 +134,23 @@ namespace UI.Hud
 
         public void ShowToast(string message, float duration)
         {
-            if (_toast != null)
-                _toast.Show(message, duration);
+            if (_toast == null || _suppressTransient)
+                return;
+
+            _toast.Show(message, duration);
+        }
+
+        // autoHide <= 0 keeps the onboarding hint up until the next ShowHint/HideHint (learn-by-doing gating).
+        public void ShowHint(string message, float autoHide)
+        {
+            if (_hint != null)
+                _hint.Show(message, autoHide);
+        }
+
+        public void HideHint()
+        {
+            if (_hint != null)
+                _hint.Hide();
         }
 
         // HUD-visual only: the full-screen damage flash. The camera hit-kick + SFX + haptics for the same event

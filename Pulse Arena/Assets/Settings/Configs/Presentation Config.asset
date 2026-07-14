@@ -144,3 +144,17 @@ MonoBehaviour:
     MusicVolume: 0.45
     MenuMusic: {fileID: 8300000, guid: 055abe364dc7b43a0bd15c9493b4e382, type: 3}
     BattleMusic: {fileID: 8300000, guid: fbb84bf22d550499d9cb2ed2014fd282, type: 3}
+  Haptics:
+    PlayerHitDurationMs: 30
+    PlayerHitAmplitude: 60
+  Onboarding:
+    HintDuration: 5
+    GrabHint: Hold the lasso button next to an enemy to grab it
+    FlingHint: Keep holding to wind up - release to hurl the enemy!
+    KillHint: 'Smash enemies into walls or into each other to take them down.
+
+      Clear
+      every wave to win!'
+    BoosterHint: Grab the glowing orbs to restore health
+    DashHint: Tap the dash button to dodge enemy attacks
+    UltimateHint: Ultimate charged! Tap the ultimate button to blast enemies away

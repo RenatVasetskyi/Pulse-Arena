@@ -15,6 +15,8 @@ namespace UI.MainMenu
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _playButton;
         [SerializeField] private Button _settingsButton;
+        [SerializeField] private Button _resetButton;
+        [SerializeField] private ConfirmDialogView _confirmDialog;
         [SerializeField] private RectTransform _title;
         private Vector3 _playButtonBaseScale = Vector3.one;
         private Vector3 _settingsButtonBaseScale = Vector3.one;
@@ -22,7 +24,11 @@ namespace UI.MainMenu
         private Vector3 _titleBaseScale = Vector3.one;
 
         public event Action PlayClicked;
+        public event Action ResetClicked;
         public event Action SettingsClicked;
+
+        /// <summary>The reset-progress confirmation modal — the presenter drives its Confirmed/Cancelled + Show/Hide.</summary>
+        public ConfirmDialogView ConfirmDialog => _confirmDialog;
 
         private void Awake()
         {
@@ -37,6 +43,9 @@ namespace UI.MainMenu
                 _settingsButtonBaseScale = _settingsButton.transform.localScale;
                 _settingsButton.onClick.AddListener(OnSettingsClicked);
             }
+
+            if (_resetButton != null)
+                _resetButton.onClick.AddListener(OnResetClicked);
 
             if (_title != null)
                 _titleBaseScale = _title.localScale;
@@ -55,6 +64,9 @@ namespace UI.MainMenu
 
             if (_settingsButton != null)
                 _settingsButton.onClick.RemoveListener(OnSettingsClicked);
+
+            if (_resetButton != null)
+                _resetButton.onClick.RemoveListener(OnResetClicked);
         }
 
         public void Dispose()
@@ -148,6 +160,11 @@ namespace UI.MainMenu
         private void OnSettingsClicked()
         {
             SettingsClicked?.Invoke();
+        }
+
+        private void OnResetClicked()
+        {
+            ResetClicked?.Invoke();
         }
     }
 }

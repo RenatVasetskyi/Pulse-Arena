@@ -41,6 +41,14 @@ namespace UI.MainMenu
         {
             _view.PlayClicked += OnPlayClicked;
             _view.SettingsClicked += OnSettingsClicked;
+            _view.ResetClicked += OnResetClicked;
+
+            if (_view.ConfirmDialog != null)
+            {
+                _view.ConfirmDialog.Confirmed += OnResetConfirmed;
+                _view.ConfirmDialog.Cancelled += OnResetCancelled;
+            }
+
             _view.Show();
         }
 
@@ -53,6 +61,14 @@ namespace UI.MainMenu
 
             _view.PlayClicked -= OnPlayClicked;
             _view.SettingsClicked -= OnSettingsClicked;
+            _view.ResetClicked -= OnResetClicked;
+
+            if (_view.ConfirmDialog != null)
+            {
+                _view.ConfirmDialog.Confirmed -= OnResetConfirmed;
+                _view.ConfirmDialog.Cancelled -= OnResetCancelled;
+            }
+
             _view.Dispose();
         }
 
@@ -167,6 +183,25 @@ namespace UI.MainMenu
         {
             _audioService?.PlaySfx(GameSfx.UiClick);
             _settingsController?.Open();
+        }
+
+        private void OnResetClicked()
+        {
+            _audioService?.PlaySfx(GameSfx.UiClick);
+            _view.ConfirmDialog?.Show();
+        }
+
+        private void OnResetConfirmed()
+        {
+            _audioService?.PlaySfx(GameSfx.UiClick);
+            _levelProgress.ResetProgress();
+            _view.ConfirmDialog?.Hide();
+        }
+
+        private void OnResetCancelled()
+        {
+            _audioService?.PlaySfx(GameSfx.UiClick);
+            _view.ConfirmDialog?.Hide();
         }
     }
 }

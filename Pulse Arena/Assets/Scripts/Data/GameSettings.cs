@@ -59,6 +59,7 @@ namespace Data
         public UiData Ui => _presentation.Ui;
         public AudioData AudioData => _presentation.Audio;
         public HapticData Haptics => _presentation.Haptics;
+        public OnboardingData Onboarding => _presentation.Onboarding;
 
         public EnemyTypeData GetEnemyType(EnemyTypeId id)
         {
@@ -436,6 +437,29 @@ namespace Data
 
         public Color WorldHealthEmptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
         public Color WorldHealthBackgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
+    }
+
+    /// <summary>
+    ///     First-run onboarding copy + timing: the contextual hint strings shown ONCE on the player's first game
+    ///     (grab → fling → goal, plus one-shot dash + ultimate prompts) and how long each stays on screen. Lives on
+    ///     <see cref="PresentationConfig" />; the onboarding controller reads it and shows each via the HUD toast.
+    /// </summary>
+    [Serializable]
+    public class OnboardingData
+    {
+        [Min(0.5f)] public float HintDuration = 5f;
+
+        [TextArea] public string GrabHint = "Hold the lasso button next to an enemy to grab it";
+        [TextArea] public string FlingHint = "Keep holding to wind up - release to hurl the enemy!";
+
+        [TextArea] public string KillHint =
+            "Smash enemies into walls or into each other to take them down.\nClear every wave to win!";
+
+        [TextArea] public string BoosterHint = "Grab the glowing orbs to restore health";
+        [TextArea] public string DashHint = "Tap the dash button to dodge enemy attacks";
+
+        [TextArea] public string UltimateHint =
+            "Ultimate charged! Tap the ultimate button to blast enemies away";
     }
 
     /// <summary>
