@@ -63,13 +63,16 @@ namespace Game.Combat
                 DrawWrappedRope(frame);
         }
 
+        // Both ends are LIVE. The origin used to be a snapshot taken when the throw started, so for the whole
+        // ThrowDuration the rope hung off the point where the hand HAD been — visibly detached from the moving hand,
+        // then snapped back the instant the wrap phase took over. Read the hand every frame instead.
         private void DrawThrowingRope(RopeFrame frame)
         {
             float t = Mathf.Clamp01(frame.ThrowTimer / Mathf.Max(_data.ThrowDuration, 0.01f));
             float travelT = Mathf.SmoothStep(0f, 1f, t);
-            Vector3 currentEnd = Vector3.Lerp(frame.LassoStart, frame.LassoEnd, travelT);
+            Vector3 currentEnd = Vector3.Lerp(frame.RopeOrigin, frame.LassoEnd, travelT);
 
-            DrawRope(frame.LassoStart, currentEnd, _data.ThrowWaveAmplitude);
+            DrawRope(frame.RopeOrigin, currentEnd, _data.ThrowWaveAmplitude);
         }
 
         private void DrawWrappedRope(RopeFrame frame)
@@ -78,7 +81,7 @@ namespace Game.Combat
                 return;
 
             float shake = 1f + frame.TensionWarning * _data.TensionShakeAmplitude;
-            DrawRope(frame.WrappedOrigin, frame.EnemyRopeCenter, _data.WrapWaveAmplitude * shake);
+            DrawRope(frame.RopeOrigin, frame.EnemyRopeCenter, _data.WrapWaveAmplitude * shake);
         }
 
         private void DrawRope(Vector3 start, Vector3 end, float waveAmplitude)
@@ -244,10 +247,12 @@ namespace Game.Combat
             public readonly bool Throwing;
             public readonly bool RingVisible;
             public readonly bool Wrapping;
-            public readonly Vector3 LassoStart;
             public readonly Vector3 LassoEnd;
             public readonly float ThrowTimer;
-            public readonly Vector3 WrappedOrigin;
+
+            // The hand the rope hangs from, sampled fresh every frame. Drives BOTH the throw and the wrap — never
+            // snapshot it, or the rope detaches from the hand for the duration of whatever phase froze it.
+            public readonly Vector3 RopeOrigin;
             public readonly Vector3 EnemyRopeCenter;
             public readonly EnemyController GrabbedEnemy;
             public readonly float WrapTimer;
@@ -255,7 +260,7 @@ namespace Game.Combat
             public readonly float TensionWarning;
 
             public RopeFrame(bool ropeVisible, bool throwing, bool ringVisible, bool wrapping,
-                Vector3 lassoStart, Vector3 lassoEnd, float throwTimer, Vector3 wrappedOrigin,
+                Vector3 lassoEnd, float throwTimer, Vector3 ropeOrigin,
                 Vector3 enemyRopeCenter, EnemyController grabbedEnemy, float wrapTimer,
                 float chargeProgress, float tensionWarning)
             {
@@ -263,10 +268,9 @@ namespace Game.Combat
                 Throwing = throwing;
                 RingVisible = ringVisible;
                 Wrapping = wrapping;
-                LassoStart = lassoStart;
                 LassoEnd = lassoEnd;
                 ThrowTimer = throwTimer;
-                WrappedOrigin = wrappedOrigin;
+                RopeOrigin = ropeOrigin;
                 EnemyRopeCenter = enemyRopeCenter;
                 GrabbedEnemy = grabbedEnemy;
                 WrapTimer = wrapTimer;

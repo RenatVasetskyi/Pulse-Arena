@@ -33,7 +33,6 @@ namespace Game.Combat
         private bool _paused;
         private IPauseService _pauseService;
         private Vector3 _lassoEnd;
-        private Vector3 _lassoStart;
         private Vector3 _lastEnemyPos;
         private Vector3 _pullStartPosition;
         private float _pullTimer;
@@ -186,10 +185,9 @@ namespace Game.Combat
                 throwing: _state == LassoState.Throwing,
                 ringVisible: ringVisible,
                 wrapping: _state == LassoState.Wrapping,
-                lassoStart: _lassoStart,
                 lassoEnd: _lassoEnd,
                 throwTimer: _throwTimer,
-                wrappedOrigin: GetLassoOrigin(),
+                ropeOrigin: GetLassoOrigin(),
                 enemyRopeCenter: _grabbedEnemy != null ? GetEnemyRopeCenter(_grabbedEnemy) : Vector3.zero,
                 grabbedEnemy: _grabbedEnemy,
                 wrapTimer: _wrapTimer,
@@ -281,7 +279,6 @@ namespace Game.Combat
                 return;
 
             _targetEnemy = enemy;
-            _lassoStart = GetLassoOrigin();
             _lassoEnd = GetEnemyRopeCenter(enemy);
             _throwTimer = 0f;
             _wrapTimer = 0f;
