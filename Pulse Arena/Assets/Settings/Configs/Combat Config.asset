@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Data.CombatConfig
   Slingshot:
     GrabRadius: 7.5
-    HoldRadius: 1.85
-    HoldRadiusStart: 1
+    HoldRadius: 3
+    HoldRadiusStart: 2
     HoldHeight: 0.75
     HoldAngularSpeed: 170
     MaxHoldAngularSpeed: 720

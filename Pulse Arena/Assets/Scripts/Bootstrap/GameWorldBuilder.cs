@@ -16,7 +16,8 @@ namespace Game.Scene
 {
     /// <summary>
     ///     THE composition root of the game scene — read <see cref="Build" /> top-to-bottom to see the ENTIRE match
-    ///     setup in one place (this is the game-scene equivalent of <c>LoadMainMenuState.CreateMenu</c>). It lives in
+    ///     setup in one place (the game-scene twin of <c>MainMenuBuilder</c>; every scene composes itself the same
+    ///     way, and the flow states only pick WHICH scene). It lives in
     ///     the game scene's SceneContext and runs off that context's kernel: <see cref="Initialize" /> (→ Build) fires
     ///     when the scene loads, <see cref="Dispose" /> (→ Teardown) fires automatically when the scene unloads — so
     ///     no FSM state has to manage the match lifecycle, and cleanup can never be forgotten. It coordinates: creates
