@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Data;
 using Game.Combat;
 using UnityEngine;
@@ -25,6 +26,8 @@ namespace Game.Visuals
         [SerializeField] private float _speedDamp = 0.03f;
         [SerializeField] private float _animationSpeed = 1.4f;
         [SerializeField] private float _dashClipLength = 1.17f;
+        private readonly HashSet<int> _parameterHashes = new();
+        private bool _parametersCached;
         private bool _paused;
         private Rigidbody _rigidbody;
         private PlayerVisualData _visualData = new();
@@ -104,16 +107,26 @@ namespace Game.Visuals
 
         private bool HasParameter(int hash)
         {
-            if (_animator == null)
-                return false;
+            EnsureParameterCache();
+
+            return _parameterHashes.Contains(hash);
+        }
+
+        // Animator.parameters marshals a FRESH array (plus one object per parameter) on EVERY read. Nothing calls
+        // this per frame on the player today, but it is the same allocation trap that cost the enemy visual its
+        // whole GC budget — snapshot once. The parameter set is fixed at author time (_animator is a serialized ref
+        // and nothing swaps runtimeAnimatorController).
+        private void EnsureParameterCache()
+        {
+            if (_parametersCached || _animator == null)
+                return;
 
             AnimatorControllerParameter[] parameters = _animator.parameters;
 
             for (int i = 0; i < parameters.Length; i++)
-                if (parameters[i].nameHash == hash)
-                    return true;
+                _parameterHashes.Add(parameters[i].nameHash);
 
-            return false;
+            _parametersCached = true;
         }
     }
 }

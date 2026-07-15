@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Data;
 using UnityEngine;
 
@@ -53,6 +54,7 @@ namespace Game.Visuals
 
         [Tooltip("Seconds EnemyFlipState runs the somersault before returning to the chase (set to the flip clip's length / its play speed). 0 = no flip.")]
         [SerializeField] private float _flourishDuration;
+        private readonly HashSet<int> _parameterHashes = new();
         private Vector3 _baseScale = Vector3.one;
         private Collider _bodyCollider;
         private bool _deathSignaled;
@@ -61,6 +63,7 @@ namespace Game.Visuals
         private bool _isThrown;
         private Vector3 _lastPosition;
         private float _moveSpeed;
+        private bool _parametersCached;
         private bool _paused;
         private Rigidbody _rigidbody;
 
@@ -298,16 +301,27 @@ namespace Game.Visuals
 
         private bool HasParameter(int hash)
         {
-            if (_animator == null)
-                return false;
+            EnsureParameterCache();
+
+            return _parameterHashes.Contains(hash);
+        }
+
+        // Animator.parameters is an extern getter that marshals a FRESH array (plus one object per parameter) on
+        // EVERY read — and HasParameter is called per frame, per enemy, from Update. That single property was the
+        // entire per-frame managed allocation of the gameplay loop (~833 B/frame, measured). The controller's
+        // parameter set is fixed at author time (_animator is a serialized ref and nothing swaps
+        // runtimeAnimatorController), so snapshot the hashes once and never touch the property again.
+        private void EnsureParameterCache()
+        {
+            if (_parametersCached || _animator == null)
+                return;
 
             AnimatorControllerParameter[] parameters = _animator.parameters;
 
             for (int i = 0; i < parameters.Length; i++)
-                if (parameters[i].nameHash == hash)
-                    return true;
+                _parameterHashes.Add(parameters[i].nameHash);
 
-            return false;
+            _parametersCached = true;
         }
     }
 }

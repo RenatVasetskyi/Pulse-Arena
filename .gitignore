@@ -104,3 +104,10 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Profiler / memory captures — large local artifacts, never belong in the repo
+# (a single .data capture is easily 200MB+, over GitHub's 100MB file limit)
+[Pp]rofiler[Cc]aptures/
+*.data
+*.raw
+*.snap
