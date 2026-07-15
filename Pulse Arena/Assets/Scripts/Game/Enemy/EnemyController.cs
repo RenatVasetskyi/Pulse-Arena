@@ -531,6 +531,10 @@ namespace Game.Enemy
             _rigidbody.angularVelocity = Vector3.zero;
             // Restore the upright constraints the ringout tumble removed.
             _rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            // Same safety net for interpolation, which EnemyGrabbedState turns on while held: a pooled enemy that
+            // respawned still interpolating would have the rigidbody authoring its transform, fighting the
+            // NavMeshAgent that drives the chase — it would spawn frozen in place.
+            _rigidbody.interpolation = RigidbodyInterpolation.None;
             transform.rotation = Quaternion.identity;
             _rigidbody.WakeUp();
         }

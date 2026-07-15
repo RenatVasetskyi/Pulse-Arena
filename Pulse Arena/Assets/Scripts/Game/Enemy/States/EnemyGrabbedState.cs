@@ -15,6 +15,7 @@ namespace Game.Enemy.States
     {
         private readonly EnemyContext _context;
         private RigidbodyConstraints _cachedConstraints;
+        private RigidbodyInterpolation _cachedInterpolation;
 
         public EnemyGrabbedState(EnemyContext context)
         {
@@ -47,13 +48,25 @@ namespace Game.Enemy.States
             _cachedConstraints = _context.Rigidbody.constraints;
             _context.Rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
             _context.Rigidbody.angularVelocity = Vector3.zero;
+
+            // Interpolate ONLY while held. Physics runs at 50Hz and the game renders at 60, so 10 frames a second
+            // get no new physics step — an orbiting body then visibly stutters. Interpolation smooths that, but it
+            // makes the RIGIDBODY author the transform, which would fight the NavMeshAgent that drives a chasing
+            // enemy (agent writes the transform directly; the body would freeze). Safe here only because Enter
+            // disabled the agent above — so it must be restored on Exit, and reset on pool reuse.
+            _cachedInterpolation = _context.Rigidbody.interpolation;
+            _context.Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+
             _context.Rigidbody.WakeUp();
         }
 
         public override void Exit()
         {
-            if (_context.Rigidbody != null)
-                _context.Rigidbody.constraints = _cachedConstraints;
+            if (_context.Rigidbody == null)
+                return;
+
+            _context.Rigidbody.constraints = _cachedConstraints;
+            _context.Rigidbody.interpolation = _cachedInterpolation;
         }
 
         public override void FixedTick()
