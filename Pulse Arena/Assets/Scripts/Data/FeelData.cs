@@ -12,6 +12,8 @@ namespace Data
     {
         public float RingoutHeight = -2.5f;
         public float HitFlashDuration = 0.12f;
-        public Color HitFlashColor = new(1f, 0.08f, 0.03f, 1f);
+
+        [Tooltip("Authored flat material swapped onto an actor's renderers on hit (the flash colour lives on the asset).")]
+        public Material HitFlashMaterial;
     }
 }

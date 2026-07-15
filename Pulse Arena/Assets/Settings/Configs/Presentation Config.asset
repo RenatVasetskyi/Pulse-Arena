@@ -13,24 +13,6 @@ MonoBehaviour:
   m_Name: Presentation Config
   m_EditorClassIdentifier: Assembly-CSharp::Data.PresentationConfig
   Vfx:
-    SnapBurstCount: 26
-    SnapBurstLifetimeMin: 0.18
-    SnapBurstLifetimeMax: 0.42
-    SnapBurstSpeedMin: 2.5
-    SnapBurstSpeedMax: 6.5
-    SnapBurstSizeMin: 0.05
-    SnapBurstSizeMax: 0.14
-    SnapBurstGravity: 1.2
-    RingoutBurstCount: 20
-    RingoutBurstLifetimeMin: 0.22
-    RingoutBurstLifetimeMax: 0.5
-    RingoutBurstSpeedMin: 2
-    RingoutBurstSpeedMax: 5.5
-    RingoutBurstSizeMin: 0.06
-    RingoutBurstSizeMax: 0.16
-    RingoutBurstGravity: 0.6
-    RingoutColorA: {r: 1, g: 0.92, b: 0.4, a: 1}
-    RingoutColorB: {r: 1, g: 0.55, b: 0.2, a: 1}
     FloatingTextLifetime: 0.9
     FloatingTextRiseSpeed: 1.6
     FloatingTextColor: {r: 1, g: 0.92, b: 0.4, a: 1}

@@ -33,7 +33,7 @@ namespace Game.Player
             _input = input;
             _settings = settings;
             _pauseService = pauseService;
-            _shockwave.Initialize(transform, settings.SuperData);
+            _shockwave.Initialize(transform, settings.Prefabs.ShockwavePrefab);
             _pauseService.Register(this);
         }
 

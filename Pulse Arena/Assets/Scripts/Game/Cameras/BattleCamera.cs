@@ -28,16 +28,12 @@ namespace Game.Cameras
         [SerializeField] private CinemachineRotationComposer _rotationComposer;
         [SerializeField] private CinemachineBasicMultiChannelPerlin _noise;
 
-        [Header("Battle View (rig setup)")] [SerializeField]
-        private Vector3 _followOffset = new(0f, 14f, -11f);
-
-        [SerializeField] private Vector3 _lookAtOffset = new(0f, 0.8f, 0f);
-        [SerializeField] private Vector3 _positionDamping = new(0.12f, 0.18f, 0.12f);
-        [SerializeField] private Vector2 _rotationDamping = new(0.25f, 0.25f);
-        [SerializeField] private float _fieldOfView = 55f;
         private readonly CameraKickFx _kick = new();
         private readonly CameraShaker _shaker = new();
         private readonly CameraZoomController _zoom = new();
+        private float _baseFieldOfView;
+        private Vector3 _baseFollowOffset;
+        private Vector3 _baseLookAtOffset;
         private CameraData _data;
 
         private ISettingsService _settings;
@@ -56,9 +52,10 @@ namespace Game.Cameras
 
         private void Awake()
         {
+            CacheBaseRig();
+            EnforceWorldSpaceBinding();
             _shaker.Initialize(_noise, _data.ShakeFrequency);
-            _zoom.Initialize(_settings, _followOffset, _data);
-            ApplySettings();
+            _zoom.Initialize(_settings, _baseFollowOffset, _data);
         }
 
         private void Update()
@@ -75,11 +72,6 @@ namespace Game.Cameras
                 _settings.Changed -= OnSettingsChanged;
         }
 
-        private void OnValidate()
-        {
-            ApplySettings();
-        }
-
         public void Follow(Transform target, bool snap = true)
         {
             if (_camera == null)
@@ -91,7 +83,7 @@ namespace Game.Cameras
             if (snap && target != null)
             {
                 Vector3 position = target.position + _zoom.ZoomedFollowOffset;
-                Quaternion rotation = Quaternion.LookRotation(target.position + _lookAtOffset - position);
+                Quaternion rotation = Quaternion.LookRotation(target.position + _baseLookAtOffset - position);
                 _camera.ForceCameraPosition(position, rotation);
             }
         }
@@ -156,31 +148,38 @@ namespace Game.Cameras
         private void ApplyComposite()
         {
             if (_camera != null)
-                _camera.Lens.FieldOfView = _fieldOfView + _kick.CurrentFovKick;
+                _camera.Lens.FieldOfView = _baseFieldOfView + _kick.CurrentFovKick;
 
             if (_follow != null)
                 _follow.FollowOffset = _zoom.ZoomedFollowOffset + _kick.CurrentOffset;
         }
 
-        // Base rig framing applied on Awake + in the editor (OnValidate). Update refreshes the zoom composite
-        // every frame at runtime, but the editor doesn't run Update, so this seeds a correct base FollowOffset.
-        private void ApplySettings()
+        // The base rig (FOV, follow offset, look-at offset, damping) is AUTHORED on the Cinemachine components.
+        // Snapshot the three values we composite from, exactly once.
+        //
+        // Awake is the ONLY legal capture point: ApplyComposite stomps Lens.FieldOfView and FollowOffset every
+        // frame with base*zoom+kick, so those fields are the composited OUTPUT from the first Update onward.
+        // Re-capturing later would fold the live zoom and a transient kick back into the base and compound.
+        private void CacheBaseRig()
         {
             if (_camera != null)
-                _camera.Lens.FieldOfView = _fieldOfView;
+                _baseFieldOfView = _camera.Lens.FieldOfView;
 
             if (_follow != null)
-            {
-                _follow.FollowOffset = _followOffset;
-                _follow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
-                _follow.TrackerSettings.PositionDamping = _positionDamping;
-            }
+                _baseFollowOffset = _follow.FollowOffset;
 
             if (_rotationComposer != null)
-            {
-                _rotationComposer.TargetOffset = _lookAtOffset;
-                _rotationComposer.Damping = _rotationDamping;
-            }
+                _baseLookAtOffset = _rotationComposer.TargetOffset;
+        }
+
+        // Not authoring — an invariant. FollowOffset is composited and consumed as a WORLD-space vector (see
+        // ApplyComposite / Follow), which only holds under WorldSpace binding; any LockToTarget* mode would make
+        // the rig orbit with the target's yaw. Cinemachine defaults a fresh CinemachineFollow to
+        // LockToTargetOnAssign, so enforce it here rather than trusting the asset to survive a component Reset.
+        private void EnforceWorldSpaceBinding()
+        {
+            if (_follow != null)
+                _follow.TrackerSettings.BindingMode = BindingMode.WorldSpace;
         }
     }
 }

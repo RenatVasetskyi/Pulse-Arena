@@ -20,14 +20,13 @@ namespace Game.Arena
         [SerializeField] private float _growDuration = 0.35f;
         [SerializeField] private float _closeDuration = 0.4f;
         [SerializeField] private Collider _trigger;
+        [SerializeField] private Transform _vortex;
         private bool _consumed;
         private Sequence _gulp;
         private Sequence _life;
         private IPauseService _pauseService;
         private float _suckDown = 4f;
         private Vector3 _targetScale;
-
-        private Transform _vortex;
         private Tween _vortexSpin;
 
         /// <summary>Raised once when the pit is about to be destroyed (eaten or timed out), so the spawner can free its slot.</summary>
@@ -82,11 +81,6 @@ namespace Game.Arena
             _vortexSpin?.Kill();
             _vortexSpin = _vortex.DOLocalRotate(new Vector3(0f, 360f, 0f), 3f, RotateMode.FastBeyond360)
                 .SetEase(Ease.Linear).SetLoops(-1).SetLink(gameObject);
-        }
-
-        private void Awake()
-        {
-            _vortex = transform.Find("vortex");
         }
 
         private void OnDestroy()

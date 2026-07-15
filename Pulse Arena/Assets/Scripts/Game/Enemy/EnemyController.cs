@@ -358,8 +358,8 @@ namespace Game.Enemy
 
         private void InitializeRingout()
         {
-            _ringout.Initialize(transform, _data, _settings.Vfx, _scoreService, _comboService,
-                _scorePopups, _audioService, () => _typeData);
+            _ringout.Initialize(transform, _data, _settings.Prefabs.RingoutBurstPrefab,
+                _scoreService, _comboService, _scorePopups, _audioService, () => _typeData);
         }
 
         private void CreateHealthBar()
@@ -444,7 +444,7 @@ namespace Game.Enemy
         {
             InitializeVisual();
             _hitFlash.Initialize(GetComponentsInChildren<Renderer>(),
-                _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
+                _settings.Feel.HitFlashMaterial, _settings.Feel.HitFlashDuration);
         }
 
         private void BuildContext()

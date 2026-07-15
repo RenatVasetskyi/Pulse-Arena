@@ -39,6 +39,10 @@ MonoBehaviour:
     PausePanelPrefab: {fileID: 6353425926950742748, guid: 14e8c462154dc4793b2808bd5c03471b, type: 3}
     LevelSelectPrefab: {fileID: 282311982580586854, guid: 8e9aeb54735264f04948077ffd017e95, type: 3}
     AudioHostPrefab: {fileID: 993384632042326699, guid: 249f30b2605d0421cbd198dc5f2bc160, type: 3}
+    RingoutBurstPrefab: {fileID: 6665896881412392887, guid: d0ef432647d7b41a1b7d727c2ddb636f, type: 3}
+    LassoRopePrefab: {fileID: 2724307280264778391, guid: 882baae740c294c9a99037adb4817eba, type: 3}
+    RopeSnapBurstPrefab: {fileID: 2099671124790228741, guid: fed9c6a6094624dcd8fe4df72e8e5a71, type: 3}
+    ShockwavePrefab: {fileID: 2563792591787460758, guid: d3de9942e24554bb58aba675353dd9ff, type: 3}
   _player: {fileID: 11400000, guid: 500ba64cda954b9d8fac688c11707894, type: 2}
   _enemy: {fileID: 11400000, guid: b8658dd11918436b945d2b78f68c582f, type: 2}
   _combat: {fileID: 11400000, guid: ac924186f4af4023af24e64fdb36a8e7, type: 2}

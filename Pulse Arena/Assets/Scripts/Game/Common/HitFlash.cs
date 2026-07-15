@@ -3,9 +3,11 @@ using UnityEngine;
 namespace Game.Common
 {
     /// <summary>
-    ///     Swaps an actor's renderer materials to a flat flash colour for a short time on hit,
+    ///     Swaps an actor's renderer materials to an authored flat flash material for a short time on hit,
     ///     then restores them. Timer-driven (Tick) so no coroutine / MonoBehaviour is needed.
     ///     Reusable for any actor with renderers.
+    ///     The flash material is a shared asset (<c>FeelData.HitFlashMaterial</c>) and is NEVER mutated here —
+    ///     it is only assigned through <c>sharedMaterials</c>, so no per-actor copy is ever instantiated.
     /// </summary>
     public class HitFlash
     {
@@ -17,17 +19,22 @@ namespace Game.Common
         private Renderer[] _renderers;
         private float _timer;
 
-        public void Initialize(Renderer[] renderers, Color color, float duration)
+        public void Initialize(Renderer[] renderers, Material flashMaterial, float duration)
         {
             _renderers = renderers;
+            _flashMaterial = flashMaterial;
             _duration = duration;
-            CreateMaterial(color);
             CacheOriginals();
         }
 
         public void Play()
         {
             if (_renderers == null || _renderers.Length == 0)
+                return;
+
+            // Bail on an unassigned material: EnsureFlashArrays would fill each renderer's array with nulls, and
+            // Apply's `_flash[i] != null` only tests the ARRAY — so the actor would go invisible for the flash.
+            if (_flashMaterial == null)
                 return;
 
             _timer = _duration; // repeated hits extend the flash (same as the old coroutine)
@@ -107,20 +114,6 @@ namespace Game.Common
 
                 _flash[i] = mats;
             }
-        }
-
-        private void CreateMaterial(Color color)
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            shader ??= Shader.Find("Sprites/Default");
-
-            _flashMaterial = new Material(shader) { name = "Hit Flash" };
-
-            if (_flashMaterial.HasProperty("_BaseColor"))
-                _flashMaterial.SetColor("_BaseColor", color);
-
-            if (_flashMaterial.HasProperty("_Color"))
-                _flashMaterial.SetColor("_Color", color);
         }
     }
 }

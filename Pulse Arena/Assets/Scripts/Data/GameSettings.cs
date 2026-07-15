@@ -215,28 +215,6 @@ namespace Data
     [Serializable]
     public class VfxData
     {
-        [Header("Rope Snap Burst")] public int SnapBurstCount = 26;
-
-        public float SnapBurstLifetimeMin = 0.18f;
-        public float SnapBurstLifetimeMax = 0.42f;
-        public float SnapBurstSpeedMin = 2.5f;
-        public float SnapBurstSpeedMax = 6.5f;
-        public float SnapBurstSizeMin = 0.05f;
-        public float SnapBurstSizeMax = 0.14f;
-        public float SnapBurstGravity = 1.2f;
-
-        [Header("Ringout Burst")] public int RingoutBurstCount = 20;
-
-        public float RingoutBurstLifetimeMin = 0.22f;
-        public float RingoutBurstLifetimeMax = 0.5f;
-        public float RingoutBurstSpeedMin = 2f;
-        public float RingoutBurstSpeedMax = 5.5f;
-        public float RingoutBurstSizeMin = 0.06f;
-        public float RingoutBurstSizeMax = 0.16f;
-        public float RingoutBurstGravity = 0.6f;
-        public Color RingoutColorA = new(1f, 0.92f, 0.4f, 1f);
-        public Color RingoutColorB = new(1f, 0.55f, 0.2f, 1f);
-
         [Header("Floating Score Text")] public float FloatingTextLifetime = 0.9f;
 
         public float FloatingTextRiseSpeed = 1.6f;
@@ -380,19 +358,6 @@ namespace Data
         public float ShakeStrength = 0.7f;
         [Range(0.05f, 1f)] public float SlowMoScale = 0.35f;
         public float SlowMoDuration = 0.4f;
-
-        [Header("Ultimate — Shockwave VFX")] [Tooltip("Particles in the expanding ground ring.")]
-        public int ShockwaveParticleCount = 64;
-
-        [Tooltip("How long the ring particles live (also how long the ring keeps expanding).")]
-        public float ShockwaveLifetime = 0.5f;
-
-        [Tooltip("Outward speed of the ring — tuned so the ring reaches roughly the fling Radius.")]
-        public float ShockwaveSpeed = 22f;
-
-        public float ShockwaveStartSize = 0.55f;
-        public float ShockwaveStartRadius = 0.6f;
-        public Color ShockwaveColor = new(1f, 0.82f, 0.35f, 1f);
     }
 
     [Serializable]
@@ -522,11 +487,8 @@ namespace Data
         public float WrapSpinSpeed = 12f;
         public float RopeWaveCount = 3f;
         public float RopeWaveSpeed = 12f;
-        public float RopeTextureRepeat = 1.35f;
         public Color LineColor = new(0.82f, 0.55f, 0.28f, 1f);
         public Color ChargedLineColor = new(1f, 0.88f, 0.32f, 1f);
-        public Color RopeBaseColor = new(0.78f, 0.48f, 0.22f, 1f);
-        public Color RopeStripeColor = new(0.35f, 0.21f, 0.1f, 1f);
 
         [Header("Weight Feel")] public float WeightFactorMin = 0.35f;
 
@@ -729,5 +691,17 @@ namespace Data
         public GameObject LevelSelectPrefab;
 
         [Header("Audio")] public GameObject AudioHostPrefab;
+
+        [Header("VFX")] [Tooltip("Authored particle prefab for the ring-out burst (look + material live on the asset).")]
+        public GameObject RingoutBurstPrefab;
+
+        [Tooltip("Authored lasso prefab: the rope line + wrap ring, with their material and line style baked in.")]
+        public GameObject LassoRopePrefab;
+
+        [Tooltip("Authored particle prefab for the rope-snap burst (look + material live on the asset).")]
+        public GameObject RopeSnapBurstPrefab;
+
+        [Tooltip("Authored particle prefab for the ultimate's ground shockwave ring (look + material live on the asset).")]
+        public GameObject ShockwavePrefab;
     }
 }

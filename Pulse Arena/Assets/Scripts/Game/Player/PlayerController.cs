@@ -86,7 +86,7 @@ namespace Game.Player
             InitializeVisual();
             _renderers = GetComponentsInChildren<Renderer>();
 
-            _hitFlash.Initialize(_renderers, _settings.Feel.HitFlashColor, _settings.Feel.HitFlashDuration);
+            _hitFlash.Initialize(_renderers, _settings.Feel.HitFlashMaterial, _settings.Feel.HitFlashDuration);
             _movement.Initialize(transform, _rigidbody, _data, _inputService);
             _dash.Initialize(transform, _rigidbody, _data, _inputService, _dashTrail);
             _health.Initialize(_data.MaxHealth, _data.HitInvulnerability);

@@ -15,6 +15,7 @@ MonoBehaviour:
   Slingshot:
     GrabRadius: 7.5
     HoldRadius: 1.85
+    HoldRadiusStart: 1
     HoldHeight: 0.75
     HoldAngularSpeed: 170
     MaxHoldAngularSpeed: 720
@@ -28,6 +29,7 @@ MonoBehaviour:
     LaunchDownwardMaxChargeMultiplier: 1.25
     LaunchDuration: 0.9
     ChargeDuration: 4
+    MinChargeLaunchMultiplier: 0.2
     MaxChargeLaunchMultiplier: 1.6
     MaxChargeLineWidthMultiplier: 1.65
     ThrowDuration: 0.18
@@ -47,11 +49,8 @@ MonoBehaviour:
     WrapSpinSpeed: 12
     RopeWaveCount: 3
     RopeWaveSpeed: 12
-    RopeTextureRepeat: 1.35
     LineColor: {r: 0.82, g: 0.55, b: 0.28, a: 1}
     ChargedLineColor: {r: 1, g: 0.88, b: 0.32, a: 1}
-    RopeBaseColor: {r: 0.78, g: 0.48, b: 0.22, a: 1}
-    RopeStripeColor: {r: 0.35, g: 0.21, b: 0.1, a: 1}
     WeightFactorMin: 0.35
     WeightFactorMax: 1.5
     MarkerSearchRangeMultiplier: 1.5
@@ -112,13 +111,7 @@ MonoBehaviour:
     ShakeStrength: 0.7
     SlowMoScale: 0.35
     SlowMoDuration: 0.4
-    ShockwaveParticleCount: 64
-    ShockwaveLifetime: 0.5
-    ShockwaveSpeed: 22
-    ShockwaveStartSize: 0.55
-    ShockwaveStartRadius: 0.6
-    ShockwaveColor: {r: 1, g: 0.82, b: 0.35, a: 1}
   Feel:
     RingoutHeight: -2.5
     HitFlashDuration: 0.12
-    HitFlashColor: {r: 1, g: 0.08, b: 0.03, a: 1}
+    HitFlashMaterial: {fileID: 2100000, guid: 0ecda7ccfa36643f194913cc1d02aa7b, type: 2}

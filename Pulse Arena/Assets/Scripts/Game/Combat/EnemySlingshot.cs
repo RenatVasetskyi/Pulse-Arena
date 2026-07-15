@@ -58,11 +58,11 @@ namespace Game.Combat
             _inputService = inputService;
             _pauseService = pauseService;
             _data = gameSettings.SlingshotData;
-            _rope.Initialize(transform, _data);
+            _rope.Initialize(transform, _data, gameSettings.Prefabs.LassoRopePrefab);
             _finder.Initialize(transform, _data);
             _tension.Initialize(_data);
             _tension.Changed += OnTensionChanged;
-            _snapBurst.Initialize(transform, gameSettings.Vfx, _data, () => _rope.Material);
+            _snapBurst.Initialize(transform, gameSettings.Prefabs.RopeSnapBurstPrefab);
             _marker.Initialize(transform, _data, gameSettings.Prefabs.HookTargetMarkerPrefab, _finder);
             _pauseService?.Register(this);
         }

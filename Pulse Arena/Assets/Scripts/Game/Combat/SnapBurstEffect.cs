@@ -1,35 +1,38 @@
-using System;
-using Data;
 using Game.Combat.Interfaces;
 using UnityEngine;
 
 namespace Game.Combat
 {
     /// <summary>
-    ///     The rope-snap particle burst. Lazily builds a procedural one-shot <see cref="ParticleSystem" /> from
-    ///     <see cref="VfxData" /> (sharing the rope material) on first use, then emits a burst at the break point.
+    ///     The rope-snap particle burst. Spawns the authored one-shot burst prefab on first use, then triggers it
+    ///     at the break point. The whole effect — look, material AND particle count (an emission burst at t=0) —
+    ///     lives on the asset, so it previews correctly in the inspector; this configures nothing.
     /// </summary>
     public class SnapBurstEffect : ISnapBurstEffect
     {
         private ParticleSystem _burst;
-        private SlingshotData _data;
-        private Func<Material> _materialProvider;
+        private GameObject _burstPrefab;
         private Transform _parent;
-        private VfxData _vfx;
 
-        public void Initialize(Transform parent, VfxData vfx, SlingshotData data, Func<Material> materialProvider)
+        public void Initialize(Transform parent, GameObject burstPrefab)
         {
             _parent = parent;
-            _vfx = vfx;
-            _data = data;
-            _materialProvider = materialProvider;
+            _burstPrefab = burstPrefab;
         }
 
+        // Restart, don't Play(): Play() rewinds and re-fires the authored t=0 burst only when the system is playing
+        // or stopped — on a PAUSED one it silently takes the resume branch (no burst, and it un-pauses the effect
+        // behind IPauseService's back). Stop-then-Play is unambiguous from every state.
         public void Play(Vector3 position)
         {
             EnsureBurst();
+
+            if (_burst == null)
+                return;
+
             _burst.transform.position = position;
-            _burst.Emit(_vfx.SnapBurstCount);
+            _burst.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            _burst.Play(true);
         }
 
         public void PauseEffect()
@@ -38,40 +41,21 @@ namespace Game.Combat
                 _burst.Pause(true);
         }
 
+        // Guarded on isPaused: Play(true) on an already-playing system rewinds to t=0 and re-fires the burst, so a
+        // resume without a matching pause would visibly re-bang the effect.
         public void ResumeEffect()
         {
-            if (_burst != null)
+            if (_burst != null && _burst.isPaused)
                 _burst.Play(true);
         }
 
+        // Spawns the authored burst prefab once and reuses it; everything about the effect is baked on the asset.
         private void EnsureBurst()
         {
-            if (_burst != null)
+            if (_burst != null || _burstPrefab == null)
                 return;
 
-            GameObject burstObject = new("Rope Snap Burst");
-            burstObject.transform.SetParent(_parent, false);
-            _burst = burstObject.AddComponent<ParticleSystem>();
-
-            ParticleSystem.MainModule main = _burst.main;
-            main.playOnAwake = false;
-            main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstLifetimeMin, _vfx.SnapBurstLifetimeMax);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstSpeedMin, _vfx.SnapBurstSpeedMax);
-            main.startSize = new ParticleSystem.MinMaxCurve(_vfx.SnapBurstSizeMin, _vfx.SnapBurstSizeMax);
-            main.startColor = new ParticleSystem.MinMaxGradient(_data.RopeBaseColor, _data.TensionColor);
-            main.gravityModifier = _vfx.SnapBurstGravity;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-
-            ParticleSystem.EmissionModule emission = _burst.emission;
-            emission.enabled = false;
-
-            ParticleSystem.ShapeModule shape = _burst.shape;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.15f;
-
-            ParticleSystemRenderer particleRenderer = burstObject.GetComponent<ParticleSystemRenderer>();
-            particleRenderer.material = _materialProvider();
+            _burst = Object.Instantiate(_burstPrefab, _parent, false).GetComponent<ParticleSystem>();
         }
     }
 }

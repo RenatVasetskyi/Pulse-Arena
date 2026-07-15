@@ -5,25 +5,25 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    ///     Draws the lasso: the rope line and the wrap ring, via procedural LineRenderers.
-    ///     The slingshot decides WHAT to draw (game state); this class knows HOW (geometry).
-    ///     It's fed a RopeFrame each Update and reaches back into nothing.
+    ///     Draws the lasso: the rope line and the wrap ring, via the two <see cref="LineRenderer" />s on the
+    ///     authored lasso prefab (see <see cref="LassoRopeView" />), which owns their look — material, texture
+    ///     tiling, caps and corners. The slingshot decides WHAT to draw (game state); this class knows HOW
+    ///     (geometry). It's fed a RopeFrame each Update and reaches back into nothing.
     /// </summary>
     public class RopeRenderer
     {
-        private static Material _sharedMaterial;
         private SlingshotData _data;
         private LineRenderer _line;
 
         private Transform _owner;
+        private GameObject _ropePrefab;
         private LineRenderer _wrapRing;
 
-        public Material Material => GetLineMaterial();
-
-        public void Initialize(Transform owner, SlingshotData data)
+        public void Initialize(Transform owner, SlingshotData data, GameObject ropePrefab)
         {
             _owner = owner;
             _data = data;
+            _ropePrefab = ropePrefab;
         }
 
         public void Hide()
@@ -37,9 +37,12 @@ namespace Game.Combat
 
         public void Render(RopeFrame frame)
         {
-            EnsureLine();
+            EnsureRope();
+
+            if (_line == null || _wrapRing == null)
+                return;
+
             UpdateLine(frame);
-            EnsureWrapRing();
             UpdateWrapRing(frame);
         }
 
@@ -218,82 +221,21 @@ namespace Game.Combat
             renderer.widthMultiplier = _data.LineWidth * widthMultiplier * chargedWidth * tensionPulse;
         }
 
-        private void EnsureLine()
+        // Spawns the authored lasso prefab once and caches its two lines; their material and line style are baked on
+        // the asset, so nothing is configured here. The prefab's own positionCount on the rope line IS load-bearing:
+        // DrawRope walks it to lay out the wave.
+        private void EnsureRope()
         {
-            if (_line != null)
+            if (_line != null || _ropePrefab == null)
                 return;
 
-            GameObject lineObject = new("Lasso Rope");
-            lineObject.transform.SetParent(_owner, false);
-            _line = lineObject.AddComponent<LineRenderer>();
-            _line.useWorldSpace = true;
-            _line.positionCount = 6;
-            _line.widthMultiplier = _data.LineWidth;
-            _line.numCapVertices = 5;
-            _line.numCornerVertices = 5;
-            _line.textureMode = LineTextureMode.Tile;
-            _line.material = GetLineMaterial();
-            _line.enabled = false;
-        }
+            LassoRopeView view = Object.Instantiate(_ropePrefab, _owner, false).GetComponent<LassoRopeView>();
 
-        private void EnsureWrapRing()
-        {
-            if (_wrapRing != null)
+            if (view == null)
                 return;
 
-            GameObject ringObject = new("Lasso Wrap Ring");
-            ringObject.transform.SetParent(_owner, false);
-            _wrapRing = ringObject.AddComponent<LineRenderer>();
-            _wrapRing.useWorldSpace = true;
-            _wrapRing.loop = true;
-            _wrapRing.positionCount = 24;
-            _wrapRing.widthMultiplier = _data.LineWidth * 0.7f;
-            _wrapRing.numCapVertices = 4;
-            _wrapRing.numCornerVertices = 4;
-            _wrapRing.textureMode = LineTextureMode.Tile;
-            _wrapRing.material = GetLineMaterial();
-            _wrapRing.enabled = false;
-        }
-
-        private Material GetLineMaterial()
-        {
-            if (_sharedMaterial != null)
-                return _sharedMaterial;
-
-            Shader shader = Shader.Find("Sprites/Default");
-            _sharedMaterial = new Material(shader)
-            {
-                name = "Lasso Rope"
-            };
-            _sharedMaterial.mainTexture = CreateRopeTexture();
-            _sharedMaterial.mainTextureScale = new Vector2(_data.RopeTextureRepeat, 1f);
-
-            return _sharedMaterial;
-        }
-
-        private Texture2D CreateRopeTexture()
-        {
-            const int width = 64;
-            const int height = 8;
-            Texture2D texture = new(width, height, TextureFormat.RGBA32, false)
-            {
-                name = "Procedural Lasso Texture",
-                wrapMode = TextureWrapMode.Repeat,
-                filterMode = FilterMode.Point
-            };
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    bool stripe = ((x + y * 2) / 6) % 2 == 0;
-                    Color color = stripe ? _data.RopeBaseColor : _data.RopeStripeColor;
-                    texture.SetPixel(x, y, color);
-                }
-            }
-
-            texture.Apply();
-            return texture;
+            _line = view.Line;
+            _wrapRing = view.WrapRing;
         }
 
         public readonly struct RopeFrame
