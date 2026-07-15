@@ -15,7 +15,7 @@ MonoBehaviour:
   Slingshot:
     GrabRadius: 7.5
     HoldRadius: 3
-    HoldRadiusStart: 2
+    HoldRadiusStart: 1.75
     HoldHeight: 0.75
     HoldAngularSpeed: 170
     MaxHoldAngularSpeed: 720

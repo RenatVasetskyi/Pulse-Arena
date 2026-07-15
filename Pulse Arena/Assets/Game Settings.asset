@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5830194802df476e8d6cf294e12bd8b, type: 3}
   m_Name: Game Settings
   m_EditorClassIdentifier: Assembly-CSharp::Data.GameSettings
-  TargetFrameRate: 120
+  TargetFrameRate: 60
   MainMenuSceneName: MainMenu
   GameSceneName: Game
   MinLoadingScreenTime: 0.35
