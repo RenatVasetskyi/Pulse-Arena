@@ -66,13 +66,6 @@ namespace Game.Spawning
             _placementFinder.Initialize(center, player, _gameSettings.SpawnAreaData, BlockerMask());
         }
 
-        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
-        // so one clearance test keeps a fresh orb out of walls, off pits, and off other spawns.
-        private LayerMask BlockerMask()
-        {
-            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
-        }
-
         public void StartSpawn()
         {
             if (_spawnRoutine != null)
@@ -101,6 +94,13 @@ namespace Game.Spawning
             {
                 _spawnRoutine = null;
             }
+        }
+        
+        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
+        // so one clearance test keeps a fresh orb out of walls, off pits, and off other spawns.
+        private LayerMask BlockerMask()
+        {
+            return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;
         }
 
         private IEnumerator SpawnLoop()
