@@ -8,12 +8,11 @@ using UI.Hud;
 namespace Game.Scene
 {
     /// <summary>
-    ///     First-run tutorial: on the player's very first game it teaches the core loop by DOING. A grab prompt holds
-    ///     on screen until an enemy is grabbed, a fling prompt until the first throw, then the kill/win rule, plus
+    ///     First-run tutorial: on the player's very first game it teaches the core loop by DOING — a grab prompt
+    ///     holds until an enemy is grabbed, a fling prompt until the first throw, then the kill/win rule, plus
     ///     one-shot booster (first orb), dash (first hit) and ultimate (first charge) hints. Each is a
-    ///     <see cref="HudHintView" /> card — grab/fling stay up until the action (learn-by-doing), the rest fade after
-    ///     a beat. Persisted via <see cref="IOnboardingState.OnboardingSeen" /> so it runs exactly once, ever.
-    ///     Bound/unbound by <see cref="GameWorldBuilder" /> like the other per-match collaborators; a no-op once seen.
+    ///     <see cref="HudHintView" /> card. Persisted via <see cref="IOnboardingState.OnboardingSeen" /> so it runs
+    ///     once ever; bound/unbound by <see cref="GameWorldBuilder" /> like the other collaborators, a no-op once seen.
     /// </summary>
     public class OnboardingController
     {

@@ -5,14 +5,10 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     The pure-physics side of an enemy landing after being flung: remembering that it touched the
-    ///     ground recently, deciding when it may stop recovering, and the actual snap-to-ground when it
-    ///     does. Carries the old MarkGroundContact / CanFinishPhysicsRecovery / FinishPhysicsRecovery bodies
-    ///     verbatim.
-    ///     It owns NO game state — the recovery/projectile flags and the thrown visual still flip on the
-    ///     controller (ContextOnRecoveryFinished). The ground-contact memory and the recovery elapsed
-    ///     counter live in <see cref="EnemyTimers" />, which this class is handed a reference to; it reads
-    ///     and writes them so the numbers stay identical to the old controller fields.
+    ///     The pure-physics side of an enemy landing after being flung: remembering recent ground contact,
+    ///     deciding when it may stop recovering, and the snap-to-ground when it does. Owns no game state — the
+    ///     recovery/projectile flags and thrown visual flip on the controller. The ground-contact memory and
+    ///     recovery-elapsed counter live in <see cref="EnemyTimers" />, which this reads and writes.
     /// </summary>
     public sealed class GroundRecoveryController
     {
@@ -33,9 +29,9 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     True once the enemy has touched ground recently AND can snap onto it. Old CanFinishPhysicsRecovery:
-        ///     a null rigidbody finishes immediately, no recent ground contact never finishes, otherwise it must
-        ///     find physical ground to snap to.
+        ///     True once the enemy has touched ground recently AND can snap onto it: a null rigidbody finishes
+        ///     immediately, no recent ground contact never finishes, otherwise it must find physical ground to
+        ///     snap to.
         /// </summary>
         public bool CanFinish()
         {
@@ -49,9 +45,8 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     The physics half of the old FinishPhysicsRecovery: zero the recovery counter, flatten vertical
-        ///     velocity, kill spin, and snap to the ground. The recovery / projectile flags and the thrown
-        ///     visual are flipped by the caller (ContextOnRecoveryFinished) — this method is pure physics.
+        ///     Zero the recovery counter, flatten vertical velocity, kill spin, and snap to the ground. The
+        ///     recovery / projectile flags and the thrown visual are flipped by the caller — this is pure physics.
         /// </summary>
         public void Finish()
         {
@@ -66,7 +61,7 @@ namespace Game.Enemy
             ActorGroundingUtility.SnapToGround(_transform, _grounding, _data.GroundRecoveryProbeDistance);
         }
 
-        /// <summary>Arms the ground-contact memory. Old body: "_groundContactTimer = _data.GroundContactMemory".</summary>
+        /// <summary>Arms the ground-contact memory window.</summary>
         public void MarkGroundContact()
         {
             _timers.GroundContact.Set(_data.GroundContactMemory);

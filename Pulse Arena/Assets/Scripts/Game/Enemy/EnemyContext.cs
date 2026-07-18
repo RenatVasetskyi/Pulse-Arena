@@ -8,16 +8,13 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     Lean handle the enemy states use to reach their collaborators. It holds DIRECT references to the
-    ///     helpers the states drive (rigidbody, transform, data, movement, visual, timers, ground recovery,
-    ///     impact, collision handler), owns the small SHARED mutable flags the states flip
-    ///     (<see cref="IsImpactProjectile" />, <see cref="NeedsGroundRecovery" />, <see cref="IsGrabbed" />) so
-    ///     they read/write them without controller accessors, and forwards the FEW genuine controller
-    ///     callbacks the states truly need — the target reads, the <c>IsDead</c> read, the state transitions,
-    ///     the pool release, and the death-return coroutine trigger (which must stay on the MonoBehaviour).
-    ///     Everything else — health, scoring, the public API — stays private to <see cref="EnemyController" />.
-    ///     The states read timers directly through <c>Timers.Knockback.Remaining</c> etc. and flags through
-    ///     <c>IsGrabbed</c> etc.; there are no per-timer/per-flag façade accessors any more.
+    ///     Lean handle the enemy states use to reach their collaborators: direct references to the helpers the
+    ///     states drive (rigidbody, transform, data, movement, visual, timers, ground recovery, impact, collision
+    ///     handler), the small shared mutable flags the states flip (<see cref="IsImpactProjectile" />,
+    ///     <see cref="NeedsGroundRecovery" />, <see cref="IsGrabbed" />), and the few genuine controller callbacks
+    ///     the states need (target reads, <c>IsDead</c>, state transitions, pool release, the death-return
+    ///     trigger). Everything else — health, scoring, the public API — stays private to
+    ///     <see cref="EnemyController" />.
     /// </summary>
     public sealed class EnemyContext
     {
@@ -207,9 +204,9 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     The controller-coupled half of the old EnterRingoutState body, in order: mark the controller
-        ///     dead, zero the health bar, then run the RingoutHandler (award kill once, sting, feedback burst).
-        ///     The physics/flag/timer half stays in the state Enter.
+        ///     The controller-coupled half of ring-out: mark the controller dead, zero the health bar, then run
+        ///     the RingoutHandler (award kill once, sting, feedback burst). The physics/flag/timer half stays in
+        ///     the state Enter.
         /// </summary>
         public void ResolveRingout()
         {
@@ -242,9 +239,9 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     Gate + hand off agent control (the old controller TryEnableAgentControl): if the agent is
-        ///     already driving, keep it; otherwise refuse while the enemy has no target, is dead, grabbed,
-        ///     pending ground recovery, or still under knockback, and try to place the agent on the mesh.
+        ///     Gate + hand off agent control: keep the agent if it is already driving; otherwise refuse while
+        ///     the enemy has no target, is dead, grabbed, pending ground recovery, or under knockback, then try
+        ///     to place it on the mesh.
         /// </summary>
         public bool TryEnableAgentControl()
         {

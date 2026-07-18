@@ -13,9 +13,8 @@ namespace Game.Scene
 {
     /// <summary>
     ///     Owns the in-game HUD: spawns it, binds it to the player / score / camera, and turns model events
-    ///     (combo, super meter, waves, rare pickups) into HUD updates. One place for "service state → HUD", so
-    ///     the scene orchestrator no longer carries any of that wiring. The caller still hooks the HUD's pause
-    ///     button — that's game-flow, extracted in the next step.
+    ///     (combo, super meter, waves, rare pickups) into HUD updates. One place for "service state → HUD", so the
+    ///     scene orchestrator carries none of that wiring; the HUD's pause button is hooked by game-flow instead.
     /// </summary>
     public class HudPresenter
     {

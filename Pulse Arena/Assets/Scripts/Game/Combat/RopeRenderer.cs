@@ -5,10 +5,9 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    ///     Draws the lasso: the rope line and the wrap ring, via the two <see cref="LineRenderer" />s on the
-    ///     authored lasso prefab (see <see cref="LassoRopeView" />), which owns their look — material, texture
-    ///     tiling, caps and corners. The slingshot decides WHAT to draw (game state); this class knows HOW
-    ///     (geometry). It's fed a RopeFrame each Update and reaches back into nothing.
+    ///     Draws the lasso — the rope line and wrap ring — via the two <see cref="LineRenderer" />s on the authored
+    ///     lasso prefab (<see cref="LassoRopeView" />), which owns their look. The slingshot decides WHAT to draw
+    ///     (game state); this renderer knows HOW (geometry), fed a RopeFrame each frame.
     /// </summary>
     public class RopeRenderer
     {
@@ -63,9 +62,8 @@ namespace Game.Combat
                 DrawWrappedRope(frame);
         }
 
-        // Both ends are LIVE. The origin used to be a snapshot taken when the throw started, so for the whole
-        // ThrowDuration the rope hung off the point where the hand HAD been — visibly detached from the moving hand,
-        // then snapped back the instant the wrap phase took over. Read the hand every frame instead.
+        // Sample the hand (RopeOrigin) every frame — both ends are live. Snapshotting it at throw start makes the
+        // rope hang off where the hand HAD been, visibly detached from the moving hand until the wrap phase takes over.
         private void DrawThrowingRope(RopeFrame frame)
         {
             float t = Mathf.Clamp01(frame.ThrowTimer / Mathf.Max(_data.ThrowDuration, 0.01f));
@@ -224,9 +222,8 @@ namespace Game.Combat
             renderer.widthMultiplier = _data.LineWidth * widthMultiplier * chargedWidth * tensionPulse;
         }
 
-        // Spawns the authored lasso prefab once and caches its two lines; their material and line style are baked on
-        // the asset, so nothing is configured here. The prefab's own positionCount on the rope line IS load-bearing:
-        // DrawRope walks it to lay out the wave.
+        // Spawns the authored lasso prefab once and caches its two lines; material and style are baked on the asset.
+        // The prefab's own positionCount on the rope line is load-bearing — DrawRope walks it to lay out the wave.
         private void EnsureRope()
         {
             if (_line != null || _ropePrefab == null)

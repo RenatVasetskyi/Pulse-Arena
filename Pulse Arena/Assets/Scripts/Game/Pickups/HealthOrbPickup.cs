@@ -8,9 +8,9 @@ using Zenject;
 namespace Game.Pickups
 {
     /// <summary>
-    ///     Floating health orb. The whole look (core, glow halo, rings, point light, trigger) lives on the prefab
-    ///     and is editable by hand; this component only wires the two presentation helpers and owns the collect
-    ///     gameplay decision (heal the player on touch). Assign the visual references on the prefab.
+    ///     Floating health orb: the visuals live on the prefab; this component wires the two presentation helpers
+    ///     (<see cref="OrbIdleAnimator" /> + <see cref="OrbCollectFeedback" />) and owns the collect decision
+    ///     (heal the player on touch).
     /// </summary>
     public class HealthOrbPickup : MonoBehaviour, IPausable
     {

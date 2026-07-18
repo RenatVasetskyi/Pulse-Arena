@@ -6,11 +6,10 @@ using UnityEngine;
 namespace UI.Hud
 {
     /// <summary>
-    ///     The first-run onboarding banner: a single styled card that pops in with a hint and either holds until the
-    ///     player performs the taught action (<paramref name="autoHide" /> &lt;= 0, learn-by-doing) or fades out after
-    ///     a beat. To stay readable when the player blitzes through steps, a freshly shown hint is guaranteed a
-    ///     minimum time on screen (<see cref="MinReadTime" />) before the NEXT hint can replace it — a same-frame
-    ///     grab→fling won't flash the second prompt away unread. Passive: the onboarding controller decides WHAT/WHEN.
+    ///     First-run onboarding banner: a styled card that pops in with a hint and either holds until the player
+    ///     performs the taught action (<c>autoHide</c> &lt;= 0) or fades after a beat. A freshly shown hint is
+    ///     guaranteed a minimum on-screen time (<see cref="MinReadTime" />) before the next can replace it, so a
+    ///     same-frame grab→fling can't flash the second prompt away unread. Passive: the controller decides what/when.
     /// </summary>
     public class HudHintView : MonoBehaviour
     {

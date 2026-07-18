@@ -24,7 +24,7 @@ namespace Game.Player
                 throw new InvalidOperationException("Player prefab is not assigned in GameSettings.");
 
             // EnemySlingshot + PlayerUltimate are baked on the prefab (inspector-wired), so InstantiatePrefabForComponent
-            // instantiates AND Zenject-injects them — nothing combat-related is assembled at runtime any more.
+            // instantiates AND Zenject-injects them.
             PlayerController player = _container.InstantiatePrefabForComponent<PlayerController>
                 (_gameSettings.Prefabs.PlayerPrefab, at, rotation, parent);
 

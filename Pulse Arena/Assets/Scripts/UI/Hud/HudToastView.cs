@@ -58,16 +58,13 @@ namespace UI.Hud
         {
             Sequence sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
 
-            // pop in (bounce + fade)
             sequence.Append(_rect.DOScale(_baseScale, PopDuration).SetEase(Ease.OutBack));
 
             if (_canvasGroup != null)
                 sequence.Join(_canvasGroup.DOFade(1f, PopDuration * 0.6f));
 
-            // hold
             sequence.AppendInterval(Mathf.Max(0.1f, duration));
 
-            // float up + fade out
             sequence.Append(_rect.DOAnchorPosY(_basePosition.y + RiseDistance, OutDuration).SetEase(Ease.InQuad));
 
             if (_canvasGroup != null)

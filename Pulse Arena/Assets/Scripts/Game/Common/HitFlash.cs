@@ -37,7 +37,7 @@ namespace Game.Common
             if (_flashMaterial == null)
                 return;
 
-            _timer = _duration; // repeated hits extend the flash (same as the old coroutine)
+            _timer = _duration; // repeated hits extend the flash
 
             if (_active)
                 return;

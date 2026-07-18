@@ -3,20 +3,13 @@ using Game.Common;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     Every per-enemy timer, gathered off the controller. Each countdown is a <see cref="Cooldown" />
-    ///     (raw seconds behind <c>.Remaining</c>, so state code that used to read a bare float field is
-    ///     byte-identical); the two things that count UP instead of down — the physics-recovery elapsed
-    ///     time and the ringout elapsed time — stay plain floats.
-    ///     <see cref="TickFixed" /> reproduces the old <c>TickTimers</c> body EXACTLY: it decrements the five
-    ///     shared cooldowns that ticked in every non-dead state (attack, impact-damage, ground-bounce,
-    ///     ground-contact, and <see cref="Stasis" />). The original <c>TickTimers</c> ran in every non-dead
-    ///     FixedUpdate and unconditionally counted <c>_stasisTimer</c> down regardless of the active state,
-    ///     so <see cref="Stasis" /> is ticked here (state-independent) to keep that byte-identical — the
-    ///     EnemyStasisState branch only READS it. It deliberately does NOT touch <see cref="Knockback" /> or
-    ///     <see cref="HeldDamage" /> — those are decremented inside their owning states
-    ///     (EnemyKnockbackState / EnemyGrabbedState), and the knockback-expiry side effect lives in
-    ///     EnemyKnockbackState, not here. It also does NOT advance the up-counters (the recovery/ringout
-    ///     states increment those themselves).
+    ///     Every per-enemy timer. Each countdown is a <see cref="Cooldown" /> (raw seconds behind
+    ///     <c>.Remaining</c>); the two up-counters — physics-recovery elapsed and ringout elapsed — stay plain
+    ///     floats. <see cref="TickFixed" /> decrements the shared cooldowns that tick in every non-dead state;
+    ///     <see cref="Stasis" /> is ticked here (state-independent, EnemyStasisState only reads it). It does NOT
+    ///     touch <see cref="Knockback" /> or <see cref="HeldDamage" /> — those tick inside their owning states
+    ///     (EnemyKnockbackState / EnemyGrabbedState, where the knockback-expiry side effect also lives) — nor the
+    ///     up-counters (the recovery/ringout states advance those).
     /// </summary>
     public sealed class EnemyTimers
     {
@@ -50,10 +43,8 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     The old TickTimers body: decrement the cooldowns that ticked in every non-dead state.
-        ///     Stasis is included because the original counted it down in every non-dead FixedUpdate,
-        ///     independent of the active state (EnemyStasisState only reads it).
-        ///     (EnemyImpact.Tick still runs on the controller — it owns a dictionary, not a float.)
+        ///     Decrement the cooldowns that tick in every non-dead state. Stasis is included because it counts
+        ///     down in every non-dead FixedUpdate independent of the active state (EnemyStasisState only reads it).
         /// </summary>
         public void TickFixed(float deltaTime)
         {

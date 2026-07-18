@@ -46,7 +46,6 @@ namespace Game.Pickups
                 _collider.enabled = false;
         }
 
-        // bright flash then snap to dark
         private void AnimateLightFlash()
         {
             if (_light == null)
@@ -63,7 +62,6 @@ namespace Game.Pickups
                 });
         }
 
-        // small hop as it's "sucked in"
         private void AnimateSuckHop()
         {
             _self.DOMoveY(_self.position.y + 0.5f, 0.2f).SetEase(Ease.OutQuad).SetLink(_self.gameObject);
@@ -83,10 +81,10 @@ namespace Game.Pickups
             _visualRoot.DOKill();
 
             Sequence sequence = DOTween.Sequence().SetLink(self);
-            sequence.Append(_visualRoot.DOScale(baseScale * 1.4f, 0.07f).SetEase(Ease.OutBack)); // quick pop
-            sequence.Append(_visualRoot.DOScale(Vector3.zero, 0.12f).SetEase(Ease.InBack)); // fast collapse
+            sequence.Append(_visualRoot.DOScale(baseScale * 1.4f, 0.07f).SetEase(Ease.OutBack));
+            sequence.Append(_visualRoot.DOScale(Vector3.zero, 0.12f).SetEase(Ease.InBack));
             sequence.Join(_visualRoot.DOLocalRotate(new Vector3(0f, 260f, 0f), 0.12f,
-                RotateMode.FastBeyond360).SetEase(Ease.InQuad)); // spin away
+                RotateMode.FastBeyond360).SetEase(Ease.InQuad));
             sequence.OnComplete(() => Object.Destroy(self));
         }
     }

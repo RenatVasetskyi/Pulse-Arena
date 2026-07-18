@@ -7,8 +7,7 @@ namespace Architecture.States
     /// <summary>
     ///     Loads the menu scene, then hands off — nothing more, exactly like <see cref="LoadGameState" />.
     ///     Composition and teardown live in the menu scene's SceneContext (MenuInstaller → MainMenuBuilder), which
-    ///     builds the menu on load and disposes it on unload automatically. This state stays a pure "which scene"
-    ///     flow step.
+    ///     builds on load and disposes on unload automatically.
     /// </summary>
     public class LoadMainMenuState : IState
     {
@@ -23,9 +22,8 @@ namespace Architecture.States
 
         public void Enter()
         {
-            // Just loads the scene. What happens NEXT: the menu scene's SceneContext (MenuInstaller) instantiates
-            // MainMenuBuilder (NonLazy IInitializable), whose Build() composes the menu. Same rule as LoadGameState —
-            // to read the menu setup top-to-bottom, open MainMenuBuilder.Build().
+            // Just loads the scene — the menu scene's SceneContext (MenuInstaller → MainMenuBuilder.Build) composes
+            // the menu on load. Read MainMenuBuilder.Build() top-to-bottom for the menu setup.
             _sceneLoader.Load(_gameSettings.MainMenuSceneName);
         }
 

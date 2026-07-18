@@ -5,22 +5,12 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The knockback slice of the old physics-recovery tick, and the entry point for every "the enemy
-    ///     got flung" flow (Knockback / Launch both transition here). Enter reproduces the old
-    ///     EnterPhysicsRecoveryState body (disable agent, clear grabbed, mark ground-recovery, thrown visual,
-    ///     wake body) — the body that used to live on the controller as ContextOnEnterPhysicsRecovery.
-    ///     FixedTick owns the knockback timer AND its expiry side effect (this is the one place it lives —
-    ///     it is NOT ticked by the controller's generic timer loop). The decrement + its else-expiry side
-    ///     effect run TARGET-INDEPENDENTLY at the top of FixedTick, reproducing the old
-    ///     EnemyController.TickTimers knockback block that advanced every non-dead FixedUpdate with no
-    ///     target guard; only the gravity / sweep / ground-recovery-handoff work below is target-guarded,
-    ///     exactly as the old FixedTickPhysicsRecoveryState's own `target == null` early-return was. While
-    ///     the timer runs the enemy falls under extra gravity and, if it is a thrown projectile, sweeps for
-    ///     impact damage. When the timer expires it hands off to the ground-recovery state, and — to match
-    ///     the ORIGINAL single-state tick byte-for-byte — immediately drives ONE ground-recovery tick on
-    ///     the SAME physics frame (in the old FixedTickPhysicsRecoveryState the expiry frame fell straight
-    ///     through the knockback branch into the ground-recovery branch, so gravity, the sweep-damage check,
-    ///     the recovery-timer increment and even the earliest possible finish all happened that same frame).
+    ///     The "enemy got flung" state — both Knockback and Launch enter here. Enter disables the agent, marks
+    ///     ground-recovery, shows the thrown visual and wakes the body. FixedTick owns the knockback timer (this is
+    ///     the ONE place it ticks — not the controller's generic timer loop): the countdown runs target-independently
+    ///     at the top, while gravity / impact sweep / ground-recovery handoff below are target-guarded. On expiry it
+    ///     hands off to ground recovery and drives one ground-recovery tick on the same physics frame so recovery
+    ///     isn't deferred a step.
     /// </summary>
     public class EnemyKnockbackState : ActorState
     {
@@ -51,22 +41,15 @@ namespace Game.Enemy.States
 
         public override void FixedTick()
         {
-            // TARGET-INDEPENDENT slice — reproduces the old EnemyController.TickTimers knockback block,
-            // which ran every non-dead FixedUpdate with NO target guard (orig lines 826-832). The
-            // decrement AND its else-expiry side effect must advance even when the target transform is
-            // null, otherwise the countdown would freeze mid-flight (byte-parity divergence). Structured
-            // exactly like the original: "if (timer > 0) decrement; else if (!needsGroundRecovery) drop
-            // flags". OnKnockbackExpired itself guards on NeedsGroundRecovery, so the else-branch fires
-            // every frame the timer is <= 0 — matching the original else-if — and is a no-op in practice
-            // because ground recovery is always pending here.
+            // Target-independent slice: the countdown must advance even when the target is null, otherwise it
+            // freezes mid-flight. OnKnockbackExpired is a no-op in practice — ground recovery is always pending here.
             if (_context.Timers.Knockback.Remaining > 0f)
                 _context.Timers.Knockback.Set(_context.Timers.Knockback.Remaining - Time.fixedDeltaTime);
             else
                 OnKnockbackExpired();
 
-            // TARGET-GUARDED slice — reproduces the old FixedTickPhysicsRecoveryState body, whose own
-            // `if (_target == null) return;` (orig line 688) skipped ONLY gravity / sweep / the
-            // ground-recovery handoff, never the countdown above.
+            // Target-guarded slice: the null-target return skips only gravity / sweep / the ground-recovery
+            // handoff, never the countdown above.
             if (_context.Target == null)
                 return;
 
@@ -80,26 +63,18 @@ namespace Game.Enemy.States
                 return;
             }
 
-            // Knockback expired: hand off to ground recovery. (The projectile-flag/thrown-visual drop
-            // already ran above via OnKnockbackExpired, matching the original TickTimers else-branch.)
+            // Knockback expired: hand off to ground recovery (the projectile-flag/thrown-visual drop already ran
+            // above via OnKnockbackExpired).
             _context.ChangeToGroundRecoveryState();
 
-            // BYTE-EXACT PARITY: in the old single-state tick the SAME frame that zeroed the knockback
-            // timer fell through into the ground-recovery branch (increment the recovery timer, apply
-            // gravity, sweep, and possibly finish + ChangeToChase). ChangeToGroundRecoveryState above made
-            // the ground-recovery state active, so ticking that SAME instance once here runs that block on
-            // the expiry frame instead of deferring it a physics step. Guarded by IsDead so a dead enemy
-            // (where ChangeTo* is a no-op and knockback would still be active) can't re-enter this method —
-            // matching the old dead FixedUpdate path, which never ran recovery.
+            // Drive one ground-recovery tick on the SAME frame so recovery isn't deferred a physics step. Guarded by
+            // IsDead so a dead enemy (ChangeTo* is a no-op, knockback still active) can't re-enter this method.
             if (!_context.IsDead)
                 _groundRecoveryState.FixedTick();
         }
 
-        // The old TickTimers "else if (!_needsGroundRecovery)" expiry side effect (orig lines 828-832):
-        // drop the projectile flag + thrown visual UNLESS ground recovery is pending. Called every frame
-        // the knockback timer is <= 0 (from the else-branch above), target-independent, exactly like the
-        // original. Ground recovery is always pending here, so this is a no-op in practice — preserved
-        // exactly for parity.
+        // Drop the projectile flag + thrown visual UNLESS ground recovery is pending. Called every frame the
+        // knockback timer is <= 0; a no-op in practice because recovery is always pending here.
         private void OnKnockbackExpired()
         {
             if (_context.NeedsGroundRecovery)

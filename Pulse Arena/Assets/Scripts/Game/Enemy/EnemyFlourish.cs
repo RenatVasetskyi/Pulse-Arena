@@ -6,15 +6,12 @@ using Random = UnityEngine.Random;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     Decides WHEN the mid-run flourish (the karate somersault) should fire. Owned and ticked by
-    ///     <see cref="States.EnemyChaseState" /> so it only ever runs while the enemy is actually chasing — never
-    ///     while attacking, knocked, grabbed or dead. <see cref="ShouldFlip" /> returns true at a random interval,
-    ///     but only while the target is farther than <see cref="EnemyData.FlourishMinPlayerDistance" /> so the enemy
-    ///     never shows off inside striking range; the chase then hands off to <see cref="States.EnemyFlipState" />
-    ///     (which plays the clip — this class only decides, it never touches the visual). Model-agnostic: a visual
-    ///     without the flourish clip reports <see cref="IEnemyVisual.SupportsRunFlourish" /> false and is skipped, so
-    ///     this is inert for the skeleton/wolf and only the karate reacts. The interval is re-rolled on every chase
-    ///     entry, so a fresh approach always waits a full interval before the first flip.
+    ///     Decides WHEN the mid-run flourish (the karate somersault) fires. Owned and ticked by
+    ///     <see cref="States.EnemyChaseState" />, so it only runs while chasing. <see cref="ShouldFlip" /> returns
+    ///     true at a random interval, but only while the target is farther than
+    ///     <see cref="EnemyData.FlourishMinPlayerDistance" /> so the enemy never shows off inside striking range;
+    ///     the chase then hands off to <see cref="States.EnemyFlipState" /> (which plays the clip). Inert for a
+    ///     visual without the flourish clip (<see cref="IEnemyVisual.SupportsRunFlourish" /> false).
     /// </summary>
     public class EnemyFlourish
     {

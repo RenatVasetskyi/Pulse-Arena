@@ -15,15 +15,11 @@ using Zenject;
 namespace Game.Scene
 {
     /// <summary>
-    ///     THE composition root of the game scene — read <see cref="Build" /> top-to-bottom to see the ENTIRE match
-    ///     setup in one place (the game-scene twin of <c>MainMenuBuilder</c>; every scene composes itself the same
-    ///     way, and the flow states only pick WHICH scene). It lives in
-    ///     the game scene's SceneContext and runs off that context's kernel: <see cref="Initialize" /> (→ Build) fires
-    ///     when the scene loads, <see cref="Dispose" /> (→ Teardown) fires automatically when the scene unloads — so
-    ///     no FSM state has to manage the match lifecycle, and cleanup can never be forgotten. It coordinates: creates
-    ///     the arena + player via factories, then hands the world to focused collaborators
-    ///     (<see cref="HudPresenter" />, <see cref="GameplayFeedbackDirector" />, <see cref="GameFlowController" />)
-    ///     and starts spawning. Build/Teardown are private — the only entry points are the two interface hooks.
+    ///     THE composition root of the game scene — read <see cref="Build" /> top-to-bottom for the entire match
+    ///     setup (the twin of <c>MainMenuBuilder</c>). Runs off the SceneContext kernel: <see cref="Initialize" />
+    ///     (→ Build) fires on scene load, <see cref="Dispose" /> (→ Teardown) on unload, so no FSM state manages the
+    ///     match lifecycle. Creates the arena + player via factories, hands the world to <see cref="HudPresenter" /> /
+    ///     <see cref="GameplayFeedbackDirector" /> / <see cref="GameFlowController" />, then starts spawning.
     /// </summary>
     public class GameWorldBuilder : IInitializable, System.IDisposable
     {

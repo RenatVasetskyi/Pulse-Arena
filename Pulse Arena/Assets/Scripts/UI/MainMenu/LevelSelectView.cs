@@ -7,11 +7,9 @@ using UnityEngine.UI;
 namespace UI.MainMenu
 {
     /// <summary>
-    ///     The level-select overlay (a passive View): a jungle-temple background with a hand-placed set of ornate
-    ///     campaign tiles plus a wide always-open survival button. <see cref="Build" /> binds each tile in
-    ///     <see cref="_tiles" /> to a campaign level and <see cref="BindSurvival" /> points the survival button at the
-    ///     endless level (showing its best score); both raise <see cref="LevelChosen" />. Progress logic lives in the
-    ///     presenter; everything is positioned by hand on the <c>level_select</c> prefab — no grid, no runtime cloning.
+    ///     The level-select overlay (a passive View): hand-placed campaign tiles plus a wide always-open survival
+    ///     button. <see cref="Build" /> binds each tile to a campaign level, <see cref="BindSurvival" /> points the
+    ///     survival button at the endless level; both raise <see cref="LevelChosen" />. Progress logic lives in the presenter.
     /// </summary>
     public class LevelSelectView : MonoBehaviour
     {
@@ -37,10 +35,7 @@ namespace UI.MainMenu
                 BindTile(i, levels);
         }
 
-        /// <summary>
-        ///     Points the wide survival button at its level (always open) and shows the best-score record. Kept apart
-        ///     from the campaign tiles because survival shows a score, not a lock/stars.
-        /// </summary>
+        /// <summary>Points the survival button at its level and shows the best score — kept apart from the campaign tiles because it shows a score, not a lock/stars.</summary>
         public void BindSurvival(int levelIndex, int bestScore, string scoreFormat)
         {
             _survivalIndex = levelIndex;
@@ -77,10 +72,7 @@ namespace UI.MainMenu
             tile.Bind(levels[index].Name, levels[index].Unlocked, levels[index].Stars, levels[index].IsSurvival);
         }
 
-        /// <summary>
-        ///     Wires each tile's click to <see cref="LevelChosen" /> exactly once, so the view can be reused
-        ///     (shown/hidden and re-<see cref="Build" />-ed) without stacking duplicate subscriptions.
-        /// </summary>
+        /// <summary>Wires each tile's click once so the reused view (shown/hidden, re-<see cref="Build" />-ed) doesn't stack duplicate subscriptions.</summary>
         private void SubscribeTiles()
         {
             for (int i = 0; i < _tiles.Length; i++)

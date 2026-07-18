@@ -6,9 +6,8 @@ using UnityEngine.UI;
 namespace UI.MainMenu
 {
     /// <summary>
-    ///     Prefab-based main menu. Wires the Play button, controls visibility and adds entrance juice
-    ///     (title pop-in + Play pulse) relative to each element's designed scale so nothing is resized.
-    ///     Assign _canvasGroup, _playButton and (optionally) _title in the prefab inspector.
+    ///     Prefab-based main menu (a passive View). Wires the buttons, controls visibility, and adds entrance juice
+    ///     (title pop-in + button pulse) relative to each element's designed scale so nothing is permanently resized.
     /// </summary>
     public class MainMenuView : MonoBehaviour
     {

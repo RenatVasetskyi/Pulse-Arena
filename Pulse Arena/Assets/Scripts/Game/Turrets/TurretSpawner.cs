@@ -7,11 +7,10 @@ using UnityEngine;
 namespace Game.Turrets
 {
     /// <summary>
-    ///     Spawns stationary <see cref="Turret" />s inside the play ring at a fixed cadence, up to a cap. Reuses the
-    ///     shared <see cref="SafeSpawnFinder" /> so a turret never lands on a wall, pit, another spawn, or too close
-    ///     to the player. Each turret self-destructs after its lifetime and raises <see cref="Turret.Despawned" />,
-    ///     which frees a slot so a fresh one can spawn — keeping the live count at the cap over the match.
-    ///     Mechanical-pause aware — the spawn timer holds while paused.
+    ///     Spawns stationary <see cref="Turret" />s inside the play ring at a fixed cadence up to a cap, placing each
+    ///     via the shared <see cref="SafeSpawnFinder" /> so it never lands on a wall, pit, another spawn, or the player.
+    ///     A turret's <see cref="Turret.Despawned" /> frees its slot so the loop refills to the cap. Mechanical-pause
+    ///     aware — the spawn timer holds while paused.
     /// </summary>
     public class TurretSpawner : ITurretSpawner, IPausable
     {

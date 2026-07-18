@@ -3,9 +3,8 @@ using UnityEngine;
 namespace Game.Spawning
 {
     /// <summary>
-    ///     Shared placement geometry for the spawn finders. Holds the flat-plane distance check that
-    ///     <see cref="SafeSpawnFinder" /> and <see cref="PitPlacementFinder" /> used to carry as byte-identical
-    ///     private copies.
+    ///     Shared placement geometry for the spawn finders: the flat-plane distance check used by
+    ///     <see cref="SafeSpawnFinder" /> and <see cref="PitPlacementFinder" />.
     /// </summary>
     public static class SpawnGeometry
     {

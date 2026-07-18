@@ -4,10 +4,9 @@ using UnityEngine;
 namespace Game.Player
 {
     /// <summary>
-    ///     The ultimate's shockwave: a flat, expanding ring of soft particles kicked outward across the ground
-    ///     at the player's feet the instant the ultimate unleashes. Spawns the authored ring prefab once and
-    ///     triggers it per activation. The whole effect — emitter shape, fades, soft-dot material AND the particle
-    ///     count (an emission burst at t=0) — lives on the asset, so it previews correctly in the inspector.
+    ///     The ultimate's shockwave: a flat ring of soft particles kicked outward across the ground at the
+    ///     player's feet when the ultimate unleashes. Spawns the authored ring prefab once and triggers it per
+    ///     activation; the whole effect lives on the asset (an emission burst at t=0), so it previews in the inspector.
     /// </summary>
     public class ShockwaveEffect : IShockwaveEffect
     {
@@ -38,7 +37,6 @@ namespace Game.Player
             _ring.Play(true);
         }
 
-        // Spawns the authored ring prefab once and reuses it; everything about the effect is baked on the asset.
         private void EnsureRing()
         {
             if (_ring != null || _ringPrefab == null)

@@ -6,24 +6,16 @@ using UnityEngine;
 namespace Game.Visuals
 {
     /// <summary>
-    ///     The shared skinned-model enemy visual (skeleton, wolf, karate man) driven by an <see cref="Animator" />:
-    ///     a Speed parameter mirrors the enemy's actual world movement (Idle↔Run) and Death is a one-shot. It is
-    ///     model-agnostic — every model-specific beat (Attack, Death, the karate Flip somersault, the spawn Taunt)
-    ///     is an OPTIONAL Animator parameter, so the same component drives any controller and simply skips the
-    ///     triggers its controller lacks (the spawn taunt needs no code at all — it is the karate controller's
-    ///     Entry state, replayed on each <see cref="ResetState" /> rebind). Implements <see cref="IEnemyVisual" />
-    ///     so <c>EnemyController</c> swaps it in for the primitive blob without any controller change. Speed is
-    ///     sampled from the ROOT's world-position delta — NOT
-    ///     <c>Rigidbody.linearVelocity</c> — because a chasing enemy is moved by its NavMeshAgent (which drives
-    ///     the transform, leaving rigidbody velocity ~0), so a velocity read would sit in Idle while it walks.
-    ///     Movement anim is suppressed (Speed 0) while grabbed/thrown/dead so a spun-on-the-lasso enemy doesn't
-    ///     read as "running". Death completes via an animation event on the death clip (<see cref="OnDeathAnimationEnd" />)
-    ///     which fires <see cref="DeathCompleted" /> so the controller pools the corpse exactly when the clip
-    ///     ends — no guessed timer; a Death-state <c>normalizedTime</c> check is the safety net, and a model with
-    ///     no Death state signals next frame. The primitive's bespoke grabbed/thrown/attack/bounce squash has no
-    ///     skeletal equivalent, so those are inert here (the enemy still flails physically via the Rigidbody).
-    ///     Mechanical pause freezes the Animator (speed 0), so a paused death naturally waits. Trigger sets are
-    ///     guarded so a controller missing a clip doesn't warn.
+    ///     The shared skinned-model enemy visual (skeleton, wolf, karate man), driven by an <see cref="Animator" />.
+    ///     Model-agnostic: every model-specific beat (Attack, Death, Flip, Taunt) is an OPTIONAL Animator parameter,
+    ///     so the same component drives any controller and skips the triggers its controller lacks. Implements
+    ///     <see cref="IEnemyVisual" /> so <c>EnemyController</c> swaps it in for the primitive. Speed is sampled from
+    ///     the ROOT's world-position delta, NOT <c>Rigidbody.linearVelocity</c> — a chasing enemy is moved by its
+    ///     NavMeshAgent (transform, not rigidbody), so a velocity read would sit in Idle while it walks; suppressed
+    ///     to 0 while grabbed/thrown/dead. Death completes via an animation event (<see cref="OnDeathAnimationEnd" />)
+    ///     firing <see cref="DeathCompleted" /> so the controller pools the corpse exactly when the clip ends, with a
+    ///     Death-state <c>normalizedTime</c> check as safety net. Mechanical pause freezes the Animator (speed 0);
+    ///     trigger sets are guarded against missing clips.
     /// </summary>
     public class SkeletonEnemyVisual : MonoBehaviour, IEnemyVisual
     {
@@ -215,9 +207,8 @@ namespace Game.Visuals
         {
             _isGrabbed = isGrabbed;
 
-            // Snap out of any attack lunge into the neutral Idle pose the instant the enemy is grabbed, so the skinned
-            // body sits back over the physics capsule the lasso wraps. A skeleton caught mid-attack otherwise stays
-            // leaned forward while the rope hugs the (upright) capsule beside it — the "crooked wrap".
+            // Snap out of any attack lunge to neutral Idle the instant the enemy is grabbed, so the skinned body sits
+            // back over the physics capsule the lasso wraps — else it stays leaned forward for a "crooked wrap".
             if (isGrabbed && _animator != null && !_isDead && _animator.HasState(0, IdleHash))
                 _animator.CrossFade(IdleHash, 0.1f);
         }
@@ -229,10 +220,9 @@ namespace Game.Visuals
 
         public bool TryGetRopeBounds(out Bounds bounds)
         {
-            // Wrap the physical body capsule, NOT the skinned mesh: a rigged mesh reports an inflated
-            // arm-spread/bind-pose AABB (extents.x ~3× the torso), so the lasso would wrap far too wide. The
-            // root collider is the torso size and is shared by every enemy model, so the rope hugs identically
-            // whichever model spawned.
+            // Wrap the physical body capsule, NOT the skinned mesh: a rigged mesh reports an inflated bind-pose AABB
+            // (extents.x ~3× the torso) so the lasso would wrap far too wide. The root collider is torso-sized and
+            // shared by every model, so the rope hugs identically whichever model spawned.
             if (_bodyCollider != null)
             {
                 bounds = _bodyCollider.bounds;
@@ -306,11 +296,9 @@ namespace Game.Visuals
             return _parameterHashes.Contains(hash);
         }
 
-        // Animator.parameters is an extern getter that marshals a FRESH array (plus one object per parameter) on
-        // EVERY read — and HasParameter is called per frame, per enemy, from Update. That single property was the
-        // entire per-frame managed allocation of the gameplay loop (~833 B/frame, measured). The controller's
-        // parameter set is fixed at author time (_animator is a serialized ref and nothing swaps
-        // runtimeAnimatorController), so snapshot the hashes once and never touch the property again.
+        // Animator.parameters marshals a FRESH array on EVERY read, and HasParameter runs per frame per enemy — that
+        // one property was the whole per-frame managed allocation of the gameplay loop (~833 B/frame, measured). The
+        // parameter set is fixed at author time, so snapshot the hashes once and never touch the property again.
         private void EnsureParameterCache()
         {
             if (_parametersCached || _animator == null)

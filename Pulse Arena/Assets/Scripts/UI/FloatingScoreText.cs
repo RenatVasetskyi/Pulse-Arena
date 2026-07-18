@@ -7,9 +7,8 @@ using UnityEngine.SceneManagement;
 namespace UI
 {
     /// <summary>
-    ///     World-space "+N" score popup that rises and fades out. The canvas + text live on the prefab;
-    ///     instances are pooled and recycled on expiry (the pool is cleared on scene unload) so a kill no
-    ///     longer allocates a fresh canvas + text each time.
+    ///     World-space "+N" score popup that rises and fades out; instances are pooled and recycled on expiry,
+    ///     with the pool cleared on scene unload.
     /// </summary>
     public class FloatingScoreText : MonoBehaviour
     {

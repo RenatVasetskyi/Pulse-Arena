@@ -8,11 +8,10 @@ using Zenject;
 namespace Bootstrap
 {
     /// <summary>
-    ///     THE composition root of the menu scene — read <see cref="Build" /> top-to-bottom to see the ENTIRE menu
-    ///     setup in one place. The exact mirror of <see cref="Game.Scene.GameWorldBuilder" />, so both scenes answer
-    ///     "where is this built?" the same way. It lives in the menu scene's SceneContext and runs off that context's
-    ///     kernel: <see cref="Initialize" /> (→ Build) fires when the scene loads, <see cref="Dispose" /> (→ Teardown)
-    ///     fires automatically when the scene unloads — so no FSM state has to remember to dispose the presenter.
+    ///     THE composition root of the menu scene — read <see cref="Build" /> top-to-bottom for the entire menu
+    ///     setup. The mirror of <see cref="Game.Scene.GameWorldBuilder" />: runs off the SceneContext kernel, so
+    ///     <see cref="Initialize" /> (→ Build) fires on scene load and <see cref="Dispose" /> (→ Teardown) on unload
+    ///     automatically — no FSM state has to dispose the presenter.
     /// </summary>
     public class MainMenuBuilder : IInitializable, System.IDisposable
     {

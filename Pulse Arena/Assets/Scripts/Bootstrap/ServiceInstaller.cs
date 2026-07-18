@@ -39,9 +39,9 @@ namespace Bootstrap
             Container.Bind<IWindowFactory>().To<WindowFactory>().AsSingle();
         }
 
-        // The linear-campaign pair: the roster + current selection (ILevelService, reads GameSettings.Levels) and the
-        // persistent unlock/stars (ILevelProgressService, PlayerPrefs). ProjectContext-scoped so the chosen level +
-        // progress survive the menu → match scene load.
+        // Campaign trio: roster + current selection (ILevelService, reads GameSettings.Levels), persistent
+        // unlock/stars (ILevelProgressService, PlayerPrefs) and the first-run flag (IOnboardingState).
+        // ProjectContext-scoped so the chosen level + progress survive the menu → match scene load.
         private void BindLevelServices()
         {
             Container.Bind<ILevelService>().To<LevelService>().AsSingle();

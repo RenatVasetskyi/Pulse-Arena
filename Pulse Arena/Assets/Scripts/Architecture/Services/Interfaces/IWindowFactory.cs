@@ -4,9 +4,8 @@ namespace Architecture.Services.Interfaces
 {
     /// <summary>
     ///     Instantiates a UI window/panel prefab and returns its <typeparamref name="T" /> component, logging a
-    ///     clear error (and returning null) if the prefab is unassigned or missing the component. Unifies the
-    ///     "Instantiate(prefab).GetComponent&lt;T&gt;() or LogError" pattern the presenters/controllers duplicated,
-    ///     so every window is created the same way from one place.
+    ///     clear error (and returning null) if the prefab is unassigned or missing the component. One place all
+    ///     windows are created, so presenters never repeat the Instantiate-or-LogError dance.
     /// </summary>
     public interface IWindowFactory
     {

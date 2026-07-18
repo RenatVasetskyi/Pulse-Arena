@@ -14,14 +14,11 @@ using Zenject;
 namespace Bootstrap
 {
     /// <summary>
-    ///     Installer on the game scene's SceneContext. It composes the whole match: the spawners + the three
-    ///     collaborators + the <see cref="GameWorldBuilder" />. The builder is bound NonLazy as IInitializable, so the
-    ///     SceneContext's kernel runs its Build() on scene load and — the whole reason we use a SceneContext — calls
-    ///     its Dispose()/Teardown() automatically when the scene unloads. No manual lifecycle, no leak-prone teardown.
-    ///     The parent ProjectContext (global services) is never touched by this scope.
-    ///     The world factories (arena/player/enemy/pickup) are bound HERE, not in ProjectContext, so the DiContainer
-    ///     each factory captures is the SceneContext one — InstantiatePrefabForComponent then resolves both project
-    ///     AND scene bindings, which keeps future scene-scoped dependencies on the player/enemy resolvable.
+    ///     Installer on the game scene's SceneContext — composes the whole match: spawners + the three collaborators
+    ///     + <see cref="GameWorldBuilder" />. The builder is bound NonLazy as IInitializable, so the SceneContext
+    ///     kernel runs Build() on scene load and Dispose()/Teardown() automatically on unload — no manual lifecycle.
+    ///     World factories are bound HERE, not in ProjectContext, so the DiContainer each captures is the SceneContext
+    ///     one — InstantiatePrefabForComponent then resolves scene-scoped deps on spawned actors.
     /// </summary>
     public class GameInstaller : MonoInstaller
     {
@@ -113,8 +110,7 @@ namespace Bootstrap
                 .Bind<OnboardingController>()
                 .AsSingle();
 
-            // NonLazy + IInitializable/IDisposable: the SceneContext builds the world on load and tears it down
-            // on unload, automatically and in isolation from the ProjectContext.
+            // NonLazy IInitializable/IDisposable: the SceneContext builds the world on load, tears it down on unload.
             Container
                 .BindInterfacesAndSelfTo<GameWorldBuilder>()
                 .AsSingle()

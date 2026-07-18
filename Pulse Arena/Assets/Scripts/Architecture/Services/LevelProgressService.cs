@@ -57,9 +57,8 @@ namespace Architecture.Services
             return true;
         }
 
-        // Full wipe: unlock frontier, every level's stars, the survival best AND the onboarding flag (and any other
-        // saved key — DeleteAll clears the whole store) — a clean-slate reset behind a menu confirmation. After this
-        // the game reads first-run defaults.
+        // DeleteAll wipes the whole store — unlock frontier, all stars, survival best, onboarding flag — a
+        // clean-slate reset behind a menu confirmation; afterward the game reads first-run defaults.
         public void ResetProgress()
         {
             PlayerPrefs.DeleteAll();

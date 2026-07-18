@@ -9,10 +9,9 @@ using Zenject;
 namespace Game.Player
 {
     /// <summary>
-    ///     The player's ultimate. When the super meter is full and the ultimate key is pressed, a shockwave
-    ///     flings every enemy in range violently outward (and up) — most sail off the edge and ring out. Emits a
-    ///     ground shockwave VFX at the player and fires <see cref="Activated" /> so the scene can add camera
-    ///     shake / slow-mo / sound on top.
+    ///     The player's ultimate: when the super meter is full and the key is pressed, a shockwave flings every
+    ///     enemy in range outward + up (most ring out), emits a ground shockwave VFX, and fires
+    ///     <see cref="Activated" /> so the scene can layer camera shake / slow-mo / sound on top.
     /// </summary>
     public class PlayerUltimate : MonoBehaviour, IPausable
     {

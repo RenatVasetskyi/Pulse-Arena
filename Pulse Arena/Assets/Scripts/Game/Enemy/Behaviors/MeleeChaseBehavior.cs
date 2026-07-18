@@ -3,11 +3,10 @@ using UnityEngine;
 namespace Game.Enemy.Behaviors
 {
     /// <summary>
-    ///     The default enemy brain (skeleton / wolf / karate and every stat-variant of them): run at the player via
-    ///     <see cref="EnemyContext.DriveToTarget" />, commit to a melee swing when in range and off cooldown, and on
-    ///     models that support it occasionally roll a mid-approach flourish. This is the concrete archetype the
-    ///     <see cref="IEnemyBehavior" /> seam was extracted from — a new enemy (ranged, flyer, summoner, …) is a
-    ///     sibling <see cref="IEnemyBehavior" /> in this folder, not an edit here.
+    ///     The default enemy brain (skeleton / wolf / karate and their stat-variants): run at the player via
+    ///     <see cref="EnemyContext.DriveToTarget" />, swing when in range and off cooldown, and on capable models
+    ///     occasionally roll a mid-approach flourish. A new archetype (ranged, flyer, summoner, …) is a sibling
+    ///     <see cref="IEnemyBehavior" /> in this folder, not an edit here.
     /// </summary>
     public class MeleeChaseBehavior : IEnemyBehavior
     {

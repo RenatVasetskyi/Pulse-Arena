@@ -8,12 +8,10 @@ using Zenject;
 namespace Game.Cameras
 {
     /// <summary>
-    ///     The thin Cinemachine orchestrator for the battle view. It owns the component wiring + the per-frame
-    ///     composite (base framing + zoom + transient FX) + the high-level choreography (lasso launch / player
-    ///     hit), and delegates the three independent effects to focused helpers: <see cref="CameraShaker" />
-    ///     (Perlin shake), <see cref="CameraKickFx" /> (offset + FOV punch) and <see cref="CameraZoomController" />
-    ///     (the settings-coupled zoom axis). Feel/balance values are read straight from <see cref="CameraData" />;
-    ///     only the base rig setup (offsets/damping/FOV) lives on the component.
+    ///     The thin Cinemachine orchestrator for the battle view: owns component wiring and the per-frame composite
+    ///     (base framing + zoom + transient FX), and delegates to focused helpers — <see cref="CameraShaker" />
+    ///     (Perlin shake), <see cref="CameraKickFx" /> (offset + FOV punch), <see cref="CameraZoomController" />
+    ///     (settings-coupled zoom). Feel values come from <see cref="CameraData" />.
     /// </summary>
     public class BattleCamera : MonoBehaviour, IBattleCamera
     {
@@ -154,12 +152,9 @@ namespace Game.Cameras
                 _follow.FollowOffset = _zoom.ZoomedFollowOffset + _kick.CurrentOffset;
         }
 
-        // The base rig (FOV, follow offset, look-at offset, damping) is AUTHORED on the Cinemachine components.
-        // Snapshot the three values we composite from, exactly once.
-        //
-        // Awake is the ONLY legal capture point: ApplyComposite stomps Lens.FieldOfView and FollowOffset every
-        // frame with base*zoom+kick, so those fields are the composited OUTPUT from the first Update onward.
-        // Re-capturing later would fold the live zoom and a transient kick back into the base and compound.
+        // The base rig (FOV, follow/look-at offsets, damping) is authored on the Cinemachine components; snapshot
+        // the composited-from values exactly once. Awake is the only legal capture point — ApplyComposite stomps
+        // Lens.FieldOfView and FollowOffset every frame, so re-capturing later would fold zoom+kick into the base.
         private void CacheBaseRig()
         {
             if (_camera != null)
@@ -172,10 +167,9 @@ namespace Game.Cameras
                 _baseLookAtOffset = _rotationComposer.TargetOffset;
         }
 
-        // Not authoring — an invariant. FollowOffset is composited and consumed as a WORLD-space vector (see
-        // ApplyComposite / Follow), which only holds under WorldSpace binding; any LockToTarget* mode would make
-        // the rig orbit with the target's yaw. Cinemachine defaults a fresh CinemachineFollow to
-        // LockToTargetOnAssign, so enforce it here rather than trusting the asset to survive a component Reset.
+        // Invariant: FollowOffset is composited and consumed as a WORLD-space vector (see ApplyComposite / Follow);
+        // any LockToTarget* mode would make the rig orbit with the target's yaw. Cinemachine defaults a fresh
+        // CinemachineFollow to LockToTargetOnAssign, so enforce WorldSpace here rather than trusting the asset.
         private void EnforceWorldSpaceBinding()
         {
             if (_follow != null)

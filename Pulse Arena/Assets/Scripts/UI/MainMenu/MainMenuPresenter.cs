@@ -115,10 +115,7 @@ namespace UI.MainMenu
             return -1;
         }
 
-        /// <summary>
-        ///     Instantiates the level-select overlay once and keeps it. It is shown/hidden on open/close (never
-        ///     re-instantiated per open); the instance is destroyed only in <see cref="Dispose" /> on menu teardown.
-        /// </summary>
+        /// <summary>Instantiates the overlay once and keeps it — shown/hidden on open/close, destroyed only in <see cref="Dispose" />.</summary>
         private void CreateLevelSelect()
         {
             _levelSelect = _windowFactory.Create<LevelSelectView>(_gameSettings.Prefabs.LevelSelectPrefab,

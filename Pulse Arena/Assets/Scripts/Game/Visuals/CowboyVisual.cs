@@ -6,11 +6,10 @@ using UnityEngine;
 namespace Game.Visuals
 {
     /// <summary>
-    ///     The player's skinned cowboy visual — drives a Humanoid <see cref="Animator" /> from gameplay: a
-    ///     <c>Speed</c> parameter mirrors the Rigidbody's planar velocity (Idle↔Run blend) and Hit/Death are one-shot
-    ///     signals. Implements <see cref="IPlayerVisual" /> so <c>PlayerController</c> swaps it in for the primitive
-    ///     with no code change. Mechanical pause freezes the Animator (speed 0), never <c>Time.timeScale</c>.
-    ///     Trigger/bool sets are guarded so clips not wired yet don't spam "parameter does not exist" warnings.
+    ///     The player's skinned cowboy visual: drives a Humanoid <see cref="Animator" /> from gameplay — a <c>Speed</c>
+    ///     parameter mirrors planar velocity (Idle↔Run) and Hit/Dash/Death are one-shots. Implements
+    ///     <see cref="IPlayerVisual" /> so <c>PlayerController</c> swaps it in for the primitive. Mechanical pause
+    ///     freezes the Animator (speed 0), never <c>Time.timeScale</c>; trigger sets are guarded against missing clips.
     /// </summary>
     public class CowboyVisual : MonoBehaviour, IPlayerVisual
     {
@@ -52,15 +51,15 @@ namespace Game.Visuals
             planar.y = 0f;
             float speed = planar.magnitude < _visualData.MoveThreshold ? 0f : planar.magnitude;
 
-            // Track velocity instantly (it is SET, not accelerated, so there is nothing to smooth); the Idle↔Run
-            // transition blend is what softens the swap. Damping the parameter here just lagged the run→idle switch.
+            // Velocity is SET not accelerated, so there's nothing to smooth here; the Idle↔Run transition blend
+            // softens the swap, and damping the parameter only lags the run→idle switch.
             if (_speedDamp > 0.001f)
                 _animator.SetFloat(SpeedHash, speed, _speedDamp, Time.deltaTime);
             else
                 _animator.SetFloat(SpeedHash, speed);
 
-            // Scale the walk/run playback with how hard the stick is pushed (velocity): a light push walks, a full
-            // push runs. Drives the Run state's Speed-Multiplier parameter; clamped so it never freezes or blurs.
+            // Scale run playback by stick push (velocity): light push walks, full push runs. Drives the Run state's
+            // Speed-Multiplier parameter; clamped so it never freezes or blurs.
             float moveMult = _visualData.MoveAnimationMaxSpeed > 0.01f
                 ? Mathf.Clamp(speed / _visualData.MoveAnimationMaxSpeed, 0.6f, 1.15f)
                 : 1f;
@@ -87,8 +86,8 @@ namespace Game.Visuals
             if (_animator == null)
                 return;
 
-            // Stretch/squash the roll clip so it plays over EXACTLY the dash duration (matching its length + speed),
-            // via the Dash state's Speed-Multiplier parameter. _animationSpeed is factored out since it also scales it.
+            // Stretch/squash the roll clip so it plays over EXACTLY the dash duration, via the Dash state's
+            // Speed-Multiplier parameter. _animationSpeed is factored out since it also scales playback.
             float dur = Mathf.Max(0.05f, dashDuration);
             _animator.SetFloat(DashMultHash, _dashClipLength / (dur * Mathf.Max(0.01f, _animationSpeed)));
 
@@ -112,10 +111,8 @@ namespace Game.Visuals
             return _parameterHashes.Contains(hash);
         }
 
-        // Animator.parameters marshals a FRESH array (plus one object per parameter) on EVERY read. Nothing calls
-        // this per frame on the player today, but it is the same allocation trap that cost the enemy visual its
-        // whole GC budget — snapshot once. The parameter set is fixed at author time (_animator is a serialized ref
-        // and nothing swaps runtimeAnimatorController).
+        // Animator.parameters marshals a FRESH array on every read (the allocation trap that cost the enemy visual
+        // its GC budget). The parameter set is fixed at author time, so snapshot the hashes once.
         private void EnsureParameterCache()
         {
             if (_parametersCached || _animator == null)

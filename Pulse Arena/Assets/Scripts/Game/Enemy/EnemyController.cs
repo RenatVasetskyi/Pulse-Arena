@@ -17,15 +17,12 @@ using Random = UnityEngine.Random;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     The enemy's thin state router. It wires the collaborators (movement, impact, timers, ground
-    ///     recovery, collisions, ringout, health-bar presenter) together behind a lean <see cref="EnemyContext" />,
-    ///     owns the pool lifecycle + the public API (Knockback / Grab / Launch / …), and forwards Unity's
-    ///     FixedUpdate + collision callbacks into the state machine / collision handler. All per-frame logic
-    ///     lives in the seven state classes; the shared flags they flip live on the context (single source of
-    ///     truth) and the controller reads/writes them through it. Death pools the corpse off the visual's
-    ///     <see cref="IEnemyVisual.DeathCompleted" /> event (the death clip's own animation event), not a guessed
-    ///     timer. Each lifecycle step (spawn reset / pool teardown / wiring) is a small single-purpose method the
-    ///     coordinator calls in order.
+    ///     The enemy's thin state router. It wires the collaborators (movement, impact, timers, ground recovery,
+    ///     collisions, ringout, health-bar presenter) behind a lean <see cref="EnemyContext" />, owns the pool
+    ///     lifecycle + the public API (Knockback / Grab / Launch / …), and forwards Unity's FixedUpdate +
+    ///     collision callbacks into the state machine. All per-frame logic lives in the state classes; the
+    ///     shared flags they flip live on the context (single source of truth). Death pools the corpse off the
+    ///     visual's <see cref="IEnemyVisual.DeathCompleted" /> animation event, not a guessed timer.
     /// </summary>
     public class EnemyController : MonoBehaviour, IPausable
     {
@@ -701,10 +698,10 @@ namespace Game.Enemy
 
         // --- state-owned side effects the controller still hosts -------------------------------
         // Reached through an EnemyContext callback because it touches controller-private state (the dead flag,
-        // health-bar presenter, RingoutHandler) a state can't set. StopForDeath moved into EnemyDeadState.Enter.
+        // health-bar presenter, RingoutHandler) a state can't set.
 
-        // The controller-coupled slice of the old EnterRingoutState body, in original order: mark dead,
-        // zero the health bar, run the RingoutHandler (EnemyRingoutState.Enter → EnemyContext.ResolveRingout).
+        // The controller-coupled slice of ring-out (EnemyRingoutState.Enter → EnemyContext.ResolveRingout):
+        // mark dead, zero the health bar, run the RingoutHandler.
         private void ResolveRingout()
         {
             _isDead = true;
@@ -713,12 +710,8 @@ namespace Game.Enemy
             Died?.Invoke(this);
         }
 
-        // --- shared timer tick + small helpers -------------------------------------------------
+        // --- small helpers ---------------------------------------------------------------------
 
-        // Shared cooldowns that tick in EVERY non-dead state (EnemyTimers.TickFixed — includes Stasis, as
-        // the original did). The knockback-timer decrement + its expiry side effect live in
-        // EnemyKnockbackState, not here. The impact hit-set needs no per-frame tick — it is a HashSet cleared
-        // once per throw.
         // The visual is baked on the enemy prefab and inspector-wired, so this just hands the assigned ref its
         // dependencies — nothing is fetched at runtime.
         private void InitializeVisual()

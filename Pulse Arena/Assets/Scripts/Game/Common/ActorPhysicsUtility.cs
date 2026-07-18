@@ -3,8 +3,7 @@ using UnityEngine;
 namespace Game.Common
 {
     /// <summary>
-    ///     Shared physics helpers for the two actors (player + enemy), extracted from byte-identical snippets
-    ///     that used to be duplicated across both controllers.
+    ///     Shared physics helpers for the two actors (player + enemy).
     /// </summary>
     public static class ActorPhysicsUtility
     {

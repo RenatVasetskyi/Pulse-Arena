@@ -7,10 +7,9 @@ namespace Architecture.Services
 {
     /// <summary>
     ///     Kill-chain combo. A kill within <see cref="ComboData.Window" /> of the previous one extends the
-    ///     chain (multiplier = combo count, capped). Expiry is checked lazily on the next kill, so it costs
-    ///     nothing between kills; the HUD fades itself out. <see cref="IPausable" />: the window is measured in
-    ///     <c>Time.time</c>, which keeps advancing under a mechanical pause, so a pause shifts the last-kill
-    ///     timestamp forward by its own duration — otherwise a long pause would silently expire the chain.
+    ///     chain (multiplier = combo count, capped); expiry is checked lazily on the next kill.
+    ///     <see cref="IPausable" />: the window uses <c>Time.time</c>, which keeps advancing under a mechanical
+    ///     pause, so Pause/Resume shift the last-kill timestamp forward — otherwise a long pause would expire the chain.
     /// </summary>
     public class ComboService : IComboService, IPausable
     {

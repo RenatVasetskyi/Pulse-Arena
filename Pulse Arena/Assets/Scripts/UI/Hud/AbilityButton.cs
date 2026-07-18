@@ -5,11 +5,9 @@ using UnityEngine.UI;
 namespace UI.Hud
 {
     /// <summary>
-    ///     On-screen ability button (dash / ultimate) for touch, with a layered cooldown look: a full-but-faint ghost
-    ///     (the button's own <see cref="Image" />, always visible) with a bright, Radial360-filled copy on top
-    ///     (<see cref="_radialFill" />) that sweeps in as the ability recharges — so an empty ability still shows the
-    ///     whole faint button and a ready one reads fully bright. The charge also gates the <see cref="Button" />'s
-    ///     <c>interactable</c> flag; a tap on a ready button is reported frame-accurately (Time.frameCount) for the
+    ///     On-screen dash/ultimate button for touch. A bright Radial360 fill (<see cref="_radialFill" />) sweeps over
+    ///     the always-visible faint button as the ability recharges, and gates the <see cref="Button" />'s
+    ///     <c>interactable</c> flag. A tap on a ready button is reported frame-accurately (Time.frameCount) for the
     ///     input layer to poll.
     /// </summary>
     public class AbilityButton : MonoBehaviour, IPointerDownHandler
@@ -36,7 +34,6 @@ namespace UI.Hud
             _pressedFrame = Time.frameCount;
         }
 
-        /// <summary>Sweeps the bright radial fill to match the raw 0..1 charge and gates interactivity once ready.</summary>
         public void SetCharge(float charge01)
         {
             if (_radialFill != null)

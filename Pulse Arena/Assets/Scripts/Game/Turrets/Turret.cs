@@ -8,10 +8,10 @@ using Zenject;
 namespace Game.Turrets
 {
     /// <summary>
-    ///     A stationary hazard turret. It swivels its head to track the player and fires a bullet at a fixed
-    ///     cadence; the bullets damage only the player. After its lifetime it collapses (a crumble animation) and
-    ///     despawns, freeing the spawner's slot. Placed by <see cref="TurretSpawner" />; the model plus the Head
-    ///     (aim pivot) and Muzzle (bullet spawn) transforms live on the prefab. Mechanical-pause aware.
+    ///     A stationary hazard turret: swivels its head to track the player and fires player-only bullets at a fixed
+    ///     cadence, then after its lifetime collapses and despawns, freeing the spawner's slot. Placed by
+    ///     <see cref="TurretSpawner" />; its Head (aim pivot) and Muzzle (bullet spawn) transforms live on the prefab.
+    ///     Mechanical-pause aware.
     /// </summary>
     public class Turret : MonoBehaviour, IPausable
     {

@@ -5,11 +5,10 @@ using UnityEngine;
 namespace Game.Pooling
 {
     /// <summary>
-    ///     Minimal generic object pool for scene components. It only tracks membership (active set +
-    ///     inactive queue) — ALL reset/activation behavior lives in the caller-supplied delegates:
-    ///     <c>createFunc</c> builds a new instance when the pool is dry, <c>getAction</c> runs on checkout,
-    ///     and <c>releaseAction</c> must fully reset state on return or stale state leaks across reuse.
-    ///     Destroyed (Unity fake-null) instances left in the inactive queue are skipped on Get, so a torn-down
+    ///     Minimal generic object pool for scene components — tracks only membership (active set + inactive
+    ///     queue); all reset/activation lives in the caller-supplied delegates. <c>createFunc</c> builds when
+    ///     dry, <c>getAction</c> runs on checkout, and <c>releaseAction</c> must fully reset state on return
+    ///     or stale state leaks across reuse. Get skips destroyed (Unity fake-null) instances, so a torn-down
     ///     scene never hands out dead objects.
     /// </summary>
     public class ComponentPool<T> where T : Component

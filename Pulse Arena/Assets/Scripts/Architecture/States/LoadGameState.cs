@@ -5,9 +5,9 @@ using Data;
 namespace Architecture.States
 {
     /// <summary>
-    ///     Loads the game scene, then hands off — nothing more. Composition and teardown live in the scene's
-    ///     SceneContext (GameInstaller → GameWorldBuilder), which builds the world on load and disposes it on unload
-    ///     automatically. This state stays a pure "which scene" flow step; restart is just a scene reload.
+    ///     Loads the game scene, then hands off. Match composition and teardown live in the scene's SceneContext
+    ///     (GameInstaller → GameWorldBuilder), which builds the world on load and disposes it on unload. A pure
+    ///     "which scene" flow step; restart is just a scene reload.
     /// </summary>
     public class LoadGameState : IState
     {
@@ -22,9 +22,8 @@ namespace Architecture.States
 
         public void Enter()
         {
-            // Just loads the scene. What happens NEXT: the game scene's SceneContext (GameInstaller) instantiates
-            // GameWorldBuilder (NonLazy IInitializable), whose Build() composes the whole match. To read the
-            // game-scene setup top-to-bottom, open GameWorldBuilder.Build() — THAT is the composition root.
+            // Only loads the scene; the game SceneContext's GameWorldBuilder.Build() (NonLazy IInitializable)
+            // composes the whole match — that is the real composition root to read.
             _sceneLoader.Load(_gameSettings.GameSceneName);
         }
 

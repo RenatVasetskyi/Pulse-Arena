@@ -11,7 +11,7 @@ Mobile-first (portrait) 3D arena game built in **Unity 6** with **URP**. The pla
 - **Language:** talk to Renat in **Ukrainian**; keep technical terms in English (`IPauseService`, `SceneContext`, `readonly`, …).
 - **Report format** for every change, in Ukrainian: **`що змінив / файли / як тестував / що перевірити вручну`**.
 - **Git:** the assistant **NEVER** commits or pushes. Renat owns every commit. Stage nothing, run no `git commit`/`git push`.
-- **Art division of labor:** Renat builds the 3D playfield + characters himself in **Blender**. The assistant generates **UI / 2D art only** (fal.ai pipeline via Unity `generate_image`). Do not attempt to author 3D models.
+- **Art division of labor:** Renat owns all 3D — characters are **AI-generated** (rigged + animated FBX in `Assets/Generated/Characters/`), pits/turrets/simple props are **ProBuilder**, and the arena environment is a **Unity Asset Store** pack (`Assets/Brawl Arena/`). **Nothing is authored in Blender.** The assistant generates **UI / 2D art only** (fal.ai pipeline via Unity `generate_image`). Do not attempt to author 3D models.
 - **Method-level SRP is a hard rule** (see §4). Every method does one job.
 
 ---
@@ -298,5 +298,5 @@ Order every type to the Rider layout profile — don't hand-order, run Cleanup a
 - **Tooling gotcha — Unity-MCP `execute_code` CodeDom:** with compiler `'auto'` it falls back to CodeDom (C# 6) — **no top-level `using` directives, fully-qualify types**, and `Object`/`Random` are ambiguous (qualify them).
 - **`CoroutineRunner` recursion trap:** it implements `StartCoroutine`/`StopCoroutine` as **explicit** interface members (the one modifier-less-member case the `.editorconfig` sanctions). A public same-signature override would bind to itself → infinite recursion → StackOverflow → editor crash. Keep it explicit.
 - **Git:** never commit/push — Renat owns every commit.
-- **Art:** generate UI/2D only (fal.ai via `generate_image`); Renat does all 3D in Blender.
+- **Art:** generate UI/2D only (fal.ai via `generate_image`); Renat owns all 3D (AI-generated characters · ProBuilder props · Asset Store arena) — **nothing in Blender**.
 - **Report every change** in Ukrainian as `що змінив / файли / як тестував / що перевірити вручну`.

@@ -147,7 +147,7 @@ namespace Game.Combat
 
         // The grabbed enemy can be freed by something other than the lasso — the ultimate's launch, a pit, or a
         // death all clear its IsGrabbed flag. When that happens the rope must let go at once instead of dangling
-        // from the departing enemy (it stayed attached before).
+        // from the departing enemy.
         private bool HasLostGrab()
         {
             return _grabbedEnemy != null
@@ -202,10 +202,9 @@ namespace Game.Combat
             CheckSpinBlocked();
         }
 
-        // The held enemy can snag on geometry (a wall corner) and stop following its orbit. Comparing where it should
-        // be doesn't work — the orbit point keeps sweeping past a stuck body, so its lag oscillates. Instead measure
-        // how far it ACTUALLY travelled vs how far the current spin should have carried it; if it keeps falling short
-        // for SpinBlockedBreakTime it's snagged, so snap the rope + drop it rather than leaving it stuck in hand.
+        // The held enemy can snag on geometry and stop orbiting; comparing against the expected orbit point fails
+        // because it keeps sweeping past a stuck body. Instead compare distance actually travelled vs distance the
+        // spin should carry it — falling short for SpinBlockedBreakTime means snagged, so snap the rope and drop it.
         private void CheckSpinBlocked()
         {
             if (_grabbedEnemy == null)
@@ -485,10 +484,9 @@ namespace Game.Combat
             return _grabbedEnemy != null ? _grabbedEnemy.TypeData.LaunchVelocityMultiplier : 1f;
         }
 
-        // A release we should act on: while input is live, the hold button simply not being held.
-        // Level-based (not the release EDGE) on purpose — an edge fired while paused is swallowed
-        // (input is muted), so an edge-only check would leave the enemy stuck in hand after resume.
-        // This picks the release up on the first live frame instead, and stays false during the pause.
+        // Level-based (not the release edge) on purpose: an edge fired while paused is swallowed (input is muted),
+        // so an edge-only check would leave the enemy stuck in hand after resume. This catches the release on the
+        // first live frame and stays false during the pause.
         private bool SlingshotReleased()
         {
             return _inputService.IsEnabled && !_inputService.IsSlingshotHeld;

@@ -6,13 +6,11 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The enemy fell off the arena (or was flung into a pit): mark it dead, clear the flung-state flags
-    ///     and timers, stop the agent, zero the health bar and run the ringout feedback (award kill, sting,
-    ///     burst — via <see cref="EnemyContext.ResolveRingout" />), then free the rigidbody constraints and
-    ///     tumble it out. FixedTick counts up the ringout timer, keeps applying extra gravity, shrinks the
-    ///     scale, and returns the enemy to the pool once the shrink completes. Carries the old
-    ///     EnterRingoutState / FixedTickRingoutState bodies (the controller-coupled slice — set dead, health
-    ///     bar, RingoutHandler — runs through the single ResolveRingout callback in the exact original order).
+    ///     The enemy fell off the arena (or was flung into a pit): mark it dead, clear the flung-state flags and
+    ///     timers, stop the agent, zero the health bar and run the ringout feedback (award kill, sting, burst — via
+    ///     <see cref="EnemyContext.ResolveRingout" />), then free the rigidbody constraints and tumble it out.
+    ///     FixedTick counts up the ringout timer, keeps applying extra gravity, shrinks the scale, and returns the
+    ///     enemy to the pool once the shrink completes.
     /// </summary>
     public class EnemyRingoutState : ActorState
     {
@@ -27,7 +25,7 @@ namespace Game.Enemy.States
         {
             ResetFlungState();
 
-            // Controller-coupled slice, in original order: mark dead, zero the health bar, resolve the ringout.
+            // Controller-coupled slice: mark dead, zero the health bar, resolve the ringout.
             _context.ResolveRingout();
 
             if (_context.PitSinkCenter.HasValue)

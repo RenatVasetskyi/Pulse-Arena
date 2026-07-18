@@ -19,11 +19,10 @@ using UnityEngine.SceneManagement;
 namespace Game.Scene
 {
     /// <summary>
-    ///     Owns the game's flow: win / lose (EndGame), the game-over screen, pause, restart and quit-to-menu.
-    ///     GameWorldBuilder builds the world then hands the player + HUD here via <see cref="Bind" />; everything
-    ///     about "how a run ends and what the buttons do" lives in this one class. Restart reloads the game scene
-    ///     (Unity defers the load to end of frame, so it is safe to call from a button callback); quit hands back to
-    ///     the state machine. Either way the scene unload lets the SceneContext tear the world down automatically.
+    ///     Owns how a run ends: win / lose, the game-over screen, pause, restart and quit-to-menu.
+    ///     <see cref="GameWorldBuilder" /> builds the world then hands the player + HUD here via <see cref="Bind" />.
+    ///     Restart reloads the game scene (safe from a button callback — Unity defers the load); quit re-enters the
+    ///     state machine, and either way the scene unload tears the world down.
     /// </summary>
     public class GameFlowController
     {
@@ -134,8 +133,7 @@ namespace Game.Scene
                 Object.Destroy(_pausePanel.gameObject);
         }
 
-        // Player death: stop the run, punch a dramatic camera zoom, and let the death animation play for a beat
-        // before the screen drops (so it isn't hidden by the instant freeze).
+        // Delay the game-over screen by a beat so the death animation + camera zoom aren't hidden by the freeze.
         private void OnPlayerDied()
         {
             if (_isGameOver)
@@ -195,7 +193,7 @@ namespace Game.Scene
             _turretSpawner.StopSpawn(); // otherwise turrets keep firing at the corpse during the death-screen delay
         }
 
-        // Let the death animation + camera zoom play (real-time, not frozen), THEN show the screen and freeze.
+        // Real-time wait (not frozen) so the death beat animates, THEN show the screen and freeze.
         private IEnumerator ShowGameOverAfterDelay(string title, float delay)
         {
             yield return new WaitForSecondsRealtime(delay);

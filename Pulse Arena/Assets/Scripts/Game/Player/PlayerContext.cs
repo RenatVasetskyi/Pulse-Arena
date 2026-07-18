@@ -9,12 +9,11 @@ using UnityEngine;
 namespace Game.Player
 {
     /// <summary>
-    ///     Lean handle the player states use to reach their collaborators + siblings directly, so ALL per-frame
-    ///     work lives in the states (the controller only routes them). Holds every collaborator + the tuning data,
-    ///     exposes the shared per-frame ticks (<see cref="TickCommon" />/<see cref="FixedTickCommon" /> — the
-    ///     i-frame / dash-cooldown / hit-flash countdowns + the ring-out check that every gameplay state runs) and
-    ///     the dash-input probe, plus the transition callbacks (kept on the controller so they guard the dead flag)
-    ///     and the Rigidbody/Visual the pause state freezes. Mirrors <see cref="Game.Enemy.EnemyContext" />.
+    ///     Lean handle the player states use to reach their collaborators + tuning data directly, so all per-frame
+    ///     work lives in the states. Exposes the shared gameplay ticks (<see cref="TickCommon" />/
+    ///     <see cref="FixedTickCommon" />), the dash-input probe, the transition callbacks (kept on the controller
+    ///     so they guard the dead flag), and the Rigidbody/Visual the pause state freezes. Mirrors
+    ///     <see cref="Game.Enemy.EnemyContext" />.
     /// </summary>
     public sealed class PlayerContext
     {
@@ -70,9 +69,8 @@ namespace Game.Player
             _die = die;
         }
 
-        // The actor-wide per-frame work every GAMEPLAY state runs (the pause + dead states don't, so it freezes
-        // under pause and stops at death for free): advance the i-frame / dash-cooldown / hit-flash countdowns,
-        // then ring out if the player has fallen off the arena.
+        // Every gameplay state runs this; the pause + dead states don't, so the countdowns freeze under pause and
+        // stop at death for free. Rings out if the player has fallen off the arena.
         public void TickCommon()
         {
             float deltaTime = Time.deltaTime;

@@ -34,8 +34,6 @@ namespace Data
 
         [NonSerialized] private Dictionary<EnemyTypeId, EnemyTypeData> _enemyTypeCache;
 
-        // Facade: consumers keep calling gameSettings.PlayerData etc.
-        // The data now lives in separate, swappable config assets.
         public PlayerData PlayerData => _player.Data;
         public PlayerVisualData PlayerVisuals => _player.Visuals;
         public EnemyData EnemyData => _enemy.Data;
@@ -227,7 +225,7 @@ namespace Data
     {
         [Header("Zoom")] public float DefaultZoom = 1f;
 
-        public float MinZoom = 0.36f; // closest zoom-in (offset multiplier) — halved so the camera can get 50% closer
+        public float MinZoom = 0.36f; // closest zoom-in (offset multiplier)
         public float MaxZoom = 1.38f;
         public float ZoomStep = 0.08f;
         public float ZoomSmoothTime = 0.22f;

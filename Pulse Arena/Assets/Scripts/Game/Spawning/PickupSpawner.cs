@@ -96,8 +96,8 @@ namespace Game.Spawning
             }
         }
         
-        // Walls/boxes and the Default-layer pit & pickup triggers (ObstacleLayer) plus live enemies (EnemyLayer),
-        // so one clearance test keeps a fresh orb out of walls, off pits, and off other spawns.
+        // ObstacleLayer (walls + Default-layer pit/pickup triggers) unioned with live enemies, so one clearance
+        // test keeps a fresh orb off walls, pits, and other spawns.
         private LayerMask BlockerMask()
         {
             return _gameSettings.SlingshotData.ObstacleLayer.value | _gameSettings.SlingshotData.EnemyLayer.value;

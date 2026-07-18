@@ -4,11 +4,11 @@ using UnityEngine;
 namespace Game.Spawning
 {
     /// <summary>
-    ///     Ring-sampling safe-spawn geometry shared by the enemy and pickup spawners. A candidate passes only when
-    ///     it sits far enough (horizontally) from the player AND its clearance sphere is empty of blockers. The
-    ///     blocker mask combines the obstacle layer (walls/boxes, plus the Default-layer pit and pickup triggers)
-    ///     with the enemy layer, so a single overlap test keeps a new spawn out of walls, off suck-hole pits, and
-    ///     off other spawns. Trigger colliders are included on purpose (pits and pickups are triggers).
+    ///     Ring-sampling safe-spawn geometry shared by the enemy and pickup spawners: a candidate passes only when
+    ///     it sits far enough (horizontally) from the player and its clearance sphere is empty of blockers. The
+    ///     blocker mask unions the obstacle layer (walls, plus Default-layer pit and pickup triggers) with the
+    ///     enemy layer, so one overlap test keeps a spawn out of walls and off pits and other spawns. Trigger
+    ///     colliders are probed on purpose — pits and pickups are triggers.
     /// </summary>
     public class SafeSpawnFinder : ISafeSpawnFinder
     {

@@ -6,14 +6,12 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     The enemy's collision decision tree, lifted off the controller verbatim: ground-contact memory,
-    ///     the "thrown projectile damages enemies / walls" branch, the ground-bounce arc (and its counter),
-    ///     and the trajectory sweep. The controller KEEPS the Unity <c>OnCollisionEnter</c>/<c>OnCollisionStay</c>
-    ///     magic methods as one-line forwarders into this class — they must stay on the MonoBehaviour or
-    ///     Unity stops delivering collisions with no compile error.
-    ///     Damage is applied by calling back into <c>owner.TakeDamage</c> (the controller still owns health,
-    ///     scoring and death). Timers are read/written through <see cref="EnemyTimers" /> so the numbers match
-    ///     the old fields exactly; ground contact is remembered via <see cref="GroundRecoveryController" />.
+    ///     The enemy's collision decision tree: ground-contact memory, the "thrown projectile damages
+    ///     enemies / walls" branch, the ground-bounce arc, and the trajectory sweep. The controller keeps the
+    ///     Unity <c>OnCollisionEnter</c>/<c>OnCollisionStay</c> magic methods as one-line forwarders — they must
+    ///     stay on the MonoBehaviour or Unity silently stops delivering collisions. Damage calls back into
+    ///     <c>owner.TakeDamage</c> (the controller owns health/scoring/death); timers live in
+    ///     <see cref="EnemyTimers" />, ground contact in <see cref="GroundRecoveryController" />.
     /// </summary>
     public sealed class EnemyCollisionHandler
     {
@@ -80,13 +78,13 @@ namespace Game.Enemy
             _groundBounceCount = 0;
         }
 
-        /// <summary>Called by Launch to re-arm a fresh flight (old body zeroed _groundBounceCount).</summary>
+        /// <summary>Re-arms a fresh flight — Launch zeroes the ground-bounce counter.</summary>
         public void ResetGroundBounce()
         {
             _groundBounceCount = 0;
         }
 
-        /// <summary>The sweep-along-trajectory damage tick (old SweepImpactDamage). Runs from the recovery/knockback states.</summary>
+        /// <summary>The sweep-along-trajectory damage tick, run from the recovery/knockback states.</summary>
         public void SweepImpactDamage()
         {
             if (!_impact.DamageDuringSweep())

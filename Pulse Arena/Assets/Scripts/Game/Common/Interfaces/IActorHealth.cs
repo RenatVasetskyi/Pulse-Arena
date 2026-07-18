@@ -3,11 +3,10 @@ using System;
 namespace Game.Common.Interfaces
 {
     /// <summary>
-    ///     An actor's hit-point + invulnerability state — the player and every enemy share it. Pure C# (no
-    ///     Rigidbody, no MonoBehaviour) so the damage / heal / i-frame rules are unit-testable in isolation.
-    ///     Owners react to <see cref="Changed" />; death is driven by the owner because the triggers differ —
-    ///     the player dies from two sources (HP depletion here AND ring-out off the arena edge), while an enemy
-    ///     keys off HP depletion. Invulnerability is opt-in (enemies pass 0 to <see cref="Initialize" />).
+    ///     Shared hit-point + invulnerability state for the player and every enemy. Pure C# (no Rigidbody,
+    ///     no MonoBehaviour) so the damage / heal / i-frame rules are unit-testable in isolation. Owners react
+    ///     to <see cref="Changed" />; death stays owner-driven because triggers differ (player: HP depletion
+    ///     OR ring-out; enemy: HP depletion only).
     /// </summary>
     public interface IActorHealth
     {

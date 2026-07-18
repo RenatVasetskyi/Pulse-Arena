@@ -120,8 +120,7 @@ namespace UI.Hud
 
         public void SetSuperCharge(float charge01)
         {
-            // Ultimate charge is shown on the ultimate button's radial fill (the standalone super-meter
-            // slider was removed as redundant).
+            // Ultimate charge shows on the ultimate button's radial fill.
             if (_ultimateButton != null)
                 _ultimateButton.SetCharge(charge01);
         }

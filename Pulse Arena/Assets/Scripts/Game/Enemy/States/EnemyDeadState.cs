@@ -5,13 +5,11 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     Terminal state: stops the enemy (disable the agent, clear the shared flags + knockback/stasis timers),
-    ///     plays the death clip, then triggers the pool-return. Crucially it does NOT freeze the body in place — an
-    ///     enemy killed mid-flight (thrown then dies) must DROP to the ground so the death clip plays on the floor,
-    ///     not hang in the air; so the corpse is left non-kinematic under gravity with only its horizontal drift +
-    ///     spin killed (it falls straight down, upright, and the capsule settles on the floor). The pool-return
-    ///     coroutine must live on the controller MonoBehaviour, so <see cref="EnemyContext.StartDeathReturn" /> is a
-    ///     thin one-liner into it; everything else runs here through the context.
+    ///     Terminal state: stops the enemy (disable agent, clear flags + knockback/stasis timers), plays the death
+    ///     clip, then triggers the pool-return. Does NOT freeze the body — an enemy killed mid-flight must DROP to
+    ///     the ground (left non-kinematic under gravity, only horizontal drift + spin killed) so the death clip plays
+    ///     on the floor, not hanging in the air. The pool-return coroutine lives on the controller via
+    ///     <see cref="EnemyContext.StartDeathReturn" />.
     /// </summary>
     public class EnemyDeadState : ActorState
     {
@@ -29,8 +27,8 @@ namespace Game.Enemy.States
             _context.StartDeathReturn();
         }
 
-        // Keep the corpse falling under gravity every physics step so a high mid-air kill drops promptly to the
-        // floor (the extra gravity matches the throw arc's feel); once it rests on its capsule this just presses down.
+        // Keep the corpse falling under extra gravity so a high mid-air kill drops promptly to the floor; once it
+        // rests on its capsule this just presses down.
         public override void FixedTick()
         {
             _context.ApplyExtraGravity();
@@ -48,10 +46,9 @@ namespace Game.Enemy.States
             if (rigidbody == null)
                 return;
 
-            // Drop straight down: kill horizontal drift + spin (no fly-off, no roll) but keep it non-kinematic
-            // under gravity + upright so a mid-air death lands on the ground instead of freezing in the air.
-            // FreezeRotation locks the corpse upright so the player walking into it can no longer spin it up —
-            // the death anim (skinned bones) still plays; only the rigidbody's physical rotation is pinned.
+            // Kill horizontal drift + spin but keep it non-kinematic under gravity so a mid-air death lands on the
+            // ground. FreezeRotation pins the body upright (the player can't spin the corpse); the skinned death
+            // anim still plays — only the rigidbody's physical rotation is locked.
             rigidbody.angularVelocity = Vector3.zero;
             rigidbody.linearVelocity = new Vector3(0f, Mathf.Min(0f, rigidbody.linearVelocity.y), 0f);
             rigidbody.useGravity = true;

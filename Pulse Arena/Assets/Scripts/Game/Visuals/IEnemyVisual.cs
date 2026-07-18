@@ -13,10 +13,9 @@ namespace Game.Visuals
     public interface IEnemyVisual
     {
         /// <summary>
-        ///     Raised when THIS model's death presentation has finished (the skinned death clip reaches its end
-        ///     via an animation event, or a model with no death clip signals next frame), so
-        ///     <c>EnemyController</c> pools the corpse exactly when the animation is
-        ///     done — no guessed timer. The controller subscribes on death and unsubscribes on pool-return.
+        ///     Raised when this model's death presentation finishes (death clip end via animation event, or next
+        ///     frame for a model with no death clip), so <c>EnemyController</c> pools the corpse exactly then — no
+        ///     guessed timer. Controller subscribes on death, unsubscribes on pool-return.
         /// </summary>
         event Action DeathCompleted;
 
@@ -28,10 +27,9 @@ namespace Game.Visuals
         float AttackHitDelay { get; }
 
         /// <summary>
-        ///     How long the attack STATE should hold for THIS model's swing to play through (its clip length ÷ the
-        ///     clip's play speed), so a long cinematic attack (the karate spin-flip kick) is not cut off on the
-        ///     wind-up. <c>EnemyAttackState</c> takes the max of this and the default hit-delay+recovery window.
-        ///     0 = "no opinion, the default window is enough" (short attacks).
+        ///     How long the attack STATE should hold for this model's swing to play through (clip length ÷ play
+        ///     speed), so a long cinematic attack (the karate spin-flip kick) isn't cut off. <c>EnemyAttackState</c>
+        ///     takes the max of this and the default hit-delay+recovery window. 0 = the default window is enough.
         /// </summary>
         float AttackClipDuration { get; }
 
@@ -67,16 +65,14 @@ namespace Game.Visuals
 
         void PlayAttack();
 
-        // One-shot mid-run flourish (the karate somersault), played by EnemyFlipState. A no-op for models
-        // without the clip (gated by SupportsRunFlourish).
+        // One-shot karate somersault (EnemyFlipState); no-op for models without the clip (gated by SupportsRunFlourish).
         void PlayRunFlourish();
 
-        // One-shot spawn taunt, played by EnemyTauntState. A no-op for models without the clip (gated by HasSpawnTaunt).
+        // One-shot spawn taunt (EnemyTauntState); no-op for models without the clip (gated by HasSpawnTaunt).
         void PlaySpawnTaunt();
 
-        // Force the model out of its attack clip back into locomotion when the attack state exits, so the
-        // Animator never lingers mid-swing while the controller has resumed chasing (the state owns its clip's
-        // full lifecycle — start AND end). A no-op for models that have no distinct attack clip.
+        // Force the model out of its attack clip back to locomotion when the attack state exits, so the Animator
+        // never lingers mid-swing after the controller resumes chasing. No-op for models with no attack clip.
         void EndAttack();
 
         void ResetState();

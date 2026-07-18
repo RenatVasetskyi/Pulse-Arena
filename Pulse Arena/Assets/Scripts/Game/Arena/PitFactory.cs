@@ -42,9 +42,8 @@ namespace Game.Arena
             return pit;
         }
 
-        // Pits spawn on an interval capped at MaxActive, so they pool rather than Instantiate/Destroy each cycle
-        // (mirrors EnemyFactory). The pool root is a scene object destroyed on scene unload and the factory is
-        // per-match, so a fresh pool is built each match — no explicit Clear() needed.
+        // Pooled rather than Instantiate/Destroy per cycle since pits spawn on an interval. The pool root is a
+        // scene object and the factory is per-match, so a fresh pool builds each match — no explicit Clear() needed.
         private ComponentPool<Pit> CreatePitPool(GameObject prefab)
         {
             return new ComponentPool<Pit>(

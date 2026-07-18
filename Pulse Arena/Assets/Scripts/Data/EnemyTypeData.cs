@@ -13,10 +13,9 @@ namespace Data
     }
 
     /// <summary>
-    ///     Which combat "brain" an enemy type runs — its pursue/attack archetype, mapped to an
-    ///     <c>IEnemyBehavior</c> by <c>EnemyBehaviorFactory</c>. The universal reactions (grab, knockback, ringout,
-    ///     death) are shared by every enemy and are NOT selected here; only the offense archetype varies. Add a value
-    ///     + a factory case + an <c>IEnemyBehavior</c> impl to give a new enemy its own behaviour.
+    ///     Which offense archetype (pursue/attack "brain") an enemy runs, mapped to an <c>IEnemyBehavior</c> by
+    ///     <c>EnemyBehaviorFactory</c>. Grab/knockback/ringout/death are shared by every enemy and not selected here.
+    ///     Add a value + factory case + impl for a new brain.
     /// </summary>
     public enum EnemyBehaviorId
     {

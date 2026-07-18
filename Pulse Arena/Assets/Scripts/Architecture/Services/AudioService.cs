@@ -9,11 +9,10 @@ using Random = UnityEngine.Random;
 namespace Architecture.Services
 {
     /// <summary>
-    ///     Persistent (ProjectContext) 2D one-shot SFX + music player. Plain C# — it is NOT a MonoBehaviour; the
-    ///     Unity <see cref="AudioSource" />s live on an <see cref="AudioHost" /> prefab (from config) that this
-    ///     service instantiates once and drives. Clips + volume/pitch come from <see cref="AudioData" />; a small
-    ///     round-robin pool lets sounds overlap with independent pitch. Missing/unassigned clips are silently ignored
-    ///     so partial audio works. Owned by the container: it self-cleans via <see cref="IDisposable" /> at shutdown.
+    ///     Persistent (ProjectContext) 2D one-shot SFX + music player. Plain C#, not a MonoBehaviour: the
+    ///     <see cref="AudioSource" />s live on an <see cref="AudioHost" /> prefab this service instantiates and drives.
+    ///     Clips/volume/pitch come from <see cref="AudioData" />; a round-robin pool lets sounds overlap. Missing clips
+    ///     are silently ignored; self-cleans via <see cref="IDisposable" /> at shutdown.
     /// </summary>
     public class AudioService : IAudioService, IPausable, IDisposable
     {
@@ -27,8 +26,7 @@ namespace Architecture.Services
         private int _next;
         private bool _paused;
 
-        // Constructor injection on a NonLazy binding: Zenject builds this after every installer has registered its
-        // bindings, so resolving ISettingsService/IPauseService here is safe (no InstallBindings-time resolve).
+        // NonLazy: Zenject builds this after all installers register, so resolving these services here is safe.
         public AudioService(GameSettings gameSettings, ISettingsService settings, IPauseService pauseService)
         {
             _data = gameSettings.AudioData;

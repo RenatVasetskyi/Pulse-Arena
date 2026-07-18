@@ -7,10 +7,8 @@ namespace UI.MainMenu
 {
     /// <summary>
     ///     One level-select tile (a passive View): shows the level name plus either a padlock (locked) or its earned
-    ///     stars, and raises <see cref="Clicked" /> when an unlocked tile is tapped. <see cref="LevelSelectView" />
-    ///     binds it via <see cref="Bind" />. The locked/disabled look is driven by the <see cref="_button" />'s own
-    ///     colour transition (authored on the prefab), so this never recolours the tile — it only toggles the lock and
-    ///     stars.
+    ///     stars, and raises <see cref="Clicked" /> when an unlocked tile is tapped. The disabled look comes from the
+    ///     <see cref="_button" />'s own colour transition, so this only toggles the lock and stars.
     /// </summary>
     public class LevelTileView : MonoBehaviour
     {

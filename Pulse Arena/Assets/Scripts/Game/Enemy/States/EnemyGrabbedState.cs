@@ -5,11 +5,10 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The enemy is held by the slingshot. The rigidbody is driven directly (see MoveGrabbed on the
-    ///     controller); this state handles entry (stop the agent, set the held flags + held-damage grace,
-    ///     grabbed visual, wake the rigidbody) and the "damages the player while held" behaviour for the
-    ///     enemy types that have it, throttled by a grace + interval. Carries the old EnterGrabbedState /
-    ///     FixedTickGrabbedState logic (the entry body was the controller's ContextOnEnterGrabbed).
+    ///     The enemy is held by the slingshot. The rigidbody is driven directly (see MoveGrabbed on the controller);
+    ///     this state handles entry (stop the agent, set the held flags + held-damage grace, grabbed visual, wake the
+    ///     body) and the "damages the player while held" behaviour for the enemy types that have it, throttled by a
+    ///     grace + interval.
     /// </summary>
     public class EnemyGrabbedState : ActorState
     {
@@ -56,11 +55,9 @@ namespace Game.Enemy.States
             _context.Rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
             _context.Rigidbody.angularVelocity = Vector3.zero;
 
-            // Interpolate ONLY while held. Physics runs at 50Hz and the game renders at 60, so 10 frames a second
-            // get no new physics step — an orbiting body then visibly stutters. Interpolation smooths that, but it
-            // makes the RIGIDBODY author the transform, which would fight the NavMeshAgent that drives a chasing
-            // enemy (agent writes the transform directly; the body would freeze). Safe here only because Enter
-            // disabled the agent above — so it must be restored on Exit, and reset on pool reuse.
+            // Interpolate ONLY while held: physics at 50Hz vs 60fps render makes an orbiting body stutter, and
+            // interpolation smooths it. But it lets the rigidbody author the transform, which fights the NavMeshAgent
+            // on a chasing enemy — safe here only because Enter disabled the agent, so Exit must restore it.
             _cachedInterpolation = _context.Rigidbody.interpolation;
             _context.Rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 

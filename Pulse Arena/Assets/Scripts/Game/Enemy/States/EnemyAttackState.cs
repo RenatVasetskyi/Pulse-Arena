@@ -5,13 +5,10 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     A committed melee swing as its own state: on entry it HALTS the enemy (no chasing while it swings —
-    ///     the whole reason this is a state, not a timer inside <see cref="EnemyChaseState" />), snaps to face the
-    ///     player, and plays the model's attack clip. Damage lands once at the model's contact frame
-    ///     (<c>AttackHitDelay</c>, re-checking range so the player can dodge during the wind-up), then a short
-    ///     recovery tail plays before it returns to the chase. On exit it tells the visual to leave the attack
-    ///     clip (<see cref="IEnemyVisual.EndAttack" />) so the Animator never lingers mid-swing once the chase
-    ///     resumes. Freezes under mechanical pause for free (the controller's FixedUpdate early-returns).
+    ///     A committed melee swing as its own state (not a timer inside <see cref="EnemyChaseState" />): on entry it
+    ///     halts the enemy, faces the player and plays the attack clip. Damage lands once at the model's contact frame
+    ///     (<c>AttackHitDelay</c>, re-checking range so the player can dodge during the wind-up); Exit calls
+    ///     <see cref="IEnemyVisual.EndAttack" /> so the Animator never lingers mid-swing. Freezes under pause for free.
     /// </summary>
     public class EnemyAttackState : ActorState
     {

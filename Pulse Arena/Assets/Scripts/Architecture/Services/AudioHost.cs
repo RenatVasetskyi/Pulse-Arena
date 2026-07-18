@@ -3,11 +3,9 @@ using UnityEngine;
 namespace Architecture.Services
 {
     /// <summary>
-    ///     The Unity glue for <see cref="AudioService" />: a thin prefab component that owns the actual
-    ///     <see cref="AudioSource" />s (one looping music source + a round-robin SFX pool). It holds NO audio logic —
-    ///     the plain-C# <c>AudioService</c> instantiates this prefab from config and drives these sources. This is the
-    ///     "service is plain C#, its Unity components live on a host prefab" split, so the service itself needn't be a
-    ///     MonoBehaviour. The pool size lives here (on the audio prefab) so it is a designer knob, not a code const.
+    ///     Unity glue for <see cref="AudioService" />: a thin prefab component owning the actual
+    ///     <see cref="AudioSource" />s (one looping music source + a round-robin SFX pool). Holds no audio logic —
+    ///     the plain-C# service instantiates and drives it. Pool size lives here so it stays a designer knob.
     /// </summary>
     public class AudioHost : MonoBehaviour
     {

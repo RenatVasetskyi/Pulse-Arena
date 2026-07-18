@@ -8,11 +8,9 @@ using Zenject;
 namespace Game.Arena
 {
     /// <summary>
-    ///     A transient arena pit. It grows in at a random spot, stays open for a while, and any enemy flung
-    ///     into its trigger gets sucked in (instant ring-out) — after which the pit gulps shut and despawns.
-    ///     If nothing falls in, it closes on its own after its lifetime. A NavMeshObstacle on the same object
-    ///     carves the navmesh so walking enemies path around it; the player has no EnemyController so it can
-    ///     cross safely. Spawned/pooled by <see cref="Game.Spawning.PitSpawner" /> via the pit factory.
+    ///     A transient, pooled arena pit: grows in, stays open for its lifetime, then closes. An enemy flung into
+    ///     its trigger is sucked in (instant ring-out) and the pit gulps shut. A NavMeshObstacle carves the navmesh
+    ///     so walking enemies path around it. Spawned by <see cref="Game.Spawning.PitSpawner" /> via the pit factory.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public class Pit : MonoBehaviour, IPausable
@@ -125,8 +123,8 @@ namespace Game.Arena
             _consumed = true;
             _trigger.enabled = false;
 
-            // The enemy owns the suck-down physics (its ringout sinks it into the maw); we just hand it the
-            // pit center + rate so it converges to the hole instead of getting launched sideways.
+            // The enemy owns the suck-down physics; we just hand it the pit center + rate so its ringout
+            // converges to the hole instead of launching sideways.
             enemy.FallIntoPit(transform.position, _suckDown);
 
             _life?.Kill();

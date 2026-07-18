@@ -6,15 +6,12 @@ using UnityEngine;
 namespace Game.Enemy
 {
     /// <summary>
-    ///     Everything that happens when an enemy is scored: the guarded kill award (combo + score, once),
-    ///     and — for a ringout specifically — the popup text, the audio sting and the particle burst.
-    ///     Initialized with the services the way <see cref="EnemyImpact" /> is initialized with its context.
-    ///     The <c>_killResolved</c> guard (added in A6) is PRESERVED exactly: an enemy that dies by damage
-    ///     AND rings out in the same physics step is awarded only once. <see cref="AwardKill" /> returns the
-    ///     amount so callers don't recompute it and hands back the combo multiplier via <c>out</c> (used for
-    ///     the ringout SFX pitch). <see cref="ResetForSpawn" /> clears the guard on pool reuse.
-    ///     The ringout burst is an authored PREFAB: its look AND its particle count (an emission burst at t=0)
-    ///     live on the asset, so it previews correctly in the inspector and this only triggers it.
+    ///     Everything that happens when an enemy is scored: the guarded kill award (combo + score, once), and —
+    ///     for a ringout specifically — the popup text, the audio sting and the particle burst. The
+    ///     <c>_killResolved</c> guard awards only once for an enemy that dies by damage AND rings out in the same
+    ///     physics step; <see cref="AwardKill" /> returns the amount and hands back the combo multiplier via
+    ///     <c>out</c> (used for the ringout SFX pitch). The ringout burst is an authored prefab: its look and its
+    ///     t=0 emission burst live on the asset, so this only triggers it.
     /// </summary>
     public sealed class RingoutHandler
     {
@@ -71,9 +68,9 @@ namespace Game.Enemy
         }
 
         /// <summary>
-        ///     The scoring + presentation half of the old EnterRingoutState: award the kill (once), play the
-        ///     ringout sting pitched by the combo multiplier, and — if this award actually granted points —
-        ///     spawn the popup text and particle burst. The controller keeps the physics/state half.
+        ///     The scoring + presentation half of ring-out: award the kill (once), play the sting pitched by the
+        ///     combo multiplier, and — if the award granted points — spawn the popup text and particle burst. The
+        ///     controller keeps the physics/state half.
         /// </summary>
         public void ResolveRingout()
         {

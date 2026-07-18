@@ -14,12 +14,11 @@ using Zenject;
 namespace Game.Player
 {
     /// <summary>
-    ///     The player's thin state ROUTER. It owns the Unity lifecycle + the public API + events and wires the
+    ///     The player's thin state ROUTER: owns the Unity lifecycle + public API + events and wires the
     ///     collaborators (<see cref="IActorHealth" />, <see cref="IPlayerMovement" />, <see cref="IPlayerDash" />)
-    ///     into a <see cref="PlayerContext" /> the states drive, but does NO per-frame work itself: Update /
-    ///     FixedUpdate just tick the state machine, and pause is the <see cref="PlayerPausedState" /> (Enter
-    ///     freezes, Exit restores). Behaviour lives in the states + the context; the controller only kicks off the
-    ///     transitions the states can't see themselves (damage → Hit, death → Dead) and the freeze-on-death body.
+    ///     into a <see cref="PlayerContext" /> the states drive, but does no per-frame work itself (Update /
+    ///     FixedUpdate just tick the state machine; pause is the <see cref="PlayerPausedState" />). Only kicks off
+    ///     the transitions the states can't see themselves (damage → Hit, death → Dead) and the freeze-on-death body.
     /// </summary>
     public class PlayerController : MonoBehaviour, IPausable
     {
@@ -152,8 +151,8 @@ namespace Game.Player
             HealthChanged?.Invoke(current, max);
         }
 
-        // Called by PlayerContext.TryStartDash (from the grounded states) once it has confirmed the dash is ready
-        // and pressed — grant the dodge i-frames + enter the dash state (which plays the clip).
+        // Called from PlayerContext.TryStartDash once the dash is confirmed ready + pressed: grant the dodge
+        // i-frames, then enter the dash state.
         private void StartDash()
         {
             _dash.Begin();
@@ -254,9 +253,8 @@ namespace Game.Player
             return transform.position.y < _settings.Feel.RingoutHeight;
         }
 
-        // The visual + the slingshot are both baked on the player prefab and inspector-wired (the slingshot's own
-        // LassoOrigin transform too), so this just hands the assigned refs to the visual — the throw arm-swing
-        // subscribes to the slingshot's LassoThrown here. Nothing is fetched or assembled at runtime.
+        // Visual + slingshot are baked on the prefab and inspector-wired, so this just hands the assigned refs to
+        // the visual; the throw arm-swing subscribes to the slingshot's LassoThrown here.
         private void InitializeVisual()
         {
             _visual = _visualBehaviour as IPlayerVisual;

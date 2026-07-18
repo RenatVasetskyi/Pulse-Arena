@@ -5,13 +5,11 @@ using UnityEngine;
 namespace Game.Common
 {
     /// <summary>
-    ///     Shared hit-point model for both actors — the player and every enemy (replaces the near-identical
-    ///     PlayerHealth + EnemyHealth twins). Pure C# (no Rigidbody, no MonoBehaviour) so the rules are
-    ///     unit-testable in isolation. Invulnerability is opt-in: pass a non-zero <c>hitInvulnerability</c> to
-    ///     <see cref="Initialize" /> (the player's post-hit + dash i-frames); enemies pass 0 and never gain
-    ///     frames. Death is exposed BOTH ways so each owner picks what fits — enemies react to
-    ///     <see cref="Died" />; the player ignores it and drives its own death from <see cref="IsDepleted" />
-    ///     because it also dies from ring-out off the arena.
+    ///     Shared hit-point model for the player and every enemy. Pure C# (no Rigidbody, no MonoBehaviour) so
+    ///     the rules are unit-testable. Invulnerability is opt-in: pass a non-zero <c>hitInvulnerability</c> to
+    ///     <see cref="Initialize" /> (the player's post-hit + dash i-frames); enemies pass 0. Death is exposed
+    ///     both ways so each owner picks what fits — enemies react to <see cref="Died" />; the player drives its
+    ///     own death from <see cref="IsDepleted" /> because it also dies from ring-out off the arena.
     /// </summary>
     public class ActorHealth : IActorHealth
     {

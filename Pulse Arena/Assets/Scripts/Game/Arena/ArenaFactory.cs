@@ -22,9 +22,8 @@ namespace Game.Arena
             if (_gameSettings.Prefabs.ArenaPrefab == null)
                 throw new InvalidOperationException("Arena prefab is not assigned in GameSettings.");
 
-            // InstantiatePrefab injects every MonoBehaviour in the arena (BattleCamera, etc.) and,
-            // once active, the NavMeshSurface adds its baked NavMesh — so the arena is fully ready
-            // by the time this returns, before the player/enemies spawn.
+            // Injects every arena MonoBehaviour (BattleCamera, etc.); the active NavMeshSurface bakes its
+            // NavMesh, so the arena is fully ready by the time this returns — before player/enemies spawn.
             return _container.InstantiatePrefab(_gameSettings.Prefabs.ArenaPrefab);
         }
     }

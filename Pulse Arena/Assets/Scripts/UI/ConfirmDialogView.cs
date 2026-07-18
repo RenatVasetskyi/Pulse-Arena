@@ -6,12 +6,10 @@ using UnityEngine.UI;
 namespace UI
 {
     /// <summary>
-    ///     A reusable modal confirmation dialog: a dimmed full-screen overlay + a centre panel with a message and
-    ///     Confirm/Cancel buttons. Passive — it only shows/hides and relays the two clicks as <see cref="Confirmed" /> /
-    ///     <see cref="Cancelled" />; the presenter owns the decision + side effect. The dialog GameObject lives
-    ///     INACTIVE in the prefab (so it stays out of the way while editing) — <see cref="Show" /> activates it (which
-    ///     also runs Awake -> wires the buttons the first time) and <see cref="Hide" /> deactivates it after the fade.
-    ///     Tweens use SetUpdate(true) so it opens even under frozen time.
+    ///     Passive reusable modal confirm dialog (dimmed overlay + panel); relays the two clicks as
+    ///     <see cref="Confirmed" /> / <see cref="Cancelled" /> while the presenter owns the decision.
+    ///     Lives INACTIVE in the prefab, so <see cref="Show" /> activates it (first Show also runs Awake ->
+    ///     wires the buttons); tweens use SetUpdate(true) to open under frozen time.
     /// </summary>
     public class ConfirmDialogView : MonoBehaviour
     {

@@ -7,8 +7,8 @@ namespace Game.Scene
 {
     /// <summary>
     ///     Drives the in-game pause: mechanically freezes gameplay via <see cref="IPauseService" /> (each system
-    ///     caches + restores its own state — NOT Time.timeScale=0), mutes gameplay input, and shows the pause
-    ///     panel. Buttons are wired to resume, open settings, restart and quit-to-menu (the last two as callbacks).
+    ///     caches + restores its own state — NOT Time.timeScale=0), mutes input, and shows the pause panel. Buttons
+    ///     wire to resume, settings, restart and quit-to-menu (the last two as callbacks).
     /// </summary>
     public class PauseController
     {

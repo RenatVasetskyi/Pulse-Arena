@@ -7,7 +7,6 @@ namespace Architecture.Services.Interfaces
     /// </summary>
     public interface IOnboardingState
     {
-        /// <summary>True once the first-run onboarding hints have been shown.</summary>
         bool OnboardingSeen { get; }
 
         /// <summary>Records that the onboarding has run (persisted) — call once the player has learned the core loop.</summary>

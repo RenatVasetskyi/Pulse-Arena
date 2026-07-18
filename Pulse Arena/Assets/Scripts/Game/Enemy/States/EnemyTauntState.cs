@@ -5,12 +5,10 @@ using UnityEngine;
 namespace Game.Enemy.States
 {
     /// <summary>
-    ///     The spawn taunt as its own state: on entry it HALTS the enemy (stands its ground — the whole reason
-    ///     this is a state, not an Animator default-state trick that let the chase drive it forward) and plays the
-    ///     model's spawn-taunt clip, then after the clip's duration hands off to <see cref="EnemyChaseState" />.
-    ///     Only entered for models that actually have a taunt (<see cref="IEnemyVisual.HasSpawnTaunt" />); the rest
-    ///     spawn straight into the chase. Freezes under mechanical pause for free (the controller's FixedUpdate
-    ///     early-returns while the machine is paused).
+    ///     The spawn taunt as its own state: on entry it HALTS the enemy (stands its ground) and plays the model's
+    ///     spawn-taunt clip, then after the clip's duration hands off to <see cref="EnemyChaseState" />. Only entered
+    ///     for models that have a taunt (<see cref="IEnemyVisual.HasSpawnTaunt" />); the rest spawn straight into the
+    ///     chase. Freezes under mechanical pause for free (the controller's FixedUpdate early-returns).
     /// </summary>
     public class EnemyTauntState : ActorState
     {
