@@ -72,13 +72,13 @@ namespace UI.Hud
                 _player.HealthChanged -= OnPlayerHealthChanged;
         }
 
-        public void Bind(PlayerController player, IScoreService score, IBattleCamera camera)
+        public void Bind(PlayerController player, IScoreService score, IBattleCamera camera, string scoreFormat)
         {
             if (_health != null)
                 _health.Bind(player);
 
             if (_score != null)
-                _score.Bind(score);
+                _score.Bind(score, scoreFormat);
 
             if (_zoom != null)
                 _zoom.Bind(camera);

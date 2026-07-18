@@ -14,6 +14,7 @@ namespace UI.Hud
         private int _lastValue = int.MinValue;
 
         private IScoreService _score;
+        private string _scoreFormat = "Score: {0}";
 
         private void OnDestroy()
         {
@@ -21,9 +22,10 @@ namespace UI.Hud
                 _score.ScoreChanged -= OnScoreChanged;
         }
 
-        public void Bind(IScoreService score)
+        public void Bind(IScoreService score, string scoreFormat)
         {
             _score = score;
+            _scoreFormat = scoreFormat;
             _score.ScoreChanged += OnScoreChanged;
             OnScoreChanged(score.Score);
         }
@@ -31,7 +33,7 @@ namespace UI.Hud
         private void OnScoreChanged(int value)
         {
             if (_label != null)
-                _label.text = $"Score: {Format(value)}";
+                _label.text = string.Format(_scoreFormat, Format(value));
 
             if (value > _lastValue && _lastValue != int.MinValue && _label != null)
                 UiTween.Punch(_label.transform, 0.35f);

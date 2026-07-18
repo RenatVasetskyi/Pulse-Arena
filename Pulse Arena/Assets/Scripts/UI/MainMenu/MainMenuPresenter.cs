@@ -101,7 +101,7 @@ namespace UI.MainMenu
             if (index < 0)
                 return;
 
-            _levelSelect.BindSurvival(index, _levelProgress.GetSurvivalBest());
+            _levelSelect.BindSurvival(index, _levelProgress.GetSurvivalBest(), _gameSettings.Ui.ScoreFormat);
         }
 
         private int FindSurvivalIndex()

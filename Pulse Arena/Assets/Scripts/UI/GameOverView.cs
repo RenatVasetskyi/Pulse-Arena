@@ -22,6 +22,7 @@ namespace UI
         private Vector3 _restartBaseScale = Vector3.one;
 
         private Vector3 _windowBaseScale = Vector3.one;
+        private string _scoreFormat = "Score: {0}";
         public event Action MenuClicked;
 
         public event Action RestartClicked;
@@ -55,8 +56,10 @@ namespace UI
                 _mainMenuButton.onClick.RemoveListener(OnMenu);
         }
 
-        public void Show(int score, string title)
+        public void Show(int score, string title, string scoreFormat)
         {
+            _scoreFormat = scoreFormat;
+
             if (_titleText != null)
                 _titleText.text = title;
 
@@ -89,12 +92,12 @@ namespace UI
             if (_scoreText == null)
                 return;
 
-            _scoreText.text = "Score: 0";
+            _scoreText.text = string.Format(_scoreFormat, 0);
             int shown = 0;
             DOTween.To(() => shown, value =>
                 {
                     shown = value;
-                    _scoreText.text = $"Score: {shown}";
+                    _scoreText.text = string.Format(_scoreFormat, shown);
                 }, score, 0.6f)
                 .SetEase(Ease.OutCubic).SetDelay(0.25f).SetUpdate(true).SetLink(gameObject);
         }

@@ -14,6 +14,7 @@ namespace UI.Hud
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private TextMeshProUGUI _label;
         [SerializeField] private float _holdDuration = 0.7f;
+        [SerializeField] private string _comboFormat = "COMBO x{0}";
         private Vector3 _baseScale = Vector3.one;
         private Coroutine _hideRoutine;
 
@@ -45,7 +46,7 @@ namespace UI.Hud
                 _rect = (RectTransform)(_label != null ? _label.transform : transform);
 
             if (_label != null)
-                _label.text = $"COMBO x{combo}";
+                _label.text = string.Format(_comboFormat, combo);
 
             if (_canvasGroup != null)
             {

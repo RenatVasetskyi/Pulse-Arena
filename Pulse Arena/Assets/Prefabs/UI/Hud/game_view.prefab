@@ -37,7 +37,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -48, y: -60}
+  m_AnchoredPosition: {x: -28, y: -60}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &865163257450856401
@@ -371,7 +371,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 224, y: -60}
+  m_AnchoredPosition: {x: 204, y: -60}
   m_SizeDelta: {x: 280, y: 100}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4530153675281341859
@@ -829,6 +829,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI.Hud.HudWaveView
   _label: {fileID: 645465006066872070}
+  _waveFormat: Wave {0}/{1}
+  _waveEndlessFormat: Wave {0}/<sprite name="inf" tint=1>
 --- !u!1 &2736551302187414835
 GameObject:
   m_ObjectHideFlags: 0
@@ -1070,6 +1072,7 @@ MonoBehaviour:
   _canvasGroup: {fileID: 843244310339657179}
   _label: {fileID: 4867284141903747148}
   _holdDuration: 0.7
+  _comboFormat: COMBO x{0}
 --- !u!1 &3475595130717601329
 GameObject:
   m_ObjectHideFlags: 0
@@ -2138,7 +2141,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 48, y: -32}
+  m_AnchoredPosition: {x: 28, y: -32}
   m_SizeDelta: {x: 156, y: 156}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6102534663920171616
@@ -2297,7 +2300,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -48, y: -200}
+  m_AnchoredPosition: {x: -28, y: -200}
   m_SizeDelta: {x: 0, y: 400}
   m_Pivot: {x: 1, y: 1}
 --- !u!222 &417009895300387594

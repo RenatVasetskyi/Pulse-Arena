@@ -416,6 +416,10 @@ namespace Data
 
         [Header("Game Over")] public string WinTitle = "YOU WIN!";
         public string DefeatTitle = "GAME OVER";
+
+        [Header("Text formats")]
+        [Tooltip("Score label shared by the HUD, game-over and level-select screens. {0} is the value.")]
+        public string ScoreFormat = "Score: {0}";
     }
 
     /// <summary>

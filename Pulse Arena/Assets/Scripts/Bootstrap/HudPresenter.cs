@@ -55,7 +55,7 @@ namespace Game.Scene
             if (_hud == null)
                 return null;
 
-            _hud.Bind(player, _scoreService, camera);
+            _hud.Bind(player, _scoreService, camera, _gameSettings.Ui.ScoreFormat);
             _hud.BindTension(player.Slingshot);
             _hud.SetSuperCharge(_superMeterService.Charge01);
             _inputService.SetTouchInput(_hud);

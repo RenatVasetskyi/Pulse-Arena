@@ -204,7 +204,7 @@ namespace Game.Scene
 
         private void ShowGameOver(string title)
         {
-            _gameOverView?.Show(_scoreService.Score, title);
+            _gameOverView?.Show(_scoreService.Score, title, _gameSettings.Ui.ScoreFormat);
             Time.timeScale = 0f;
         }
 

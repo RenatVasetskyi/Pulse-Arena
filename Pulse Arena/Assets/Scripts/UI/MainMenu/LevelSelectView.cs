@@ -41,10 +41,10 @@ namespace UI.MainMenu
         ///     Points the wide survival button at its level (always open) and shows the best-score record. Kept apart
         ///     from the campaign tiles because survival shows a score, not a lock/stars.
         /// </summary>
-        public void BindSurvival(int levelIndex, int bestScore)
+        public void BindSurvival(int levelIndex, int bestScore, string scoreFormat)
         {
             _survivalIndex = levelIndex;
-            _survivalScore.text = "Score: " + bestScore;
+            _survivalScore.text = string.Format(scoreFormat, bestScore);
         }
 
         public void Show()
