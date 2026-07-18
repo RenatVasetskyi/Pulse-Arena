@@ -28,6 +28,7 @@ namespace Game.Arena
         private float _suckDown = 4f;
         private Vector3 _targetScale;
         private Tween _vortexSpin;
+        private Action<Pit> _returnToPool;
 
         /// <summary>Raised once when the pit is about to be destroyed (eaten or timed out), so the spawner can free its slot.</summary>
         public event Action<Pit> Despawned;
@@ -70,6 +71,21 @@ namespace Game.Arena
             _life.OnComplete(Despawn);
 
             StartVortexSpin();
+        }
+
+        /// <summary>Wires the return-to-pool action (set by the factory). Without it the pit self-destroys on despawn.</summary>
+        public void SetPoolReturnAction(Action<Pit> returnToPool)
+        {
+            _returnToPool = returnToPool;
+        }
+
+        /// <summary>Reset on pool return: drop the pause registration and kill every tween so an inactive pit is inert.</summary>
+        public void PrepareForPool()
+        {
+            _pauseService?.Unregister(this);
+            _life?.Kill();
+            _gulp?.Kill();
+            _vortexSpin?.Kill();
         }
 
         // Endlessly rotate the glowing vortex so the pit reads as actively sucking (paused with the pit).
@@ -124,6 +140,13 @@ namespace Game.Arena
         private void Despawn()
         {
             Despawned?.Invoke(this);
+
+            if (_returnToPool != null)
+            {
+                _returnToPool(this);
+                return;
+            }
+
             Destroy(gameObject);
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using Architecture.Services.Interfaces;
 using Game.Player;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace Game.Turrets
         private LayerMask _obstacleMask;
         private bool _paused;
         private IPauseService _pauseService;
+        private Action<TurretBullet> _returnToPool;
         private float _speed;
 
         public void Initialize(Vector3 direction, float speed, int damage, float lifetime, LayerMask obstacleMask,
@@ -31,8 +33,21 @@ namespace Game.Turrets
             _obstacleMask = obstacleMask;
             _pauseService = pauseService;
             _age = 0f;
+            _paused = false; // a pooled bullet must not come back frozen; Register below re-pauses it if already paused
             transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
             _pauseService?.Register(this);
+        }
+
+        /// <summary>Wires the return-to-pool action (set by the factory). Without it the bullet self-destroys on despawn.</summary>
+        public void SetPoolReturnAction(Action<TurretBullet> returnToPool)
+        {
+            _returnToPool = returnToPool;
+        }
+
+        /// <summary>Reset on pool return: drop the pause registration so an inactive pooled bullet is not tracked.</summary>
+        public void PrepareForPool()
+        {
+            _pauseService?.Unregister(this);
         }
 
         /// <summary>Mechanical pause: freeze the bullet in flight.</summary>
@@ -82,6 +97,12 @@ namespace Game.Turrets
 
         private void Despawn()
         {
+            if (_returnToPool != null)
+            {
+                _returnToPool(this);
+                return;
+            }
+
             _pauseService?.Unregister(this);
             Destroy(gameObject);
         }
