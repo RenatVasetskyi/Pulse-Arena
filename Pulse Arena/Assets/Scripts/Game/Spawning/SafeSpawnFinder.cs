@@ -59,20 +59,13 @@ namespace Game.Spawning
             if (_player == null)
                 return false;
 
-            return HorizontalDistance(candidate, _player.position) < _area.PlayerClearance;
+            return SpawnGeometry.HorizontalDistance(candidate, _player.position) < _area.PlayerClearance;
         }
 
         private bool IsBlocked(Vector3 candidate)
         {
             Vector3 probe = candidate + Vector3.up * _area.ProbeHeight;
             return Physics.CheckSphere(probe, _area.SpawnClearance, _blockerMask, QueryTriggerInteraction.Collide);
-        }
-
-        private static float HorizontalDistance(Vector3 a, Vector3 b)
-        {
-            a.y = 0f;
-            b.y = 0f;
-            return Vector3.Distance(a, b);
         }
     }
 }

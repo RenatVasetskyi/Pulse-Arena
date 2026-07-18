@@ -136,7 +136,10 @@ namespace Game.Enemy
         //     freezes under pause and stops once dead for free) ---
 
         /// <summary>Frame tick: advance the hit-flash fade.</summary>
-        public void TickCommon() => _hitFlash.Tick(Time.deltaTime);
+        public void TickCommon()
+        {
+            _hitFlash.Tick(Time.deltaTime);
+        }
 
         /// <summary>Physics tick: ring out if flung off the arena, then advance the shared timers.</summary>
         public void FixedTickCommon()
@@ -167,26 +170,61 @@ namespace Game.Enemy
         // --- tiny physics/damage helpers operating purely over context-held collaborators ---
 
         /// <summary>Adds the extra downward acceleration so airborne enemies fall faster than default gravity.</summary>
-        public void ApplyExtraGravity() =>
+        public void ApplyExtraGravity()
+        {
             Game.Common.ActorPhysicsUtility.ApplyExtraGravity(Rigidbody, Data.ExtraGravity);
+        }
 
         // --- state routing / pool / death (the transitions the states trigger) ---
-        public void ChangeToIdleState() => _changeToIdle();
-        public void ChangeToAttackState() => _changeToAttack();
-        public void ChangeToChaseState() => _changeToChase();
-        public void ChangeToGroundRecoveryState() => _changeToGroundRecovery();
-        public void ChangeToTauntState() => _changeToTaunt();
-        public void ChangeToFlipState() => _changeToFlip();
+        public void ChangeToIdleState()
+        {
+            _changeToIdle();
+        }
+
+        public void ChangeToAttackState()
+        {
+            _changeToAttack();
+        }
+
+        public void ChangeToChaseState()
+        {
+            _changeToChase();
+        }
+
+        public void ChangeToGroundRecoveryState()
+        {
+            _changeToGroundRecovery();
+        }
+
+        public void ChangeToTauntState()
+        {
+            _changeToTaunt();
+        }
+
+        public void ChangeToFlipState()
+        {
+            _changeToFlip();
+        }
 
         /// <summary>
         ///     The controller-coupled half of the old EnterRingoutState body, in order: mark the controller
         ///     dead, zero the health bar, then run the RingoutHandler (award kill once, sting, feedback burst).
         ///     The physics/flag/timer half stays in the state Enter.
         /// </summary>
-        public void ResolveRingout() => _resolveRingout();
+        public void ResolveRingout()
+        {
+            _resolveRingout();
+        }
 
-        public void ReturnToPool() => _returnToPool();
-        public void StartDeathReturn() => _startDeathReturn();
+        public void ReturnToPool()
+        {
+            _returnToPool();
+        }
+
+        public void StartDeathReturn()
+        {
+            _startDeathReturn();
+        }
 
         /// <summary>Reset the small shared flags to their spawned defaults (states + the controller's pool reset share this).</summary>
         public void ClearFlags()
@@ -198,7 +236,10 @@ namespace Game.Enemy
         }
 
         /// <summary>The sweep-along-trajectory impact-damage tick (drives the collision handler's sweep).</summary>
-        public void SweepImpactDamage() => Collisions.SweepImpactDamage();
+        public void SweepImpactDamage()
+        {
+            Collisions.SweepImpactDamage();
+        }
 
         /// <summary>
         ///     Gate + hand off agent control (the old controller TryEnableAgentControl): if the agent is

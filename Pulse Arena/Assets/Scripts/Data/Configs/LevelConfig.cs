@@ -14,6 +14,9 @@ namespace Data
 
         [Tooltip("Difficulty-scaling knobs shared by every Survival (IsEndless) level.")]
         public SurvivalData Survival = new();
+
+        [Tooltip("Health-ratio thresholds that map a campaign clear to a 1..3 star reward.")]
+        public StarThresholdData StarThresholds = new();
         public WaveData[] Waves;
         public PickupData Pickup;
         public PoolData Pool = new();

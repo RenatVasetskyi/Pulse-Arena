@@ -4,7 +4,9 @@ using Architecture.States;
 using Architecture.States.Interfaces;
 using Data;
 using Game.Cameras;
+using Game.Common;
 using Game.Enemy;
+using Game.Enemy.Interfaces;
 using Game.Player;
 using Game.Spawning;
 using Game.Turrets;
@@ -42,6 +44,7 @@ namespace Game.Scene
         private readonly ISlowMoService _slowMoService;
         private readonly IStateMachine _stateMachine;
         private readonly ITurretSpawner _turretSpawner;
+        private readonly IWindowFactory _windowFactory;
         private IBattleCamera _battleCamera;
         private Coroutine _gameOverRoutine;
         private GameHud _gameHud;
@@ -56,7 +59,7 @@ namespace Game.Scene
             IAudioService audioService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
             IPitSpawner pitSpawner, ITurretSpawner turretSpawner, IPauseService pauseService,
             ICoroutineRunner coroutineRunner, GameSettings gameSettings, ILevelService levelService,
-            ILevelProgressService levelProgress)
+            ILevelProgressService levelProgress, IWindowFactory windowFactory)
         {
             _inputService = inputService;
             _levelService = levelService;
@@ -73,6 +76,7 @@ namespace Game.Scene
             _pauseService = pauseService;
             _coroutineRunner = coroutineRunner;
             _gameSettings = gameSettings;
+            _windowFactory = windowFactory;
         }
 
         /// <summary>Builds the game-over screen + pause and starts listening for win/lose. Call once the world is built.</summary>
@@ -83,7 +87,7 @@ namespace Game.Scene
             _battleCamera = battleCamera;
             _isGameOver = false;
 
-            _gameOverView = InstantiateHud<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
+            _gameOverView = _windowFactory.Create<GameOverView>(_gameSettings.Prefabs.GameOverPrefab, "GameOverPrefab");
 
             if (_gameOverView != null)
             {
@@ -141,7 +145,8 @@ namespace Game.Scene
             RecordSurvivalScore();
             StopRun();
             _battleCamera?.PlayDeathZoom();
-            _gameOverRoutine = _coroutineRunner.StartCoroutine(ShowGameOverAfterDelay("GAME OVER", DeathScreenDelay));
+            _gameOverRoutine = _coroutineRunner.StartCoroutine(
+                ShowGameOverAfterDelay(_gameSettings.Ui.DefeatTitle, DeathScreenDelay));
         }
 
         // Survival is endless — the run only ends on death, so bank the final score as the new best here.
@@ -163,21 +168,19 @@ namespace Game.Scene
             _isGameOver = true;
             _levelProgress.Complete(_levelService.SelectedIndex, ComputeStars());
             StopRun();
-            ShowGameOver("YOU WIN!");
+            ShowGameOver(_gameSettings.Ui.WinTitle);
         }
 
-        // Stars reward keeping your health: 3 = untouched, 2 = at least half, 1 = survived by a sliver.
+        // Stars reward keeping your health: 3 = untouched, 2 = at least half, 1 = survived by a sliver. Thresholds
+        // live in config; the mapping is the pure StarRating.Compute so it stays unit-testable.
         private int ComputeStars()
         {
-            if (_player == null || _player.MaxHealth <= 0)
+            if (_player == null)
                 return 1;
 
-            float ratio = _player.Health / (float)_player.MaxHealth;
-
-            if (ratio >= 0.999f)
-                return 3;
-
-            return ratio >= 0.5f ? 2 : 1;
+            StarThresholdData thresholds = _gameSettings.StarThresholds;
+            return StarRating.Compute(_player.Health, _player.MaxHealth,
+                thresholds.ThreeStarHealthRatio, thresholds.TwoStarHealthRatio);
         }
 
         // Stops the live run but does NOT freeze — so the death/win beat can still animate before the screen appears.
@@ -207,7 +210,7 @@ namespace Game.Scene
 
         private void SetupPause()
         {
-            _pausePanel = InstantiateHud<PausePanelView>(_gameSettings.Prefabs.PausePanelPrefab, "PausePanelPrefab");
+            _pausePanel = _windowFactory.Create<PausePanelView>(_gameSettings.Prefabs.PausePanelPrefab, "PausePanelPrefab");
 
             if (_pausePanel != null)
                 _pauseController = new PauseController(_pausePanel, _inputService, _settingsController,
@@ -240,17 +243,6 @@ namespace Game.Scene
             _slowMoService.Stop();
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        }
-
-        private static T InstantiateHud<T>(GameObject prefab, string prefabName) where T : Component
-        {
-            if (prefab == null)
-            {
-                Debug.LogError($"{prefabName} is not assigned in Game Settings → Prefabs.");
-                return null;
-            }
-
-            return Object.Instantiate(prefab).GetComponent<T>();
         }
     }
 }

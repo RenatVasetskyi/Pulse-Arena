@@ -1008,6 +1008,7 @@ MonoBehaviour:
   _renderers: []
   _dashTrail: {fileID: 4462479518248151245}
   _slingshot: {fileID: 812223660475623319}
+  _ultimate: {fileID: 8097404214226957166}
   _visualBehaviour: {fileID: 4817747725507160206}
 --- !u!114 &8097404214226957166
 MonoBehaviour:

@@ -13,9 +13,6 @@ namespace Architecture.Services
         private const string UnlockedKey = "PulseArena.Levels.HighestUnlocked";
         private const string StarsKeyPrefix = "PulseArena.Levels.Stars.";
         private const string SurvivalBestKey = "PulseArena.Survival.Best";
-        private const string OnboardingKey = "PulseArena.Onboarding.Seen";
-
-        public bool OnboardingSeen => PlayerPrefs.GetInt(OnboardingKey, 0) == 1;
 
         public int HighestUnlockedIndex => Mathf.Max(0, PlayerPrefs.GetInt(UnlockedKey, 0));
 
@@ -60,14 +57,9 @@ namespace Architecture.Services
             return true;
         }
 
-        public void MarkOnboardingSeen()
-        {
-            PlayerPrefs.SetInt(OnboardingKey, 1);
-            PlayerPrefs.Save();
-        }
-
         // Full wipe: unlock frontier, every level's stars, the survival best AND the onboarding flag (and any other
-        // saved key) — a clean-slate reset behind a menu confirmation. After this the game reads first-run defaults.
+        // saved key — DeleteAll clears the whole store) — a clean-slate reset behind a menu confirmation. After this
+        // the game reads first-run defaults.
         public void ResetProgress()
         {
             PlayerPrefs.DeleteAll();

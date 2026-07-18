@@ -164,23 +164,30 @@ namespace Game.Enemy
                 return;
             }
 
-            _destinationUpdateTimer -= Time.fixedDeltaTime;
-
-            if (_destinationUpdateTimer <= 0f)
-            {
-                Vector3 destination = target.position;
-
-                if (NavMesh.SamplePosition(target.position, out NavMeshHit hit,
-                        _data.NavMeshSampleDistance, NavMesh.AllAreas))
-                {
-                    destination = hit.position;
-                }
-
-                _agent.SetDestination(destination);
-                _destinationUpdateTimer = _data.DestinationUpdateInterval;
-            }
+            UpdateDestination(target);
 
             RotateTo(_agent.desiredVelocity);
+        }
+
+        // Throttled NavMesh destination refresh: re-samples and re-targets only every DestinationUpdateInterval,
+        // so a chasing enemy doesn't call SetDestination every physics step.
+        private void UpdateDestination(Transform target)
+        {
+            _destinationUpdateTimer -= Time.fixedDeltaTime;
+
+            if (_destinationUpdateTimer > 0f)
+                return;
+
+            Vector3 destination = target.position;
+
+            if (NavMesh.SamplePosition(target.position, out NavMeshHit hit,
+                    _data.NavMeshSampleDistance, NavMesh.AllAreas))
+            {
+                destination = hit.position;
+            }
+
+            _agent.SetDestination(destination);
+            _destinationUpdateTimer = _data.DestinationUpdateInterval;
         }
 
         /// <summary>

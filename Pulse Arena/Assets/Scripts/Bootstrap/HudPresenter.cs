@@ -3,6 +3,7 @@ using Data;
 using Game.Cameras;
 using Game.Combat;
 using Game.Enemy;
+using Game.Enemy.Interfaces;
 using Game.Player;
 using Game.Spawning;
 using UI.Hud;
@@ -25,12 +26,13 @@ namespace Game.Scene
         private readonly IPickupSpawner _pickupSpawner;
         private readonly IScoreService _scoreService;
         private readonly ISuperMeterService _superMeterService;
+        private readonly IWindowFactory _windowFactory;
 
         private GameHud _hud;
 
         public HudPresenter(IComboService comboService, ISuperMeterService superMeterService,
             IScoreService scoreService, IEnemySpawner enemySpawner, IPickupSpawner pickupSpawner,
-            IInputService inputService, GameSettings gameSettings)
+            IInputService inputService, GameSettings gameSettings, IWindowFactory windowFactory)
         {
             _comboService = comboService;
             _superMeterService = superMeterService;
@@ -39,6 +41,7 @@ namespace Game.Scene
             _pickupSpawner = pickupSpawner;
             _inputService = inputService;
             _gameSettings = gameSettings;
+            _windowFactory = windowFactory;
         }
 
         /// <summary>
@@ -47,17 +50,13 @@ namespace Game.Scene
         /// </summary>
         public GameHud Bind(PlayerController player, IBattleCamera camera)
         {
-            GameObject prefab = _gameSettings.Prefabs.GameHudPrefab;
+            _hud = _windowFactory.Create<GameHud>(_gameSettings.Prefabs.GameHudPrefab, "GameHudPrefab");
 
-            if (prefab == null)
-            {
-                Debug.LogError("GameHudPrefab is not assigned in Game Settings → Prefabs.");
+            if (_hud == null)
                 return null;
-            }
 
-            _hud = Object.Instantiate(prefab).GetComponent<GameHud>();
             _hud.Bind(player, _scoreService, camera);
-            _hud.BindTension(player.GetComponent<EnemySlingshot>());
+            _hud.BindTension(player.Slingshot);
             _hud.SetSuperCharge(_superMeterService.Charge01);
             _inputService.SetTouchInput(_hud);
 
@@ -81,12 +80,24 @@ namespace Game.Scene
                 Object.Destroy(_hud.gameObject);
         }
 
-        private void OnComboChanged(int combo) => _hud.SetCombo(combo);
+        private void OnComboChanged(int combo)
+        {
+            _hud.SetCombo(combo);
+        }
 
-        private void OnSuperChargeChanged(float charge01) => _hud.SetSuperCharge(charge01);
+        private void OnSuperChargeChanged(float charge01)
+        {
+            _hud.SetSuperCharge(charge01);
+        }
 
-        private void OnWaveChanged(int current, int total) => _hud.SetWave(current, total);
+        private void OnWaveChanged(int current, int total)
+        {
+            _hud.SetWave(current, total);
+        }
 
-        private void OnPickupSpawned(string message, float duration) => _hud.ShowToast(message, duration);
+        private void OnPickupSpawned(string message, float duration)
+        {
+            _hud.ShowToast(message, duration);
+        }
     }
 }

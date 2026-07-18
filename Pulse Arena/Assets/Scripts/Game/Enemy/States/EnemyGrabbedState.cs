@@ -32,6 +32,13 @@ namespace Game.Enemy.States
             _context.Visual?.SetGrabbed(true);
             _context.Visual?.SetThrown(false);
 
+            ConfigureHeldRigidbody();
+        }
+
+        // Configure the held body — upright, freeze rotation, interpolate — all restored on Exit. Ordering is
+        // load-bearing: level upright BEFORE freezing, and interpolation is safe only because Enter disabled the agent.
+        private void ConfigureHeldRigidbody()
+        {
             if (_context.Rigidbody == null)
                 return;
 

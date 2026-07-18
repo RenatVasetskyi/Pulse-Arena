@@ -25,6 +25,7 @@ namespace Game.Enemy
         private bool _killResolved;
 
         private ParticleSystem _ringoutBurst;
+        private float _ringoutPitchPerMultiplier;
         private IScorePopupService _scorePopups;
         private IScoreService _scoreService;
         private Transform _transform;
@@ -32,7 +33,7 @@ namespace Game.Enemy
 
         public void Initialize(Transform transform, EnemyData data, GameObject burstPrefab,
             IScoreService scoreService, IComboService comboService, IScorePopupService scorePopups,
-            IAudioService audioService, Func<EnemyTypeData> typeProvider)
+            IAudioService audioService, Func<EnemyTypeData> typeProvider, float ringoutPitchPerMultiplier)
         {
             _transform = transform;
             _data = data;
@@ -42,6 +43,7 @@ namespace Game.Enemy
             _scorePopups = scorePopups;
             _audioService = audioService;
             _type = typeProvider;
+            _ringoutPitchPerMultiplier = ringoutPitchPerMultiplier;
         }
 
         // Registers the kill with the combo chain and awards score × multiplier ONCE (guarded so an enemy that
@@ -76,7 +78,7 @@ namespace Game.Enemy
         public void ResolveRingout()
         {
             int awarded = AwardKill(out int multiplier);
-            _audioService?.PlaySfx(GameSfx.Ringout, 1f + (multiplier - 1) * 0.06f);
+            _audioService?.PlaySfx(GameSfx.Ringout, 1f + (multiplier - 1) * _ringoutPitchPerMultiplier);
 
             if (awarded > 0)
                 SpawnRingoutFeedback(awarded);

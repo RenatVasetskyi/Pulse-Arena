@@ -25,10 +25,18 @@ namespace Bootstrap
             BindSceneLoader();
             BindInputService();
             BindScoreService();
+            BindWindowFactory();
             BindLevelServices();
             BindSettingsService();
             BindPauseService();
             BindAudioService();
+        }
+
+        // The one place UI windows are instantiated (IWindowFactory) — presenters/controllers create through it
+        // instead of calling Object.Instantiate themselves. ProjectContext-scoped so menu + match share one factory.
+        private void BindWindowFactory()
+        {
+            Container.Bind<IWindowFactory>().To<WindowFactory>().AsSingle();
         }
 
         // The linear-campaign pair: the roster + current selection (ILevelService, reads GameSettings.Levels) and the
@@ -38,6 +46,7 @@ namespace Bootstrap
         {
             Container.Bind<ILevelService>().To<LevelService>().AsSingle();
             Container.Bind<ILevelProgressService>().To<LevelProgressService>().AsSingle();
+            Container.Bind<IOnboardingState>().To<OnboardingState>().AsSingle();
         }
 
         private void BindPauseService()

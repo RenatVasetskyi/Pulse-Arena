@@ -22,11 +22,12 @@ namespace UI.MainMenu
         private readonly ISettingsController _settingsController;
         private readonly IStateMachine _stateMachine;
         private readonly MainMenuView _view;
+        private readonly IWindowFactory _windowFactory;
         private LevelSelectView _levelSelect;
 
         public MainMenuPresenter(MainMenuView view, IStateMachine stateMachine, IAudioService audioService,
             ISettingsController settingsController, ILevelService levelService, ILevelProgressService levelProgress,
-            GameSettings gameSettings)
+            GameSettings gameSettings, IWindowFactory windowFactory)
         {
             _view = view;
             _stateMachine = stateMachine;
@@ -35,6 +36,7 @@ namespace UI.MainMenu
             _levelService = levelService;
             _levelProgress = levelProgress;
             _gameSettings = gameSettings;
+            _windowFactory = windowFactory;
         }
 
         public void Initialize()
@@ -119,15 +121,12 @@ namespace UI.MainMenu
         /// </summary>
         private void CreateLevelSelect()
         {
-            GameObject prefab = _gameSettings.Prefabs.LevelSelectPrefab;
+            _levelSelect = _windowFactory.Create<LevelSelectView>(_gameSettings.Prefabs.LevelSelectPrefab,
+                "LevelSelectPrefab");
 
-            if (prefab == null)
-            {
-                Debug.LogError("LevelSelectPrefab is not assigned in Game Settings → Prefabs.");
+            if (_levelSelect == null)
                 return;
-            }
 
-            _levelSelect = UnityEngine.Object.Instantiate(prefab).GetComponent<LevelSelectView>();
             _levelSelect.LevelChosen += OnLevelChosen;
             _levelSelect.BackPressed += OnLevelSelectBack;
         }

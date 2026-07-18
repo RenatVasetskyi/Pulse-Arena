@@ -61,8 +61,15 @@ namespace Game.Cameras
                 Mathf.Max(0.01f, _data.ZoomSmoothTime), Mathf.Infinity, Time.unscaledDeltaTime);
         }
 
-        public void ZoomIn() => ApplyZoom(_targetZoom - _data.ZoomStep);
-        public void ZoomOut() => ApplyZoom(_targetZoom + _data.ZoomStep);
+        public void ZoomIn()
+        {
+            ApplyZoom(_targetZoom - _data.ZoomStep);
+        }
+
+        public void ZoomOut()
+        {
+            ApplyZoom(_targetZoom + _data.ZoomStep);
+        }
 
         // Route zoom through settings so the +/- buttons and the settings slider share one persisted value.
         private void ApplyZoom(float value)

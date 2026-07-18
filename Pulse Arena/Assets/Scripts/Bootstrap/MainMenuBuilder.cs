@@ -22,11 +22,13 @@ namespace Bootstrap
         private readonly ILevelService _levelService;
         private readonly ISettingsController _settingsController;
         private readonly IStateMachine _stateMachine;
+        private readonly IWindowFactory _windowFactory;
 
         private MainMenuPresenter _presenter;
 
         public MainMenuBuilder(IStateMachine stateMachine, GameSettings gameSettings, IAudioService audioService,
-            ISettingsController settingsController, ILevelService levelService, ILevelProgressService levelProgress)
+            ISettingsController settingsController, ILevelService levelService, ILevelProgressService levelProgress,
+            IWindowFactory windowFactory)
         {
             _stateMachine = stateMachine;
             _gameSettings = gameSettings;
@@ -34,6 +36,7 @@ namespace Bootstrap
             _settingsController = settingsController;
             _levelService = levelService;
             _levelProgress = levelProgress;
+            _windowFactory = windowFactory;
         }
 
         public void Initialize()
@@ -59,21 +62,13 @@ namespace Bootstrap
 
         private MainMenuView SpawnView()
         {
-            GameObject prefab = _gameSettings.Prefabs.MainMenuPrefab;
-
-            if (prefab == null)
-            {
-                Debug.LogError("MainMenuPrefab is not assigned in Game Settings → Prefabs.");
-                return null;
-            }
-
-            return Object.Instantiate(prefab).GetComponent<MainMenuView>();
+            return _windowFactory.Create<MainMenuView>(_gameSettings.Prefabs.MainMenuPrefab, "MainMenuPrefab");
         }
 
         private void BindPresenter(MainMenuView view)
         {
             _presenter = new MainMenuPresenter(view, _stateMachine, _audioService, _settingsController,
-                _levelService, _levelProgress, _gameSettings);
+                _levelService, _levelProgress, _gameSettings, _windowFactory);
             _presenter.Initialize();
         }
 

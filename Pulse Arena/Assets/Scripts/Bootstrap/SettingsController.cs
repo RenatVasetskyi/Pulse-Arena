@@ -13,13 +13,15 @@ namespace Architecture.Services
     {
         private readonly GameSettings _gameSettings;
         private readonly ISettingsService _settings;
+        private readonly IWindowFactory _windowFactory;
 
         private SettingsView _view;
 
-        public SettingsController(GameSettings gameSettings, ISettingsService settings)
+        public SettingsController(GameSettings gameSettings, ISettingsService settings, IWindowFactory windowFactory)
         {
             _gameSettings = gameSettings;
             _settings = settings;
+            _windowFactory = windowFactory;
         }
 
         public void Open()
@@ -35,24 +37,11 @@ namespace Architecture.Services
             if (_view != null)
                 return true;
 
-            GameObject prefab = _gameSettings.Prefabs.SettingsPanelPrefab;
-
-            if (prefab == null)
-            {
-                Debug.LogError("SettingsPanelPrefab is not assigned in Game Settings → Prefabs.");
-                return false;
-            }
-
-            GameObject instance = Object.Instantiate(prefab);
-            Object.DontDestroyOnLoad(instance);
-
-            _view = instance.GetComponent<SettingsView>();
+            _view = _windowFactory.CreatePersistent<SettingsView>(_gameSettings.Prefabs.SettingsPanelPrefab,
+                "SettingsPanelPrefab");
 
             if (_view == null)
-            {
-                Debug.LogError("SettingsPanelPrefab has no SettingsView component.");
                 return false;
-            }
 
             CameraData camera = _gameSettings.CameraData;
             float min = camera != null ? camera.MinZoom : 0.5f;

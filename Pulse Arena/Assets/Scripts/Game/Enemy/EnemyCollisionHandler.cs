@@ -62,26 +62,10 @@ namespace Game.Enemy
             if (_timers.ImpactDamageCooldown.Remaining > 0f)
                 return;
 
-            bool hitEnemy = collisionBody != null && collisionBody.TryGetComponent<EnemyController>(out _);
-
-            if (hitEnemy)
-            {
-                if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
-                    return;
-
-                if (!_impact.TryDamageOnCollision(collision))
-                    return;
-
-                _timers.ImpactDamageCooldown.Set(_data.ImpactDamageCooldown);
-                _owner.TakeDamage(_data.ImpactDamage);
-                return;
-            }
-
-            if (collision.relativeVelocity.magnitude < _data.ImpactDamageMinSpeed)
-                return;
-
-            _timers.ImpactDamageCooldown.Set(_data.ImpactDamageCooldown);
-            _owner.TakeDamage(Mathf.Max(1, _data.WallImpactDamage));
+            if (collisionBody != null && collisionBody.TryGetComponent<EnemyController>(out _))
+                TryDamageOnEnemyHit(collision);
+            else
+                TryDamageOnWallHit(collision);
         }
 
         public void OnCollisionStay(Collision collision)
@@ -110,6 +94,29 @@ namespace Game.Enemy
 
             _timers.ImpactDamageCooldown.Set(_data.ImpactDamageCooldown);
             _owner.TakeDamage(_data.ImpactDamage);
+        }
+
+        // Enemy-to-enemy impact: a thrown enemy moving fast enough that lands a valid hit deals impact damage (on cooldown).
+        private void TryDamageOnEnemyHit(Collision collision)
+        {
+            if (_rigidbody.linearVelocity.magnitude < _data.ImpactDamageMinSpeed)
+                return;
+
+            if (!_impact.TryDamageOnCollision(collision))
+                return;
+
+            _timers.ImpactDamageCooldown.Set(_data.ImpactDamageCooldown);
+            _owner.TakeDamage(_data.ImpactDamage);
+        }
+
+        // Wall/obstacle impact: a hard-enough hit into non-enemy geometry deals wall-impact damage (on cooldown).
+        private void TryDamageOnWallHit(Collision collision)
+        {
+            if (collision.relativeVelocity.magnitude < _data.ImpactDamageMinSpeed)
+                return;
+
+            _timers.ImpactDamageCooldown.Set(_data.ImpactDamageCooldown);
+            _owner.TakeDamage(Mathf.Max(1, _data.WallImpactDamage));
         }
 
         private void TryBounceFromGround()

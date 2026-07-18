@@ -359,7 +359,8 @@ namespace Game.Enemy
         private void InitializeRingout()
         {
             _ringout.Initialize(transform, _data, _settings.Prefabs.RingoutBurstPrefab,
-                _scoreService, _comboService, _scorePopups, _audioService, () => _typeData);
+                _scoreService, _comboService, _scorePopups, _audioService, () => _typeData,
+                _settings.Feel.RingoutSfxPitchPerMultiplier);
         }
 
         private void CreateHealthBar()

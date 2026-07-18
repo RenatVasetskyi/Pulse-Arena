@@ -155,11 +155,6 @@ namespace Game.Combat
                    && !_grabbedEnemy.IsGrabbed;
         }
 
-        public void SetLassoOrigin(Transform lassoOrigin)
-        {
-            _lassoOrigin = lassoOrigin;
-        }
-
         /// <summary>Externally drop the held enemy + reset the lasso — e.g. the player died while holding one, so
         /// the rope must let go instead of spinning the enemy on a dead player.</summary>
         public void ForceRelease()

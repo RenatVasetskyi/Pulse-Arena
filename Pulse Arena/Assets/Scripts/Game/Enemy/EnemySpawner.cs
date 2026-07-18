@@ -173,14 +173,7 @@ namespace Game.Enemy
 
                 List<EnemyTypeData> spawnQueue = BuildWaveQueue(wave);
 
-                foreach (EnemyTypeData type in spawnQueue)
-                {
-                    while (_aliveEnemies >= MaxEnemies)
-                        yield return PausableWait(pollInterval);
-
-                    Spawn(type);
-                    yield return PausableWait(Mathf.Max(0.05f, wave.SpawnInterval));
-                }
+                yield return SpawnQueueThrottled(spawnQueue, Mathf.Max(0.05f, wave.SpawnInterval), pollInterval);
 
                 // Wave fully spawned — from now the moment _livingEnemies hits 0 is this wave's LAST KILL (the lethal
                 // hit / ring-out, via OnEnemyDied — NOT the ~1s-later pool return), which is where the slow-mo must
@@ -220,14 +213,7 @@ namespace Game.Enemy
 
                 List<EnemyTypeData> spawnQueue = BuildSurvivalQueue(wave, count, survival);
 
-                foreach (EnemyTypeData type in spawnQueue)
-                {
-                    while (_aliveEnemies >= MaxEnemies)
-                        yield return PausableWait(pollInterval);
-
-                    Spawn(type);
-                    yield return PausableWait(interval);
-                }
+                yield return SpawnQueueThrottled(spawnQueue, interval, pollInterval);
 
                 // Wait for the whole wave to be cleared before escalating — otherwise waves pile on top of each other
                 // (the on-screen cap alone just keeps the arena full without ever "finishing" a wave).
@@ -235,6 +221,20 @@ namespace Game.Enemy
                     yield return PausableWait(pollInterval);
 
                 wave++;
+            }
+        }
+
+        // Spawns each type in the queue, throttled by the on-screen cap: waits at MaxEnemies until room frees up,
+        // then spawns and paces by `interval`. Shared by WaveRoutine and SurvivalRoutine.
+        private IEnumerator SpawnQueueThrottled(List<EnemyTypeData> queue, float interval, float pollInterval)
+        {
+            foreach (EnemyTypeData type in queue)
+            {
+                while (_aliveEnemies >= MaxEnemies)
+                    yield return PausableWait(pollInterval);
+
+                Spawn(type);
+                yield return PausableWait(interval);
             }
         }
 

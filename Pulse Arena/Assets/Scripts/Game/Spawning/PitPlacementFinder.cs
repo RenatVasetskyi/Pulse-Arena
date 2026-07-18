@@ -36,7 +36,7 @@ namespace Game.Spawning
                 float radius = Random.Range(_data.MinRadius, _data.MaxRadius);
                 Vector3 candidate = _center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
 
-                if (_player != null && HorizontalDistance(candidate, _player.position) < playerClearance)
+                if (_player != null && SpawnGeometry.HorizontalDistance(candidate, _player.position) < playerClearance)
                     continue;
 
                 if (Physics.CheckSphere(candidate + Vector3.up, clearance, _enemyLayer))
@@ -48,13 +48,6 @@ namespace Game.Spawning
 
             position = default;
             return false;
-        }
-
-        private static float HorizontalDistance(Vector3 a, Vector3 b)
-        {
-            a.y = 0f;
-            b.y = 0f;
-            return Vector3.Distance(a, b);
         }
     }
 }

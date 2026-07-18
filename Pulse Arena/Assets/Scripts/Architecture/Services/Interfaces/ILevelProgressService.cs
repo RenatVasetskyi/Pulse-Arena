@@ -27,12 +27,6 @@ namespace Architecture.Services.Interfaces
         /// <summary>Banks a survival score if it beats the stored best. Returns true when it set a new record.</summary>
         bool SubmitSurvivalScore(int score);
 
-        /// <summary>True once the first-run onboarding hints have been shown, so they never repeat.</summary>
-        bool OnboardingSeen { get; }
-
-        /// <summary>Records that the onboarding has run (persisted) — call once the player has learned the core loop.</summary>
-        void MarkOnboardingSeen();
-
         void ResetProgress();
     }
 }

@@ -1,8 +1,8 @@
-namespace Game.Enemy
-{
-    using System;
-    using UnityEngine;
+using System;
+using UnityEngine;
 
+namespace Game.Enemy.Interfaces
+{
     public interface IEnemySpawner
     {
         event Action AllWavesCleared;

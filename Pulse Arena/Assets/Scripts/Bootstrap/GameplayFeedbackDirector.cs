@@ -4,6 +4,7 @@ using Data;
 using Game.Cameras;
 using Game.Combat;
 using Game.Enemy;
+using Game.Enemy.Interfaces;
 using Game.Player;
 using UnityEngine;
 
@@ -47,8 +48,8 @@ namespace Game.Scene
         {
             _player = player;
             _camera = camera;
-            _slingshot = player != null ? player.GetComponent<EnemySlingshot>() : null;
-            _playerUltimate = player != null ? player.GetComponent<PlayerUltimate>() : null;
+            _slingshot = player != null ? player.Slingshot : null;
+            _playerUltimate = player != null ? player.Ultimate : null;
             _lastPlayerHealth = player != null ? player.Health : -1;
 
             if (_player != null)
@@ -99,9 +100,15 @@ namespace Game.Scene
             _enemySpawner.AllWavesCleared -= OnVictory;
         }
 
-        private void OnLassoThrown() => _audioService.PlaySfx(GameSfx.LassoThrow);
+        private void OnLassoThrown()
+        {
+            _audioService.PlaySfx(GameSfx.LassoThrow);
+        }
 
-        private void OnEnemyGrabbed() => _audioService.PlaySfx(GameSfx.EnemyGrab);
+        private void OnEnemyGrabbed()
+        {
+            _audioService.PlaySfx(GameSfx.EnemyGrab);
+        }
 
         private void OnEnemyLaunched(float chargeProgress)
         {
@@ -144,7 +151,10 @@ namespace Game.Scene
             _lastPlayerHealth = health;
         }
 
-        private void OnPlayerDashed() => _audioService.PlaySfx(GameSfx.Dash);
+        private void OnPlayerDashed()
+        {
+            _audioService.PlaySfx(GameSfx.Dash);
+        }
 
         private void OnUltimateActivated()
         {
@@ -154,9 +164,15 @@ namespace Game.Scene
             _audioService.PlaySfx(GameSfx.Ultimate);
         }
 
-        private void OnPlayerDied() => _audioService.PlaySfx(GameSfx.Defeat);
+        private void OnPlayerDied()
+        {
+            _audioService.PlaySfx(GameSfx.Defeat);
+        }
 
-        private void OnWaveStarted(int current, int total) => _audioService.PlaySfx(GameSfx.WaveStart);
+        private void OnWaveStarted(int current, int total)
+        {
+            _audioService.PlaySfx(GameSfx.WaveStart);
+        }
 
         // The wave's last enemy just died — punctuate it with a brief slow-mo so the final kill lands in slow motion.
         private void OnWaveCleared()
@@ -167,7 +183,10 @@ namespace Game.Scene
                 _slowMoService.Trigger(data.WaveClearScale, data.WaveClearDuration);
         }
 
-        private void OnVictory() => _audioService.PlaySfx(GameSfx.Victory);
+        private void OnVictory()
+        {
+            _audioService.PlaySfx(GameSfx.Victory);
+        }
 
         // Damage haptic: a short/weak native one-shot on Android (Handheld.Vibrate is a fixed ~500ms full buzz — too
         // strong for a hit). iOS keeps the system vibrate for now (a light haptic there needs a native plugin).

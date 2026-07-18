@@ -12,7 +12,7 @@ namespace Game.Scene
     ///     on screen until an enemy is grabbed, a fling prompt until the first throw, then the kill/win rule, plus
     ///     one-shot booster (first orb), dash (first hit) and ultimate (first charge) hints. Each is a
     ///     <see cref="HudHintView" /> card — grab/fling stay up until the action (learn-by-doing), the rest fade after
-    ///     a beat. Persisted via <see cref="ILevelProgressService.OnboardingSeen" /> so it runs exactly once, ever.
+    ///     a beat. Persisted via <see cref="IOnboardingState.OnboardingSeen" /> so it runs exactly once, ever.
     ///     Bound/unbound by <see cref="GameWorldBuilder" /> like the other per-match collaborators; a no-op once seen.
     /// </summary>
     public class OnboardingController
@@ -20,7 +20,7 @@ namespace Game.Scene
         private const float Hold = 0f; // keep the hint up until the next Show/Hide
 
         private readonly GameSettings _gameSettings;
-        private readonly ILevelProgressService _levelProgress;
+        private readonly IOnboardingState _onboarding;
         private readonly IPickupSpawner _pickupSpawner;
         private readonly ISuperMeterService _superMeterService;
 
@@ -36,10 +36,10 @@ namespace Game.Scene
         private EnemySlingshot _slingshot;
         private bool _ultimateShown;
 
-        public OnboardingController(ILevelProgressService levelProgress, ISuperMeterService superMeterService,
+        public OnboardingController(IOnboardingState onboarding, ISuperMeterService superMeterService,
             IPickupSpawner pickupSpawner, GameSettings gameSettings)
         {
-            _levelProgress = levelProgress;
+            _onboarding = onboarding;
             _superMeterService = superMeterService;
             _pickupSpawner = pickupSpawner;
             _gameSettings = gameSettings;
@@ -48,12 +48,12 @@ namespace Game.Scene
         /// <summary>Start the tutorial for this match — a no-op (nothing subscribed) once the player has seen it.</summary>
         public void Bind(PlayerController player, GameHud hud)
         {
-            if (_levelProgress.OnboardingSeen || player == null || hud == null)
+            if (_onboarding.OnboardingSeen || player == null || hud == null)
                 return;
 
             _player = player;
             _hud = hud;
-            _slingshot = player.GetComponent<EnemySlingshot>();
+            _slingshot = player.Slingshot;
             _lastHealth = player.Health;
             _maxHealth = player.Health; // spawns at full; corrected on the first HealthChanged
             _active = true;
@@ -109,7 +109,7 @@ namespace Game.Scene
 
             _coreDone = true;
             ShowHint(_gameSettings.Onboarding.KillHint, _gameSettings.Onboarding.HintDuration);
-            _levelProgress.MarkOnboardingSeen();
+            _onboarding.MarkOnboardingSeen();
         }
 
         // An orb is on the field now — teach boosters IF the player is already hurt (otherwise it's irrelevant).

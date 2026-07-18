@@ -102,9 +102,24 @@ namespace Game.Player
             return true;
         }
 
-        public void ChangeToDashState() => _changeToDash();
-        public void ChangeToHitState() => _changeToHit();
-        public void ChangeToIdleState() => _changeToIdle();
-        public void ChangeToRunState() => _changeToRun();
+        public void ChangeToDashState()
+        {
+            _changeToDash();
+        }
+
+        public void ChangeToHitState()
+        {
+            _changeToHit();
+        }
+
+        public void ChangeToIdleState()
+        {
+            _changeToIdle();
+        }
+
+        public void ChangeToRunState()
+        {
+            _changeToRun();
+        }
     }
 }

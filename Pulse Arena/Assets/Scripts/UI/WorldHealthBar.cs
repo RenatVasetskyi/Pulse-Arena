@@ -66,12 +66,7 @@ namespace UI
 
         private void RebuildSegments(int count)
         {
-            if (_segments != null)
-            {
-                foreach (Image segment in _segments)
-                    if (segment != null)
-                        Destroy(segment.gameObject);
-            }
+            DestroyExistingSegments();
 
             _segments = new Image[count];
 
@@ -83,20 +78,34 @@ namespace UI
             float startX = -totalWidth * 0.5f;
 
             for (int i = 0; i < count; i++)
-            {
-                Image segment = Instantiate(_segmentTemplate, _segmentsParent);
-                segment.gameObject.SetActive(true);
-                segment.gameObject.name = $"HP_{i + 1}";
-                segment.color = _aliveColor;
+                _segments[i] = CreateSegment(i, startX, segmentWidth);
+        }
 
-                RectTransform rect = segment.rectTransform;
-                rect.anchorMin = new Vector2(0.5f, 0.5f);
-                rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0f, 0.5f);
-                rect.anchoredPosition = new Vector2(startX + i * (segmentWidth + SegmentSpacing), 0f);
-                rect.sizeDelta = new Vector2(segmentWidth, 0.1f);
-                _segments[i] = segment;
-            }
+        private void DestroyExistingSegments()
+        {
+            if (_segments == null)
+                return;
+
+            foreach (Image segment in _segments)
+                if (segment != null)
+                    Destroy(segment.gameObject);
+        }
+
+        private Image CreateSegment(int index, float startX, float segmentWidth)
+        {
+            Image segment = Instantiate(_segmentTemplate, _segmentsParent);
+            segment.gameObject.SetActive(true);
+            segment.gameObject.name = $"HP_{index + 1}";
+            segment.color = _aliveColor;
+
+            RectTransform rect = segment.rectTransform;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(startX + index * (segmentWidth + SegmentSpacing), 0f);
+            rect.sizeDelta = new Vector2(segmentWidth, 0.1f);
+
+            return segment;
         }
     }
 }

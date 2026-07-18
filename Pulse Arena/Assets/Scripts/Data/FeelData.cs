@@ -11,6 +11,9 @@ namespace Data
     public class FeelData
     {
         public float RingoutHeight = -2.5f;
+
+        [Tooltip("Ringout SFX pitch rises by this per combo-multiplier step above 1 (pitch = 1 + (multiplier - 1) * this).")]
+        public float RingoutSfxPitchPerMultiplier = 0.06f;
         public float HitFlashDuration = 0.12f;
 
         [Tooltip("Authored flat material swapped onto an actor's renderers on hit (the flash colour lives on the asset).")]

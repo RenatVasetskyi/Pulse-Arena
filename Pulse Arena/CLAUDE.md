@@ -137,7 +137,7 @@ Restart is a raw active-scene reload (not through the FSM) — safe because Unit
 - States reach collaborators + controller callbacks through **one lean handle, `EnemyContext`** (sealed): direct collaborator refs + the three shared mutable flags (`IsGrabbed`, `IsImpactProjectile`, `NeedsGroundRecovery`) + `Func`/`Action` callbacks (target reads, `IsDead`, `ChangeToChase/GroundRecovery`, `ReturnToPool`, `StartDeathReturn`, `StopForDeath`, `ResolveRingout`). One source of truth.
 - FSM = `Game/Common/StateMachine/ActorStateMachine` (shared with the player). States are lazily built once in `EnsureStateMachine()`; transitions go through `internal ChangeToXState()` methods each guarded `if (!_isDead)`.
 
-**`Game/Player/PlayerController.cs`** is the same shape (thinner): readonly interface-typed collaborators (`IPlayerMovement`, `IPlayerDash`, `IActorHealth`, `HitFlash`), an `ActorStateMachine` of `PlayerMoveState`/`PlayerDashState`/`PlayerHitState`/`PlayerDeadState`, and **thin-delegate one-liners** (`internal void MoveByInput() => _movement.MoveByInput();`) that the states call. Helpers own the **how**; states own the **when**; the controller owns lifecycle + events + transitions.
+**`Game/Player/PlayerController.cs`** is the same shape (thinner): readonly interface-typed collaborators (`IPlayerMovement`, `IPlayerDash`, `IActorHealth`, `HitFlash`), an `ActorStateMachine` of `PlayerMoveState`/`PlayerDashState`/`PlayerHitState`/`PlayerDeadState`, and **thin-delegate methods** (`internal void MoveByInput() { _movement.MoveByInput(); }` — block-bodied, never `=>`) that the states call. Helpers own the **how**; states own the **when**; the controller owns lifecycle + events + transitions.
 
 **Two FSM flavors — don't confuse them:** the player and enemy use the polymorphic `ActorState`/`ActorStateMachine` hierarchy. `EnemySlingshot` (combat) instead uses a **private `enum LassoState`** with if-branches in `Update`/`FixedUpdate` — a lighter FSM for the linear grab sequence.
 
@@ -256,6 +256,7 @@ Order every type to the Rider layout profile — don't hand-order, run Cleanup a
 
 ### Braces
 - Omit braces on single-statement `if` bodies (brace-less one-liner + following blank line); keep Allman braces for multi-line blocks.
+- **Methods are always block-bodied, never expression-bodied** — `void A() { Foo(); }`, not `void A() => Foo();` (enforced via `.editorconfig` `csharp_style_expression_bodied_methods = false`). Expression bodies (`=>`) stay allowed **only** on properties, indexers and accessors (e.g. the `GameSettings` pass-through properties, `Cooldown.Remaining`).
 
 **Pointer files worth opening before writing code:** `Game/Enemy/EnemyController.cs` (the whole pattern), `Game/Player/PlayerController.cs`, `Architecture/Services/PauseService.cs`, `Game/Common/ActorHealth.cs`, `UI/MainMenu/MainMenuPresenter.cs`, `Bootstrap/ServiceInstaller.cs`, `Data/GameSettings.cs`, `Pulse Arena.sln.DotSettings`, `.editorconfig`.
 

@@ -17,3 +17,11 @@ indent_size = 4
 # Those are the only "modifier-less" members left in the project by design.
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 dotnet_diagnostic.IDE0040.severity = warning
+
+# --- Method bodies are block-bodied, never expression-bodied ------------------
+# A single-statement method is written with braces (`void A() { Foo(); }`), not as
+# an expression body (`void A() => Foo();`). Expression bodies stay allowed for
+# PROPERTIES, indexers and accessors (the pass-through getters on GameSettings,
+# EnemyContext, PlayerContext, Cooldown are all properties and keep the `=>` form).
+csharp_style_expression_bodied_methods = false:warning
+csharp_style_expression_bodied_local_functions = false:warning

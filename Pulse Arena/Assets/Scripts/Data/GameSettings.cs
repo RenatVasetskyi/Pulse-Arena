@@ -51,6 +51,7 @@ namespace Data
         public TurretData TurretData => _level.Turret;
         public LevelDefinition[] Levels => _level.Levels;
         public SurvivalData SurvivalData => _level.Survival;
+        public StarThresholdData StarThresholds => _level.StarThresholds;
         public WaveData[] Waves => _level.Waves;
         public PickupData PickupData => _level.Pickup;
         public PoolData PoolData => _level.Pool;
@@ -384,6 +385,16 @@ namespace Data
     }
 
     [Serializable]
+    public class StarThresholdData
+    {
+        [Tooltip("Finish with at least this fraction of max health for 3 stars (0.999 = effectively untouched).")]
+        public float ThreeStarHealthRatio = 0.999f;
+
+        [Tooltip("Finish with at least this fraction of max health for 2 stars; below it is 1 star.")]
+        public float TwoStarHealthRatio = 0.5f;
+    }
+
+    [Serializable]
     public class UiData
     {
         [Header("HUD")] public Color HudPanelColor = new(0.06f, 0.07f, 0.1f, 0.62f);
@@ -402,6 +413,9 @@ namespace Data
 
         public Color WorldHealthEmptyColor = new(0.12f, 0.12f, 0.15f, 0.76f);
         public Color WorldHealthBackgroundColor = new(0.02f, 0.025f, 0.035f, 0.72f);
+
+        [Header("Game Over")] public string WinTitle = "YOU WIN!";
+        public string DefeatTitle = "GAME OVER";
     }
 
     /// <summary>

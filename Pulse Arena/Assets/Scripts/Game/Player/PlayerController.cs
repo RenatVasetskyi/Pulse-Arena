@@ -29,6 +29,7 @@ namespace Game.Player
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private TrailRenderer _dashTrail;
         [SerializeField] private EnemySlingshot _slingshot;
+        [SerializeField] private PlayerUltimate _ultimate;
         [SerializeField] private MonoBehaviour _visualBehaviour;
         private readonly IPlayerDash _dash = new PlayerDash();
         private readonly IActorHealth _health = new ActorHealth();
@@ -58,6 +59,12 @@ namespace Game.Player
 
         /// <summary>Dash readiness for the HUD: 0 just after a dash, filling to 1 when the cooldown is up.</summary>
         public float DashCharge01 => _dash.Charge01;
+
+        /// <summary>The lasso combat component, baked on the player prefab — read directly instead of a GetComponent reach-in.</summary>
+        public EnemySlingshot Slingshot => _slingshot;
+
+        /// <summary>The ultimate ability, baked on the player prefab — read directly instead of a GetComponent reach-in.</summary>
+        public PlayerUltimate Ultimate => _ultimate;
 
         [Inject]
         public void Construct(IInputService inputService, GameSettings gameSettings, IPauseService pauseService)

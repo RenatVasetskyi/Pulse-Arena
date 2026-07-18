@@ -20,7 +20,10 @@ namespace Game.Common
         public bool IsActive => _t > 0f;
 
         /// <summary>Overwrites the remaining time (matches "_timer = seconds").</summary>
-        public void Set(float seconds) => _t = seconds;
+        public void Set(float seconds)
+        {
+            _t = seconds;
+        }
 
         /// <summary>Keeps the larger of the current and requested time (matches "Mathf.Max(_timer, seconds)").</summary>
         public void SetMax(float seconds)
@@ -30,7 +33,10 @@ namespace Game.Common
         }
 
         /// <summary>Zeroes the timer (matches "_timer = 0f").</summary>
-        public void Clear() => _t = 0f;
+        public void Clear()
+        {
+            _t = 0f;
+        }
 
         /// <summary>Subtracts elapsed time while running (matches "if (_t &gt; 0f) _t -= dt").</summary>
         public void Tick(float deltaTime)
