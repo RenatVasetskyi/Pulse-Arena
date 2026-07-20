@@ -2,7 +2,7 @@
 
 ## 🎮 Gameplay trailer
 
-https://github.com/user-attachments/assets/f239ffb1-6e72-42fc-937e-df866d790566
+https://github.com/user-attachments/assets/2124a6f1-7ef8-433e-9007-b14c656ac37c
 
 ---
 
