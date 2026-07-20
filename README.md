@@ -1,5 +1,11 @@
 # Sling Ring
 
+## 🎮 Gameplay trailer
+
+https://github.com/user-attachments/assets/f239ffb1-6e72-42fc-937e-df866d790566
+
+---
+
 > A mobile-first 3D arena brawler where you fight with a **rope**, not a gun: lasso an enemy, wind up the
 > spin, and fling them into other enemies, into the walls, or down a pit. Built in **Unity 6** to showcase
 > a clean, fully-tested, DI-driven game architecture, with art assembled pragmatically (AI-generated,
