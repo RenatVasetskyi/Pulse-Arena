@@ -1,4 +1,4 @@
-# Pulse Arena
+# Sling Ring
 
 > A mobile-first 3D arena brawler where you fight with a **rope**, not a gun: lasso an enemy, wind up the
 > spin, and fling them into other enemies, into the walls, or down a pit. Built in **Unity 6** to showcase
@@ -9,7 +9,7 @@
 
 ## About this project
 
-Pulse Arena is a **portfolio project**. The goal isn't "ship a huge game" — it's to show *how I build one*.
+Sling Ring is a **portfolio project**. The goal isn't "ship a huge game" — it's to show *how I build one*.
 Specifically, it demonstrates:
 
 - **A testable, extensible architecture** — strict one-directional assembly layering, dependency injection,
@@ -112,7 +112,7 @@ Run locally: **Window → General → Test Runner → Run All**.
 
 **Requirements:** Unity **6000.4.0f1** (Unity 6). Packages restore automatically on first open.
 
-1. Clone the repo and open the `Pulse Arena` sub-folder as the project in Unity Hub.
+1. Clone the repo and open the `Sling Ring` sub-folder as the project in Unity Hub.
 2. Open `Assets/Scenes/Boot.unity` — the composition root that boots the flow **Boot → Main Menu → Game**.
 3. Press **Play**; you land in the main menu — hit **Play**, then pick a campaign level or endless survival.
 
@@ -129,7 +129,7 @@ Run locally: **Window → General → Test Runner → Run All**.
 ## Project structure
 
 ```
-Pulse Arena/
+Sling Ring/
 └─ Assets/
    ├─ Scripts/         Data · Architecture (Core) · Game · UI · Bootstrap   (one asmdef per layer)
    ├─ Tests/           EditMode (199) + PlayMode (1)  — mirrors the code layout

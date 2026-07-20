@@ -1,0 +1,23 @@
+{
+  "name": "SlingRing.Game",
+  "rootNamespace": "Game",
+  "references": [
+    "SlingRing.Data",
+    "SlingRing.Core",
+    "Zenject",
+    "DOTween.Modules",
+    "Unity.Cinemachine"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "DOTween.dll",
+    "Zenject-usage.dll"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

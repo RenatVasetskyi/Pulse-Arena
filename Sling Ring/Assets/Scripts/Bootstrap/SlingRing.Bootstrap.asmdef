@@ -1,0 +1,22 @@
+{
+  "name": "SlingRing.Bootstrap",
+  "rootNamespace": "Bootstrap",
+  "references": [
+    "SlingRing.Data",
+    "SlingRing.Core",
+    "SlingRing.Game",
+    "SlingRing.UI",
+    "Zenject",
+    "Unity.InputSystem",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

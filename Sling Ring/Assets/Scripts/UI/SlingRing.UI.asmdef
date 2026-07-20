@@ -1,0 +1,22 @@
+{
+  "name": "SlingRing.UI",
+  "rootNamespace": "UI",
+  "references": [
+    "SlingRing.Data",
+    "SlingRing.Core",
+    "SlingRing.Game",
+    "DOTween.Modules",
+    "Unity.TextMeshPro",
+    "Unity.InputSystem",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
