@@ -4,7 +4,8 @@
   "references": [
     "SlingRing.Data",
     "Unity.InputSystem",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Vibration"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

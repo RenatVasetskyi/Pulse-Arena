@@ -253,14 +253,19 @@ namespace Data
         public float LaunchFovDuration = 0.26f;
     }
 
-    /// <summary>Device haptics tuning. Handheld.Vibrate() can only do a fixed ~500ms buzz, so damage feedback uses a native short/weak one-shot on Android instead.</summary>
+    /// <summary>
+    ///     Damage-tap tuning. iOS uses the plugin's light Taptic impact (no knobs); Android gets a one-shot of
+    ///     <see cref="PlayerHitDurationMs" />. The plugin exposes no Android amplitude, so duration is the only
+    ///     lightness knob there.
+    /// </summary>
     [Serializable]
     public class HapticData
     {
         [Tooltip("Length of the damage vibration in milliseconds — short (~20-40ms) reads as a tap, not a buzz.")]
         [Range(5f, 200f)] public int PlayerHitDurationMs = 30;
 
-        [Tooltip("Strength of the damage vibration, 1-255 (Android amplitude). Low (~40-80) = a soft nudge.")]
+        [Tooltip("Android amplitude 1-255. Unused by the Vibration plugin (it always fires at full strength); " +
+                 "kept for the optional native createOneShot path.")]
         [Range(1, 255)] public int PlayerHitAmplitude = 60;
     }
 

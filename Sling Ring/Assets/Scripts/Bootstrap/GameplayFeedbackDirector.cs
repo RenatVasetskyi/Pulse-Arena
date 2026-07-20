@@ -21,7 +21,7 @@ namespace Game.Scene
         private readonly IAudioService _audioService;
         private readonly IEnemySpawner _enemySpawner;
         private readonly GameSettings _gameSettings;
-        private readonly ISettingsService _settingsService;
+        private readonly IHapticService _haptics;
         private readonly ISlowMoService _slowMoService;
 
         private IBattleCamera _camera;
@@ -33,11 +33,11 @@ namespace Game.Scene
         private EnemySlingshot _slingshot;
 
         public GameplayFeedbackDirector(IAudioService audioService, ISlowMoService slowMoService,
-            ISettingsService settingsService, IEnemySpawner enemySpawner, GameSettings gameSettings)
+            IHapticService haptics, IEnemySpawner enemySpawner, GameSettings gameSettings)
         {
             _audioService = audioService;
             _slowMoService = slowMoService;
-            _settingsService = settingsService;
+            _haptics = haptics;
             _enemySpawner = enemySpawner;
             _gameSettings = gameSettings;
         }
@@ -144,7 +144,7 @@ namespace Game.Scene
             {
                 _audioService.PlaySfx(GameSfx.PlayerHit);
                 _camera.PlayPlayerHit();
-                TryVibrate();
+                _haptics.PlayLight();
             }
 
             _lastPlayerHealth = health;
@@ -185,21 +185,6 @@ namespace Game.Scene
         private void OnVictory()
         {
             _audioService.PlaySfx(GameSfx.Victory);
-        }
-
-        // Damage haptic: a short/weak native one-shot on Android (Handheld.Vibrate is a fixed ~500ms full buzz — too
-        // strong for a hit). iOS keeps the system vibrate for now (a light haptic there needs a native plugin).
-        private void TryVibrate()
-        {
-            if (_settingsService == null || !_settingsService.VibrationEnabled)
-                return;
-
-#if UNITY_ANDROID && !UNITY_EDITOR
-            HapticData haptics = _gameSettings.Haptics;
-            AndroidHaptics.VibrateOneShot(haptics.PlayerHitDurationMs, haptics.PlayerHitAmplitude);
-#elif UNITY_IOS && !UNITY_EDITOR
-            Handheld.Vibrate();
-#endif
         }
     }
 }

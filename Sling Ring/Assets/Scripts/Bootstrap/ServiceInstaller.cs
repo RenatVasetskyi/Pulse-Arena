@@ -30,6 +30,7 @@ namespace Bootstrap
             BindSettingsService();
             BindPauseService();
             BindAudioService();
+            BindHapticService();
         }
 
         // The one place UI windows are instantiated (IWindowFactory) — presenters/controllers create through it
@@ -163,6 +164,16 @@ namespace Bootstrap
             Container
                 .Bind<ISettingsController>()
                 .To<SettingsController>()
+                .AsSingle();
+        }
+
+        // Wraps the Vibration plugin and owns the vibration toggle; constructor-injects ISettingsService, so it is
+        // bound after it.
+        private void BindHapticService()
+        {
+            Container
+                .Bind<IHapticService>()
+                .To<HapticService>()
                 .AsSingle();
         }
 
